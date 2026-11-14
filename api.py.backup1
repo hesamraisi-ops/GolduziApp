@@ -1,0 +1,528 @@
+import aiosqlite
+import jdatetime
+import os
+import shutil
+import jwt
+import hashlib
+import re
+from datetime import datetime, timezone, timedelta
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Form
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+from typing import Literal, Optional, List
+from contextlib import asynccontextmanager
+
+SECRET_KEY = "super_secret_golduzi_key_2026"
+ALGORITHM = "HS256"
+DB_NAME = "app_database.db"
+PHOTO_DIR = "app_photos"
+
+if not os.path.exists(PHOTO_DIR):
+    os.makedirs(PHOTO_DIR)
+
+def hash_password(password: str):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def clean_date(d: str) -> str:
+    return re.sub(r'[/\.]', '-', d.strip())
+
+async def init_db():
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute('''CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT UNIQUE, password_hash TEXT, 
+            name TEXT, role TEXT DEFAULT 'operator', shift_type TEXT)''')
+        await db.execute('''CREATE TABLE IF NOT EXISTS shifts
+                     (id INTEGER PRIMARY KEY, operator_id INTEGER, operator_name TEXT, 
+                      date TEXT, shift_type TEXT, machine TEXT, counter INTEGER, 
+                      design_code TEXT, set_number INTEGER, parts TEXT, photo_path TEXT,
+                      status TEXT, zero_reason TEXT, admin_note TEXT)''')
+        await db.execute('''CREATE TABLE IF NOT EXISTS machines
+                     (name TEXT PRIMARY KEY, reset_period INTEGER, start_counter INTEGER DEFAULT 0)''')
+        await db.execute("INSERT OR IGNORE INTO machines (name, reset_period, start_counter) VALUES ('10 کله', 5000000, 0)")
+        await db.execute("INSERT OR IGNORE INTO machines (name, reset_period, start_counter) VALUES ('12 کله', 5000000, 0)")
+        
+        admin_pwd = hash_password("2864")
+        await db.execute("INSERT OR IGNORE INTO users (phone, password_hash, name, role, shift_type) VALUES (?, ?, ?, ?, ?)",
+                         ("09120143502", admin_pwd, "مدیر کل", "admin", None))
+        await db.commit()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
+app = FastAPI(title="Embroidery Workshop API", lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/app_photos", StaticFiles(directory=PHOTO_DIR), name="app_photos")
+
+class LoginData(BaseModel):
+    phone_number: str
+    password: str
+
+class CreateUserData(BaseModel):
+    phone_number: str
+    name: str
+    role: Literal["admin", "operator"]
+    password: str = Field(..., min_length=4)
+    shift_type: Optional[Literal["صبح", "شب"]] = None
+
+class UpdateUserData(BaseModel):
+    name: str
+    shift_type: Optional[Literal["صبح", "شب"]] = None
+    password: Optional[str] = None
+
+class MachineData(BaseModel):
+    name: str
+    reset_period: int = 5000000
+    start_counter: int = 0
+
+class UpdateMachineData(BaseModel):
+    reset_period: int
+    start_counter: int
+
+class ManualShiftData(BaseModel):
+    operator_id: int
+    date: str
+    shift_type: Literal["صبح", "شب"]
+    machine: str
+    counter: int
+    design_code: str
+    set_number: int
+    parts: str
+
+class ZeroShiftData(BaseModel):
+    date: str
+    machine: str
+    zero_reason: str
+    zero_note: Optional[str] = None
+
+def normalize_phone(phone: str) -> str:
+    phone = phone.replace(" ", "").replace("-", "")
+    if phone.startswith("+98"): return "0" + phone[3:]
+    if phone.startswith("98"): return "0" + phone[2:]
+    return phone
+
+def verify_token(authorization: str = Header(...)):
+    try:
+        token = authorization.split(" ")[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except:
+        raise HTTPException(status_code=401, detail="نشست شما منقضی شده است.")
+
+def verify_admin(payload: dict = Depends(verify_token)):
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="دسترسی مدیریتی ندارید.")
+    return payload
+
+async def get_machine_info(machine_name):
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT reset_period, start_counter FROM machines WHERE name=?", (machine_name,)) as cursor:
+            row = await cursor.fetchone()
+            return row if row else (5000000, 0)
+
+async def get_immediate_previous_shift(machine, date_str, shift_type):
+    async with aiosqlite.connect(DB_NAME) as db:
+        if shift_type == 'شب':
+            query = "SELECT * FROM shifts WHERE machine=? AND date=? AND shift_type='صبح' AND status='approved'"
+            params = (machine, date_str)
+        else:
+            try:
+                y, m, d = map(int, date_str.split('-'))
+                prev_date_str = (jdatetime.date(y, m, d) - jdatetime.timedelta(days=1)).strftime("%Y-%m-%d")
+                query = "SELECT * FROM shifts WHERE machine=? AND date=? AND shift_type='شب' AND status='approved'"
+                params = (machine, prev_date_str)
+            except: return None
+        async with db.execute(query, params) as cursor: return await cursor.fetchone()
+
+async def get_last_valid_shift_before(machine, date_str, shift_type):
+    async with aiosqlite.connect(DB_NAME) as db:
+        if shift_type == 'شب':
+            query = "SELECT * FROM shifts WHERE machine=? AND status='approved' AND zero_reason IS NULL AND (date < ? OR (date = ? AND shift_type = 'صبح')) ORDER BY date DESC, CASE shift_type WHEN 'صبح' THEN 1 ELSE 2 END DESC LIMIT 1"
+            params = (machine, date_str, date_str)
+        else:
+            query = "SELECT * FROM shifts WHERE machine=? AND status='approved' AND zero_reason IS NULL AND date < ? ORDER BY date DESC, CASE shift_type WHEN 'شب' THEN 1 ELSE 2 END DESC LIMIT 1"
+            params = (machine, date_str)
+        async with db.execute(query, params) as cursor: return await cursor.fetchone()
+
+def calculate_work(prev_counter, curr_counter, reset_period, is_first_shift, start_counter):
+    if prev_counter is None:
+        if is_first_shift: prev_counter = start_counter
+        else: return None 
+    if curr_counter >= prev_counter: return curr_counter - prev_counter
+    else: return (reset_period - prev_counter) + curr_counter
+
+async def get_jig_bonus(machine, date_str, shift_type, set_number, parts_str):
+    if "جیگ" not in parts_str: return 0
+    async with aiosqlite.connect(DB_NAME) as db:
+        if shift_type == 'شب':
+            query = "SELECT count(*) FROM shifts WHERE machine=? AND set_number=? AND parts LIKE '%جیگ%' AND status='approved' AND (date < ? OR (date = ? AND shift_type = 'صبح'))"
+            params = (machine, set_number, date_str, date_str)
+        else:
+            query = "SELECT count(*) FROM shifts WHERE machine=? AND set_number=? AND parts LIKE '%جیگ%' AND status='approved' AND date < ?"
+            params = (machine, set_number, date_str)
+        async with db.execute(query, params) as cursor:
+            count = (await cursor.fetchone())[0]
+            return 60000 if count == 0 else 0
+
+async def calculate_work_logic(machine, date_str, shift_type, counter, set_number, parts_str):
+    immediate_prev = await get_immediate_previous_shift(machine, date_str, shift_type)
+    last_valid = await get_last_valid_shift_before(machine, date_str, shift_type)
+    reset, start = await get_machine_info(machine)
+    bonus = await get_jig_bonus(machine, date_str, shift_type, set_number, parts_str)
+    if immediate_prev:
+        if immediate_prev[11]:
+            if last_valid: work = calculate_work(last_valid[6], counter, reset, False, start)
+            else: work = calculate_work(None, counter, reset, True, start)
+        else: work = calculate_work(immediate_prev[6], counter, reset, False, start)
+        if work is not None: work += bonus
+        return work, False
+    else: return None, True
+
+async def get_set_monthly_rank(machine, date_str, design_code, set_number):
+    y, m, d = map(int, date_str.split('-'))
+    start_of_month = f"{y}-{m:02d}-01"
+    async with aiosqlite.connect(DB_NAME) as db:
+        query = "SELECT DISTINCT design_code, set_number FROM shifts WHERE machine=? AND status='approved' AND date >= ? AND date <= ?"
+        async with db.execute(query, (machine, start_of_month, date_str)) as cursor:
+            rows = await cursor.fetchall()
+    sets = set(f"{r[0]}-{r[1]}" for r in rows)
+    current_set = f"{design_code}-{set_number}"
+    return len(sets) if current_set in sets else len(sets) + 1
+
+@app.get("/api/today")
+async def get_today(): return {"date": jdatetime.date.today().strftime("%Y-%m-%d")}
+
+@app.post("/api/login")
+async def login(data: LoginData):
+    clean_phone = normalize_phone(data.phone_number)
+    pwd_hash = hash_password(data.password)
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT id, name, role, shift_type FROM users WHERE phone=? AND password_hash=?", (clean_phone, pwd_hash)) as cursor:
+            row = await cursor.fetchone()
+            if not row: raise HTTPException(status_code=401, detail="شماره یا رمز اشتباه است")
+            user_id, name, role, shift_type = row
+            exp_time = datetime.now(timezone.utc) + timedelta(days=30)
+            payload = {"sub": str(user_id), "name": name, "role": role, "exp": exp_time}
+            if role == 'operator': payload["shift_type"] = shift_type
+            token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+            return {"status": "ok", "token": token, "name": name, "role": role, "shift_type": shift_type}
+
+@app.get("/api/admin/stats")
+async def get_admin_stats(payload: dict = Depends(verify_admin)):
+    today = jdatetime.date.today()
+    start_date = (today - jdatetime.timedelta(days=6)).strftime("%Y-%m-%d")
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT date, shift_type, machine, counter, set_number, parts FROM shifts WHERE status='approved' AND date >= ?", (start_date,)) as cursor:
+            rows = await cursor.fetchall()
+    stats = {}
+    for i in range(7):
+        d = (today - jdatetime.timedelta(days=6-i)).strftime("%Y-%m-%d")
+        stats[d] = {"صبح": 0, "شب": 0}
+    for r in rows:
+        d_str, shift, machine, counter, set_num, parts = r
+        if d_str in stats:
+            work, _ = await calculate_work_logic(machine, d_str, shift, counter, set_num, parts)
+            if work: stats[d_str][shift] += work
+    return {"labels": list(stats.keys()), "morning": [stats[d]["صبح"] for d in stats], "night": [stats[d]["شب"] for d in stats]}
+
+@app.get("/api/admin/pending_shifts")
+async def get_pending_shifts(payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT * FROM shifts WHERE status='pending' ORDER BY date ASC, shift_type DESC") as cursor:
+            rows = await cursor.fetchall()
+            pending_list = []
+            for r in rows:
+                rank = await get_set_monthly_rank(r[5], r[3], r[7], r[8]) if not r[12] else 0
+                pending_list.append({
+                    "id": r[0], "op_name": r[2], "date": r[3], "shift": r[4], "machine": r[5], 
+                    "counter": r[6], "design": r[7], "set_num": r[8], "parts": r[9], "photo": r[10],
+                    "zero_reason": r[12], "zero_note": r[13], "monthly_set_rank": rank
+                })
+            return {"status": "ok", "shifts": pending_list}
+
+@app.post("/api/admin/approve_shift/{shift_id}")
+async def approve_shift(shift_id: int, payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("UPDATE shifts SET status='approved' WHERE id=?", (shift_id,))
+        await db.commit()
+        return {"status": "ok"}
+
+@app.post("/api/admin/reject_shift/{shift_id}")
+async def reject_shift(shift_id: int, payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("UPDATE shifts SET status='rejected' WHERE id=?", (shift_id,))
+        await db.commit()
+        return {"status": "ok"}
+
+@app.delete("/api/admin/delete_shift/{shift_id}")
+async def delete_shift(shift_id: int, payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("DELETE FROM shifts WHERE id=?", (shift_id,))
+        await db.commit()
+        return {"status": "ok"}
+
+@app.post("/api/admin/manual_shift")
+async def manual_shift(data: ManualShiftData, payload: dict = Depends(verify_admin)):
+    try:
+        data.date = clean_date(data.date)
+        async with aiosqlite.connect(DB_NAME) as db:
+            async with db.execute("SELECT name FROM users WHERE id=?", (data.operator_id,)) as cursor:
+                row = await cursor.fetchone()
+                op_name = row[0] if row else "نامشخص"
+            await db.execute(
+                "INSERT INTO shifts (operator_id, operator_name, date, shift_type, machine, counter, design_code, set_number, parts, photo_path, status, admin_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (data.operator_id, op_name, data.date, data.shift_type, data.machine, data.counter, data.design_code, data.set_number, data.parts, "", "approved", "ثبت دستی")
+            )
+            await db.commit()
+            return {"status": "ok"}
+    except Exception as e:
+        print(f"Error in manual_shift: {e}")
+        raise HTTPException(500, str(e))
+
+@app.get("/api/admin/machines")
+async def get_machines_admin(payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT name, reset_period, start_counter FROM machines") as cursor:
+            rows = await cursor.fetchall()
+            return {"machines": [{"name": r[0], "reset_period": r[1], "start_counter": r[2]} for r in rows]}
+
+@app.post("/api/admin/machines")
+async def add_machine(data: MachineData, payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        try:
+            await db.execute("INSERT INTO machines (name, reset_period, start_counter) VALUES (?, ?, ?)", (data.name, data.reset_period, data.start_counter))
+            await db.commit()
+            return {"status": "ok"}
+        except: raise HTTPException(400, "چرخ تکراری است")
+
+@app.put("/api/admin/machines/{machine_name}")
+async def update_machine(machine_name: str, data: UpdateMachineData, payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("UPDATE machines SET reset_period=?, start_counter=? WHERE name=?", (data.reset_period, data.start_counter, machine_name))
+        await db.commit()
+        return {"status": "ok"}
+
+@app.get("/api/admin/reports")
+async def get_admin_reports(start_date: str, end_date: str, shift: str = "both", payload: dict = Depends(verify_admin)):
+    start_date = clean_date(start_date)
+    end_date = clean_date(end_date)
+    query = "SELECT id, operator_name, date, shift_type, machine, counter, design_code, set_number, parts, photo_path, zero_reason FROM shifts WHERE status='approved' AND date BETWEEN ? AND ?"
+    params = [start_date, end_date]
+    if shift != "both":
+        query += " AND shift_type=?"
+        params.append(shift)
+    query += " ORDER BY date DESC"
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute(query, params) as cursor:
+            rows = await cursor.fetchall()
+    total_work = 0; total_sets = set(); details = []
+    for r in rows:
+        if r[10]: # Zero reason
+            work_val = 0
+            rank = 0
+        else:
+            work, _ = await calculate_work_logic(r[4], r[2], r[3], r[5], r[7], r[8])
+            work_val = work if work else 0
+            if r[7]: total_sets.add(f"{r[6]}-{r[7]}")
+            rank = await get_set_monthly_rank(r[4], r[2], r[6], r[7])
+            
+        total_work += work_val
+        details.append({"id": r[0], "op_name": r[1], "date": r[2], "shift_type": r[3], "machine": r[4], "counter": r[5], "design_code": r[6], "set_number": r[7], "parts": r[8], "photo_path": r[9], "work": work_val, "monthly_set_rank": rank, "zero_reason": r[10]})
+    return {"summary": {"total_work": total_work, "total_sets": len(total_sets)}, "details": details}
+
+@app.get("/api/admin/duration_analysis")
+async def get_duration_analysis(payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT machine, design_code, set_number, COUNT(id), MIN(date), MAX(date) FROM shifts WHERE status='approved' AND zero_reason IS NULL GROUP BY machine, design_code, set_number") as cursor:
+            rows = await cursor.fetchall()
+    stats = {}
+    for r in rows:
+        mach, design, set_num, shifts, min_d, max_d = r
+        y1, m1, d1 = map(int, min_d.split('-'))
+        y2, m2, d2 = map(int, max_d.split('-'))
+        days_taken = (jdatetime.date(y2, m2, d2) - jdatetime.date(y1, m1, d1)).days + 1
+        if mach not in stats: stats[mach] = {}
+        if design not in stats[mach]: stats[mach][design] = {'shifts': 0, 'days': 0, 'sets': 0}
+        stats[mach][design]['shifts'] += shifts
+        stats[mach][design]['days'] += days_taken
+        stats[mach][design]['sets'] += 1
+    result = {}
+    for mach, designs in stats.items():
+        result[mach] = {}
+        for design, d in designs.items():
+            result[mach][design] = {"avg_shifts": round(d['shifts'] / d['sets'], 1), "avg_days": round(d['days'] / d['sets'], 1), "total_sets": d['sets']}
+    return {"status": "ok", "data": result}
+
+@app.get("/api/machines")
+async def get_machines_public(payload: dict = Depends(verify_token)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT name FROM machines") as cursor:
+            return {"machines": [r[0] for r in await cursor.fetchall()]}
+
+@app.get("/api/operator/check_shift")
+async def check_shift(date: str, machine: str, payload: dict = Depends(verify_token)):
+    date = clean_date(date)
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute(
+            "SELECT id FROM shifts WHERE operator_id=? AND date=? AND shift_type=? AND machine=? AND status IN ('approved', 'pending')", 
+            (payload["sub"], date, payload.get("shift_type"), machine)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return {"status": "exists", "shift_id": row[0]} if row else {"status": "new"}
+
+@app.get("/api/operator/shift/{shift_id}")
+async def get_shift_detail(shift_id: int, payload: dict = Depends(verify_token)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT * FROM shifts WHERE id=? AND operator_id=?", (shift_id, payload["sub"])) as cursor:
+            row = await cursor.fetchone()
+            if row: return {"status": "ok", "data": {"id": row[0], "machine": row[5], "counter": row[6], "design": row[7], "set_number": row[8], "parts": row[9], "photo_path": row[10], "date": row[3], "zero_reason": row[12]}}
+            raise HTTPException(404, "یافت نشد")
+
+@app.put("/api/operator/edit_shift/{shift_id}")
+async def edit_shift(shift_id: int, machine: str = Form(...), counter: int = Form(...), set_number: int = Form(...), design_code: str = Form(...), parts: str = Form(...), photo: Optional[UploadFile] = File(None), payload: dict = Depends(verify_token)):
+    try:
+        async with aiosqlite.connect(DB_NAME) as db:
+            async with db.execute("SELECT photo_path, date, shift_type FROM shifts WHERE id=? AND operator_id=?", (shift_id, payload["sub"])) as cursor:
+                row = await cursor.fetchone()
+                if not row: raise HTTPException(404, "یافت نشد")
+                old_photo, date_str, shift_type = row
+            final_photo = old_photo
+            if photo:
+                safe_name = machine.replace(" ", "-")
+                photo_path = f"{PHOTO_DIR}/{date_str}_{shift_type}_{payload['sub']}_{safe_name}_edit.jpg"
+                contents = await photo.read()
+                with open(photo_path, "wb") as buffer: buffer.write(contents)
+                final_photo = photo_path
+            await db.execute("UPDATE shifts SET machine=?, counter=?, design_code=?, set_number=?, parts=?, photo_path=?, status='pending', zero_reason=NULL WHERE id=?", (machine, counter, design_code, set_number, parts, final_photo, shift_id))
+            await db.commit()
+            return {"status": "ok"}
+    except Exception as e:
+        print(f"Error in edit_shift: {e}")
+        raise HTTPException(500, str(e))
+
+@app.post("/api/operator/submit_zero")
+async def submit_zero(data: ZeroShiftData, payload: dict = Depends(verify_token)):
+    if payload.get("role") != "operator": raise HTTPException(403, "دسترسی غیرمجاز")
+    try:
+        data.date = clean_date(data.date)
+        async with aiosqlite.connect(DB_NAME) as db:
+            async with db.execute("SELECT id FROM shifts WHERE operator_id=? AND date=? AND shift_type=? AND machine=? AND status IN ('approved', 'pending')", (payload["sub"], data.date, payload.get("shift_type"), data.machine)) as cursor:
+                if await cursor.fetchone():
+                    raise HTTPException(400, "برای این چرخ و تاریخ قبلا ثبت شده است.")
+
+            await db.execute(
+                "INSERT INTO shifts (operator_id, operator_name, date, shift_type, machine, counter, design_code, set_number, parts, photo_path, status, zero_reason, zero_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (payload["sub"], payload["name"], data.date, payload.get("shift_type"), data.machine, 0, "000", 0, "", "", "pending", data.zero_reason, data.zero_note)
+            )
+            await db.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Error in submit_zero: {e}")
+        raise HTTPException(500, str(e))
+
+@app.get("/api/operator/stats")
+async def get_operator_stats(payload: dict = Depends(verify_token)):
+    today = jdatetime.date.today()
+    start_date = (today - jdatetime.timedelta(days=6)).strftime("%Y-%m-%d")
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT date, shift_type, machine, counter, set_number, parts, zero_reason FROM shifts WHERE operator_id=? AND status='approved' AND date >= ?", (payload["sub"], start_date)) as cursor:
+            rows = await cursor.fetchall()
+    daily_work = {}
+    for r in rows:
+        if r[6]: work = 0
+        else: work, _ = await calculate_work_logic(r[2], r[0], r[1], r[3], r[4], r[5])
+        if work:
+            if r[0] not in daily_work: daily_work[r[0]] = 0
+            daily_work[r[0]] += work
+    return {"status": "ok", "data": [{"date": d, "work": daily_work[d]} for d in sorted(daily_work.keys())]}
+
+@app.get("/api/operator/reports")
+async def get_operator_reports(start_date: str, end_date: str, machine: str = "all", payload: dict = Depends(verify_token)):
+    start_date = clean_date(start_date)
+    end_date = clean_date(end_date)
+    query = "SELECT id, date, shift_type, machine, counter, design_code, set_number, parts, photo_path, zero_reason FROM shifts WHERE operator_id=? AND status='approved' AND date BETWEEN ? AND ?"
+    params = [payload["sub"], start_date, end_date]
+    if machine != "all":
+        query += " AND machine=?"
+        params.append(machine)
+    query += " ORDER BY date DESC, shift_type DESC"
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute(query, params) as cursor:
+            rows = await cursor.fetchall()
+    total_work = 0; total_sets = set(); detailed_list = []
+    for r in rows:
+        if r[9]: # Zero
+            work_val = 0
+            rank = 0
+        else:
+            work, _ = await calculate_work_logic(r[3], r[1], r[2], r[4], r[6], r[7])
+            work_val = work if work else 0
+            if r[6]: total_sets.add(f"{r[5]}-{r[6]}")
+            rank = await get_set_monthly_rank(r[3], r[1], r[5], r[6])
+            
+        total_work += work_val
+        detailed_list.append({"id": r[0], "date": r[1], "shift_type": r[2], "machine": r[3], "counter": r[4], "design_code": r[5], "set_number": r[6], "parts": r[7], "photo_path": r[8], "work": work_val, "monthly_set_rank": rank, "zero_reason": r[9]})
+    today = jdatetime.date.today()
+    start_of_month = today.replace(day=1).strftime("%Y-%m-%d")
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT date, shift_type, machine, counter, set_number, parts, zero_reason FROM shifts WHERE operator_id=? AND status='approved' AND date BETWEEN ? AND ?", (payload["sub"], start_of_month, today.strftime("%Y-%m-%d"))) as cursor:
+            month_rows = await cursor.fetchall()
+    month_daily_work = {}
+    for r in month_rows:
+        if r[6]: work = 0
+        else: work, _ = await calculate_work_logic(r[2], r[0], r[1], r[3], r[4], r[5])
+        if work:
+            if r[0] not in month_daily_work: month_daily_work[r[0]] = 0
+            month_daily_work[r[0]] += work
+    avg_daily = sum(month_daily_work.values()) / len(month_daily_work) if month_daily_work else 0
+    return {"summary": {"total_work": total_work, "total_sets": len(total_sets), "avg_daily": int(avg_daily)}, "details": detailed_list}
+
+@app.post("/api/submit_shift")
+async def submit_shift(machine: str = Form(...), date: str = Form(...), design_code: str = Form(...), counter: int = Form(...), set_number: int = Form(...), parts: str = Form(...), photo: UploadFile = File(...), payload: dict = Depends(verify_token)):
+    if payload.get("role") != "operator": raise HTTPException(403, "دسترسی غیرمجاز")
+    try:
+        date = clean_date(date)
+        contents = await photo.read()
+        safe_name = machine.replace(" ", "-")
+        photo_path = f"{PHOTO_DIR}/{date}_{payload['shift_type']}_{payload['sub']}_{safe_name}.jpg"
+        with open(photo_path, "wb") as buffer: buffer.write(contents)
+        async with aiosqlite.connect(DB_NAME) as db:
+            await db.execute("INSERT INTO shifts (operator_id, operator_name, date, shift_type, machine, counter, design_code, set_number, parts, photo_path, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (payload["sub"], payload["name"], date, payload["shift_type"], machine, counter, design_code, set_number, parts, photo_path, "pending"))
+            await db.commit()
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Error in submit_shift: {e}")
+        raise HTTPException(500, str(e))
+
+@app.get("/api/admin/users")
+async def get_users(payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT id, name, phone, role, shift_type FROM users") as cursor:
+            return {"users": [{"id": r[0], "name": r[1], "phone": r[2], "role": r[3], "shift_type": r[4]} for r in await cursor.fetchall()]}
+
+@app.post("/api/admin/create_user")
+async def create_user(data: CreateUserData, payload: dict = Depends(verify_admin)):
+    clean_phone = normalize_phone(data.phone_number)
+    pwd_hash = hash_password(data.password)
+    final_shift = data.shift_type if data.role == "operator" else None
+    async with aiosqlite.connect(DB_NAME) as db:
+        try:
+            await db.execute("INSERT INTO users (phone, password_hash, name, role, shift_type) VALUES (?, ?, ?, ?, ?)", (clean_phone, pwd_hash, data.name, data.role, final_shift))
+            await db.commit()
+            return {"status": "ok"}
+        except: raise HTTPException(400, "شماره تکراری است")
+
+@app.put("/api/admin/users/{user_id}")
+async def update_user(user_id: int, data: UpdateUserData, payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        if data.password: await db.execute("UPDATE users SET name=?, shift_type=?, password_hash=? WHERE id=?", (data.name, data.shift_type, hash_password(data.password), user_id))
+        else: await db.execute("UPDATE users SET name=?, shift_type=? WHERE id=?", (data.name, data.shift_type, user_id))
+        await db.commit()
+        return {"status": "ok"}
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root(): return FileResponse("static/index.html")
