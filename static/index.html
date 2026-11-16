@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -44,6 +45,70 @@
 
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script>
+        async function doLogin() {
+            const btn = document.querySelector('#loginScreen button');
+            const statusEl = document.getElementById('loginStatus');
+            btn.disabled = true;
+            statusEl.innerText = "در حال بررسی...";
+            statusEl.style.color = "blue";
+
+            const phone = toEnglishDigits(document.getElementById('phone').value);
+            const pass = toEnglishDigits(document.getElementById('password').value);
+            const loginUrl = "https://185-222-163-15.sslip.io/api/login";
+
+            try {
+                // تلاش برای استفاده از پلاگین CapacitorHttp (اندروید)
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+                    statusEl.innerText = "اتصال از طریق پلاگین اندروید...";
+                    const res = await window.Capacitor.Plugins.CapacitorHttp.post({
+                        url: loginUrl,
+                        headers: { 'Content-Type': 'application/json' },
+                        data: { phone_number: phone, password: pass }
+                    });
+                    
+                    if (res.status === 200) {
+                        const data = res.data;
+                        localStorage.setItem('token', data.token); 
+                        localStorage.setItem('role', data.role); 
+                        localStorage.setItem('shift_type', data.shift_type || '');
+                        localStorage.setItem('userName', data.name);
+                        statusEl.innerText = "✅ ورود موفق. در حال انتقال...";
+                        statusEl.style.color = "green";
+                        setTimeout(() => { window.location.reload(); }, 500);
+                    } else {
+                        statusEl.innerText = "خطا: " + (res.data.detail || "کد وضعیت " + res.status);
+                        statusEl.style.color = "red";
+                        btn.disabled = false;
+                    }
+                } else {
+                    // حالت پشتیبان (مرورگر)
+                    statusEl.innerText = "اتصال از طریق مرورگر...";
+                    const res = await fetch(loginUrl, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({phone_number: phone, password: pass})
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('role', data.role);
+                        localStorage.setItem('userName', data.name);
+                        localStorage.setItem('shift_type', data.shift_type || '');
+                        window.location.reload();
+                    } else {
+                        statusEl.innerText = "خطای سرور: " + (data.detail || res.status);
+                        statusEl.style.color = "red";
+                        btn.disabled = false;
+                    }
+                }
+            } catch(e) {
+                // در صورت بروز هرگونه خطای شبکه، دقیقا همان را نشان میدهیم
+                statusEl.innerText = "خطای شبکه: " + e.message;
+                statusEl.style.color = "red";
+                alert("خطای اتصال:\n" + e.message + "\n\nلطفا از باز بودن اینترنت مطمئن شوید.");
+                btn.disabled = false;
+            }
+        }
+
         const API_BASE = "https://185-222-163-15.sslip.io";
         var authToken = localStorage.getItem('token');
         var userRole = localStorage.getItem('role');
@@ -83,20 +148,7 @@
             return String(detail);
         }
 
-        async function doLogin() {
-            const btn = document.querySelector('#loginScreen button');
-            const statusEl = document.getElementById('loginStatus');
-            if (!btn || !statusEl) return;
-            
-            btn.disabled = true;
-            statusEl.innerText = "در حال بررسی...";
-            statusEl.style.color = "blue";
-
-            try {
-                const res = await nativeFetch(API_BASE + '/api/login', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({phone_number: toEnglishDigits(document.getElementById('phone').value), password: toEnglishDigits(document.getElementById('password').value)})
-                });
+        );
                 const data = await res.json();
                 
                 if (res.ok) {
@@ -239,3 +291,5 @@
 <!-- Force Build: 1794841501 -->
 
 <!-- Force Build: 1794842059 -->
+
+<!-- Build: 1794852980 -->
