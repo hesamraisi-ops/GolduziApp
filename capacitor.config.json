@@ -3,8 +3,7 @@
   "appName": "GolduziApp",
   "webDir": "static",
   "server": {
-    "androidScheme": "https",
-    "cleartext": false
+    "androidScheme": "https"
   },
   "plugins": {
     "CapacitorHttp": {
