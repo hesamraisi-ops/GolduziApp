@@ -45,9 +45,136 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script>
         const API_BASE = "http://185.222.163.15:8000";
-        let authToken = localStorage.getItem('token');
-        let userRole = localStorage.getItem('role');
-        let userShift = localStorage.getItem('shift_type');
+        var authToken = localStorage.getItem('token');
+        var userRole = localStorage.getItem('role');
+        var userShift = localStorage.getItem('shift_type');
+        const nativeFetch = window.fetch.bind(window);
+
+        function toEnglishDigits(str) {
+            if (!str) return '';
+            const p = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+            const e = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            str = str.toString();
+            for (let i = 0; i < 10; i++) str = str.replace(p[i], e[i]);
+            return str;
+        }
+        function toPersianDigits(str) {
+            if (!str) return '';
+            const p = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+            return str.toString().replace(/\d/g, x => p[x]);
+        }
+        function formatNum(num) {
+            if (num === null || num === undefined) return 'نامشخص';
+            return toPersianDigits(Number(num).toLocaleString('en-US'));
+        }
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            let cleanStr = toEnglishDigits(dateStr.toString()).replace(/\//g, '-');
+            let parts = cleanStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            let months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+            let m = parseInt(parts[1]), d = parseInt(parts[2]), y = parts[0];
+            return toPersianDigits(`${d < 10 ? '0'+d : d} ${months[m-1]} ${y}`);
+        }
+        function parseError(detail) {
+            if (!detail) return "مشکلی پیش آمد";
+            if (typeof detail === 'string') return detail;
+            if (Array.isArray(detail)) return detail.map(e => e.msg || JSON.stringify(e)).join(' | ');
+            return String(detail);
+        }
+
+        async function doLogin() {
+            const btn = document.querySelector('#loginScreen button');
+            const statusEl = document.getElementById('loginStatus');
+            if (!btn || !statusEl) return;
+            
+            btn.disabled = true;
+            statusEl.innerText = "در حال بررسی...";
+            statusEl.style.color = "blue";
+
+            try {
+                const res = await nativeFetch(API_BASE + '/api/login', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone_number: toEnglishDigits(document.getElementById('phone').value), password: toEnglishDigits(document.getElementById('password').value)})
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    localStorage.setItem('token', data.token); 
+                    localStorage.setItem('role', data.role); 
+                    localStorage.setItem('shift_type', data.shift_type || '');
+                    localStorage.setItem('userName', data.name);
+                    
+                    statusEl.innerText = "✅ ورود موفق. در حال انتقال...";
+                    statusEl.style.color = "green";
+                    setTimeout(() => { window.location.reload(); }, 300);
+                } else { 
+                    statusEl.innerText = parseError(data.detail); 
+                    statusEl.style.color = "red";
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                statusEl.innerText = "خطای شبکه: " + e.message;
+                statusEl.style.color = "red";
+                btn.disabled = false;
+            }
+        }
+
+        function doLogout() { 
+            localStorage.removeItem('token'); 
+            localStorage.removeItem('role'); 
+            window.location.reload(); 
+        }
+
+        function routeUser() {
+            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+            if (!authToken) {
+                if (document.getElementById('loginScreen')) document.getElementById('loginScreen').classList.add('active');
+            } else if (userRole === 'admin') {
+                if (document.getElementById('adminScreen')) {
+                    document.getElementById('adminScreen').classList.add('active');
+                    document.getElementById('adminWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'مدیر'}`;
+                }
+            } else {
+                if (document.getElementById('operatorDashboard')) {
+                    document.getElementById('operatorDashboard').classList.add('active');
+                    document.getElementById('opWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'اپراتور'}`;
+                    document.getElementById('operatorShiftDisplay').innerHTML = `<div class="shift-badge">شیفت شما: ${userShift}</div>`;
+                }
+            }
+        }
+
+        function showSection(id) {
+            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+            if (document.getElementById(id)) document.getElementById(id).classList.add('active');
+        }
+
+        window.fetch = async function(...args) {
+            let [url, options] = args;
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                url = API_BASE + url;
+                args[0] = url;
+            }
+            if (navigator.onLine) {
+                try { return await nativeFetch(...args); } catch(e) {}
+            }
+            if ((options && options.method || 'GET') === 'GET') {
+                let dbData = JSON.parse(localStorage.getItem('offline_db') || '{}');
+                if (url.includes('/pending_shifts') || url.includes('/all_shifts')) return new Response(JSON.stringify({status: 'ok', shifts: dbData.shifts || []}), {status: 200});
+                if (url.includes('/users')) return new Response(JSON.stringify({users: dbData.users || []}), {status: 200});
+                if (url.includes('/machines')) return new Response(JSON.stringify({machines: (dbData.machines || []).map(m=>m.name)}), {status: 200});
+                return new Response(JSON.stringify({detail: 'آفلاین'}), {status: 404});
+            } else {
+                return new Response(JSON.stringify({status: 'queued'}), {status: 200});
+            }
+        };
+
+        $(document).ready(function() { routeUser(); });
+
+        const API_BASE = "http://185.222.163.15:8000";
+        
+        
+        
         
         const nativeFetch = window.fetch.bind(window);
 
@@ -60,18 +187,7 @@
             return str;
         }
 
-        async function doLogin() {
-            const btn = document.getElementById('loginBtn');
-            const statusEl = document.getElementById('loginStatus');
-            btn.disabled = true;
-            statusEl.innerText = "در حال بررسی...";
-            statusEl.style.color = "blue";
-
-            try {
-                const res = await nativeFetch(API_BASE + '/api/login', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({phone_number: toEnglishDigits(document.getElementById('phone').value), password: toEnglishDigits(document.getElementById('password').value)})
-                });
+        );
                 const data = await res.json();
                 
                 if (res.ok) {
