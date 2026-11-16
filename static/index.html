@@ -4,6 +4,7 @@
 
     
     <script>
+        const API_BASE = "http://185.222.163.15:8000";
         var authToken = localStorage.getItem('token');
         var userRole = localStorage.getItem('role');
         var userShift = localStorage.getItem('shift_type');
@@ -19,10 +20,59 @@
             statusEl.style.color = "blue";
 
             try {
-                const res = await nativeFetch('http://185.222.163.15:8000/api/login', {
+                const res = await nativeFetch(API_BASE + '/api/login', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({phone_number: toEnglishDigits(document.getElementById('phone').value), password: toEnglishDigits(document.getElementById('password').value)})
                 });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    localStorage.setItem('token', data.token); 
+                    localStorage.setItem('role', data.role); 
+                    localStorage.setItem('shift_type', data.shift_type || '');
+                    localStorage.setItem('userName', data.name);
+                    
+                    statusEl.innerText = "✅ ورود موفق. در حال انتقال...";
+                    statusEl.style.color = "green";
+                    setTimeout(() => { window.location.reload(); }, 300);
+                } else { 
+                    statusEl.innerText = parseError(data.detail); 
+                    statusEl.style.color = "red";
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                statusEl.innerText = "خطای شبکه: " + e.message;
+                statusEl.style.color = "red";
+                btn.disabled = false;
+            }
+        }
+
+        window.fetch = async function(...args) {
+            let [url, options] = args;
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                url = API_BASE + url;
+                args[0] = url;
+            }
+            if (navigator.onLine) {
+                try { return await nativeFetch(...args); } catch(e) {}
+            }
+            if ((options && options.method || 'GET') === 'GET') {
+                let dbData = JSON.parse(localStorage.getItem('offline_db') || '{}');
+                if (url.includes('/pending_shifts') || url.includes('/all_shifts')) return new Response(JSON.stringify({status: 'ok', shifts: dbData.shifts || []}), {status: 200});
+                if (url.includes('/users')) return new Response(JSON.stringify({users: dbData.users || []}), {status: 200});
+                if (url.includes('/machines')) return new Response(JSON.stringify({machines: (dbData.machines || []).map(m=>m.name)}), {status: 200});
+                return new Response(JSON.stringify({detail: 'آفلاین'}), {status: 404});
+            } else {
+                return new Response(JSON.stringify({status: 'queued'}), {status: 200});
+            }
+        };
+
+        
+        
+        
+        const nativeFetch = window.fetch.bind(window);
+
+        );
                 const data = await res.json();
                 
                 if (res.ok) {
@@ -46,54 +96,7 @@
             }
         }
 
-        window.fetch = async function(...args) {
-            let [url, options] = args;
-            if (typeof url !== 'string' || !url.startsWith('http')) {
-                return nativeFetch(...args);
-            }
-            const method = (options && options.method) || 'GET';
-            const isGet = method === 'GET';
-            const urlObj = new URL(url);
-            const path = urlObj.pathname;
-
-            if (navigator.onLine) {
-                try {
-                    const response = await nativeFetch(...args);
-                    if (response) return response;
-                } catch (err) { console.warn("Network failed. Fallback to offline."); }
-            }
-
-            if (isGet) {
-                let dbData = null;
-                try {
-                    const raw = localStorage.getItem('offline_db');
-                    if (raw) dbData = JSON.parse(raw);
-                } catch(e) {}
-
-                if (!dbData || !dbData.shifts) {
-                    if (path === '/api/admin/users') return new Response(JSON.stringify({users: []}), {status: 200});
-                    if (path.includes('/machines')) return new Response(JSON.stringify({machines: []}), {status: 200});
-                    if (path === '/api/admin/pending_shifts') return new Response(JSON.stringify({status: 'ok', shifts: []}), {status: 200});
-                    if (path === '/api/admin/all_shifts') return new Response(JSON.stringify({status: 'ok', shifts: []}), {status: 200});
-                    return new Response(JSON.stringify({detail: 'دیتابیس خالی است'}), {status: 404});
-                }
-
-                const allShifts = dbData.shifts || [];
-                const allUsers = dbData.users || [];
-                const allMachines = dbData.machines || [];
-
-                if (path === '/api/admin/pending_shifts') return new Response(JSON.stringify({status: 'ok', shifts: allShifts.filter(s => s.status === 'pending').map(s => ({...s, potential_bonus: s.jig_bonus || 0, monthly_set_rank: 1}))}), {status: 200});
-                if (path === '/api/admin/all_shifts') return new Response(JSON.stringify({status: 'ok', shifts: allShifts}), {status: 200});
-                if (path === '/api/admin/users') return new Response(JSON.stringify({users: allUsers}), {status: 200});
-                if (path === '/api/admin/machines' || path === '/api/machines') return new Response(JSON.stringify({machines: allMachines.map(m=>m.name)}), {status: 200});
-                
-                if (path.includes('/reports/')) return new Response(JSON.stringify({status: 'empty'}), {status: 200});
-                return new Response(JSON.stringify([]), {status: 200});
-            } else {
-                return new Response(JSON.stringify({status:'queued', message:'آفلاین - در صف سینک'}), {status:200});
-            }
-        };
-
+        
 
         function routeUser() {
             document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
