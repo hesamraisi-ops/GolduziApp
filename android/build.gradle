@@ -1,7 +1,11 @@
 buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
     dependencies {
-        classpath "com.android.tools.build:gradle:${project.ext.agpVersion}"
-        classpath "com.google.gms:google-services:4.4.2"
+        classpath 'com.android.tools.build:gradle:8.9.1'
+        classpath 'com.google.gms:google-services:4.4.2'
     }
 }
 
@@ -9,8 +13,6 @@ apply from: "variables.gradle"
 
 allprojects {
     repositories {
-        maven { url 'https://maven.myket.ir' }
-        maven { url 'https://maven.aliyun.com/repository/public' }
         google()
         mavenCentral()
     }
