@@ -3,7 +3,43 @@
 <head>
 
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
+    <script>
+
+        async function doLogin() {
+            const btn = document.querySelector('#loginScreen button');
+            const statusEl = document.getElementById('loginStatus');
+            btn.disabled = true;
+            statusEl.innerText = "در حال بررسی...";
+            statusEl.style.color = "blue";
+
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/login', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone_number: toEnglishDigits(document.getElementById('phone').value), password: toEnglishDigits(document.getElementById('password').value)})
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    localStorage.setItem('token', data.token); 
+                    localStorage.setItem('role', data.role); 
+                    localStorage.setItem('shift_type', data.shift_type || '');
+                    localStorage.setItem('userName', data.name);
+                    
+                    statusEl.innerText = "✅ ورود موفق. در حال انتقال...";
+                    statusEl.style.color = "green";
+                    setTimeout(() => { window.location.reload(); }, 300);
+                } else { 
+                    statusEl.innerText = parseError(data.detail); 
+                    statusEl.style.color = "red";
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                statusEl.innerText = "خطای شبکه: " + e.message;
+                statusEl.style.color = "red";
+                btn.disabled = false;
+            }
+        }
+eruda.init();</script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -1336,44 +1372,7 @@
                             <strong>چرخ:</strong> ${toPersianDigits(s.machine)}<br>
                             ${workHtml}
                         </div>
-                function doLogin() {
-            const btn = document.querySelector('#loginScreen button');
-            const statusEl = document.getElementById('loginStatus');
-            btn.disabled = true;
-            statusEl.innerText = "در حال بررسی...";
-            statusEl.style.color = "blue";
-
-            const phone = toEnglishDigits(document.getElementById('phone').value);
-            const pass = toEnglishDigits(document.getElementById('password').value);
-
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "http://185.222.163.15:8000/api/login", true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-            
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            localStorage.setItem('token', data.token); 
-                            localStorage.setItem('role', data.role); 
-                            localStorage.setItem('shift_type', data.shift_type || '');
-                            localStorage.setItem('userName', data.name);
-                            
-                            statusEl.innerText = "✅ ورود موفق. در حال انتقال...";
-                            statusEl.style.color = "green";
-                            
-                            // دانلود دیتابیس آفلاین در پس‌زمینه (با تاخیر کوچک)
-                            setTimeout(() => {
-                                var syncXhr = new XMLHttpRequest();
-                                syncXhr.open("GET", "http://185.222.163.15:8000/api/sync/download_all", true);
-                                syncXhr.setRequestHeader("Authorization", "Bearer " + data.token);
-                                syncXhr.onreadystatechange = function() {
-                                    if (syncXhr.readyState === 4 && syncXhr.status === 200) {
-                                        localStorage.setItem('offline_db', syncXhr.responseText);
-                                        var now = new Date();
-                                        localStorage.setItem('last_sync_time', now.toLocaleDateString('fa-IR') + ' - ' + now.toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}));
-                                    }
+                
                                     window.location.reload();
                                 };
                                 syncXhr.send();
