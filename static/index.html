@@ -61,20 +61,101 @@
 </head>
 <body>
 
+    <script>
+        
+        let authToken = localStorage.getItem('token');
+        let userRole = localStorage.getItem('role');
+        let userShift = localStorage.getItem('shift_type');
     
-
-
-
+        
+        let authToken = localStorage.getItem('token');
+        let userRole = localStorage.getItem('role');
+        let userShift = localStorage.getItem('shift_type');
     
-
-
-
+        
+        
+        
+        
     
+        // تعریف امن تابع اصلی مرورگر (فقط یک بار)
+        
+
+        // تعریف امن تابع اصلی fetch مرورگر
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    
+        
+
+        
+        
+        
+        
+        
+        
+        
+        
+
+        
+
+        
+
+        
+
+        if (!localStorage.getItem('sw_cleared_v220')) {
+            localStorage.setItem('sw_cleared_v220', 'true');
+            
+                });
+                caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+            }
+            setTimeout(() => window.location.reload(true), 500);
+        }
+    </script>
+
+
+
+    <script>
+        // کش‌شکن قاتل: سرویس ورکر قدیمی را حذف میکند تا فایل جدید لود شود
+        if ('serviceWorker' in navigator && !localStorage.getItem('sw_killed_v210')) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) { registration.unregister(); }
+                localStorage.setItem('sw_killed_v210', 'true');
+                setTimeout(() => window.location.reload(true), 500);
+            });
+        }
+    </script>
+
+
+
+    <script>
+        // پاکسازی اجباری کش
+        );
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) { registration.unregister(); }
+            });
+        }
+    </script>
 
 <!-- Force clear cache v2 -->
 
 
-    
+    <script>
+        // پاکسازی اجباری کش در هر بار لود شدن
+        );
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+    </script>
 
 <!-- Force clear cache on load -->
 
@@ -3069,108 +3150,5 @@
             if (res.ok) loadAdminMachines(); else alert('خطا در ذخیره');
         }
     </script>
-
-    <script>
-        const API_BASE = "https://185-222-163-15.sslip.io";
-        
-        function toEnglishDigits(str) {
-            if (!str) return '';
-            const p = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
-            const e = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-            str = str.toString();
-            for (let i = 0; i < 10; i++) str = str.replace(p[i], e[i]);
-            return str;
-        }
-
-        async function doLogin() {
-            const btn = document.querySelector('#loginScreen button');
-            const statusEl = document.getElementById('loginStatus');
-            if (!btn || !statusEl) return;
-            
-            btn.disabled = true;
-            statusEl.innerText = "در حال بررسی...";
-            statusEl.style.color = "blue";
-
-            try {
-                const res = await fetch(API_BASE + '/api/login', {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        phone_number: toEnglishDigits(document.getElementById('phone').value), 
-                        password: toEnglishDigits(document.getElementById('password').value)
-                    })
-                });
-                const data = await res.json();
-                
-                if (res.ok) {
-                    localStorage.setItem('token', data.token); 
-                    localStorage.setItem('role', data.role); 
-                    localStorage.setItem('shift_type', data.shift_type || '');
-                    localStorage.setItem('userName', data.name);
-                    
-                    statusEl.innerText = "✅ ورود موفق. در حال انتقال...";
-                    statusEl.style.color = "green";
-                    setTimeout(() => { window.location.reload(); }, 300);
-                } else { 
-                    statusEl.innerText = data.detail || "خطا در ورود"; 
-                    statusEl.style.color = "red";
-                    btn.disabled = false;
-                }
-            } catch(e) {
-                statusEl.innerText = "خطای شبکه: " + e.message;
-                statusEl.style.color = "red";
-                btn.disabled = false;
-            }
-        }
-
-        function doLogout() { 
-            localStorage.removeItem('token'); 
-            localStorage.removeItem('role'); 
-            window.location.reload(); 
-        }
-
-        function showSection(id) {
-            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-            const el = document.getElementById(id);
-            if (el) el.classList.add('active');
-        }
-
-        function routeUser() {
-            const token = localStorage.getItem('token');
-            const role = localStorage.getItem('role');
-            
-            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-
-            if (!token || token === 'undefined') {
-                const el = document.getElementById('loginScreen');
-                if (el) el.classList.add('active');
-            } else if (role === 'admin') {
-                const el = document.getElementById('adminScreen');
-                if (el) {
-                    el.classList.add('active');
-                    const name = localStorage.getItem('userName') || 'مدیر';
-                    const nameEl = document.getElementById('adminWelcomeName');
-                    if(nameEl) nameEl.innerText = `👋 خوش آمدید ${name}`;
-                }
-            } else {
-                const el = document.getElementById('operatorDashboard');
-                if (el) {
-                    el.classList.add('active');
-                    const name = localStorage.getItem('userName') || 'اپراتور';
-                    const nameEl = document.getElementById('opWelcomeName');
-                    if(nameEl) nameEl.innerText = `👋 خوش آمدید ${name}`;
-                    const shiftEl = document.getElementById('operatorShiftDisplay');
-                    if(shiftEl) shiftEl.innerHTML = `<div class="shift-badge">شیفت شما: ${localStorage.getItem('shift_type') || ''}</div>`;
-                }
-            }
-        }
-
-        window.onload = function() {
-            routeUser();
-        };
-    </script>
-
 </body>
 </html>
-
-<!-- Final JS Rescue: 1794892207 -->
