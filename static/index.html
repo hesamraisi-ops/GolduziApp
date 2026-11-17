@@ -868,7 +868,7 @@
         function doLogout() { localStorage.clear(); location.reload(); }
 
         async function doLogin() {
-            const res = await fetch('/api/login', {
+            const res = await fetch('http://185.222.163.15:8000/api/login', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({phone_number: toEnglishDigits(document.getElementById('phone').value), password: toEnglishDigits(document.getElementById('password').value)})
             });
@@ -899,7 +899,7 @@
         }
 
         function setTodayDate() {
-            fetch('/api/today').then(r => r.json()).then(d => {
+            fetch('http://185.222.163.15:8000/api/today').then(r => r.json()).then(d => {
                 document.getElementById('date').value = toPersianDigits(d.date);
                 $('#date').persianDatepicker('setDate', d.date);
                 checkExistingShift();
@@ -956,7 +956,7 @@
             if (!date || !machine || !shift) return;
 
             try {
-                const res = await fetch(`/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${encodeURIComponent(shift)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${encodeURIComponent(shift)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('immediatePrevDisplay');
                 if (!div) return;
@@ -1002,7 +1002,7 @@
             const machineVal = document.getElementById('machine') ? document.getElementById('machine').value : '';
             if (!machineVal) return;
             try {
-                const res = await fetch(`/api/operator/last_shifts?machine=${encodeURIComponent(machineVal)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machineVal)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('lastShiftDisplay');
                 if (!div) return;
@@ -1044,7 +1044,7 @@
 
         async function loadMachines() {
             try {
-                const res = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const select = document.getElementById('machine');
                 if(select) select.innerHTML = data.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
@@ -1059,7 +1059,7 @@
 
         async function checkOperatorNotifications() {
             try {
-                const res = await fetch('/api/operator/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/operator/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.rejected_count > 0) {
                     lastRejectedDate = data.last_rejected_date;
@@ -1111,7 +1111,7 @@
             let sortOrder = document.getElementById('opListSortOrder') ? document.getElementById('opListSortOrder').value : 'desc';
             if (!start || !end) return;
             try {
-                const res = await fetch(`/api/operator/reports?start_date=${start}&end_date=${end}&machine=${encodeURIComponent(mach)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/reports?start_date=${start}&end_date=${end}&machine=${encodeURIComponent(mach)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (sortOrder === 'asc') data.details.reverse();
                 const div = document.getElementById('opShiftListData'); div.innerHTML = '';
@@ -1166,7 +1166,7 @@
             const machine = document.getElementById('machine').value;
             if (!date || !machine) return;
             try {
-                const res = await fetch(`/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const alertBox = document.getElementById('checkShiftAlert');
                 const btn = document.getElementById('submitBtn');
@@ -1216,7 +1216,7 @@
             isEditingDateLoading = true;
             document.getElementById('date').disabled = true;
             try {
-                const res = await fetch(`/api/operator/shift/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/shift/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (res.ok) {
                     document.getElementById('formTitle').innerText = "✏️ ویرایش کارکرد";
@@ -1294,12 +1294,12 @@
                         fd.append("machine", machineVal); fd.append("counter", 0); fd.append("design_code", "000"); fd.append("set_number", 0); fd.append("parts", "");
                         fd.append("zero_reason", document.getElementById('zeroReason').value);
                         fd.append("zero_note", document.getElementById('zeroNote').value);
-                        const res = await fetch(`/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                        const res = await fetch(`http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
                         if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
                         else { alert("✅ کارکرد صفر ویرایش شد!"); showSection('operatorDashboard'); }
                     } else {
                         const zeroPayload = { date: dateVal, machine: machineVal, zero_reason: document.getElementById('zeroReason').value, zero_note: document.getElementById('zeroNote').value };
-                        const res = await fetch('/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
+                        const res = await fetch('http://185.222.163.15:8000/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
                         if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
                         else { alert("✅ کارکرد صفر ثبت شد!"); showSection('operatorDashboard'); }
                     }
@@ -1339,7 +1339,7 @@
                     
                     if (photoFile) fd.append("photo", photoFile);
 
-                    const pvRes = await fetch('/api/operator/preview_work', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                    const pvRes = await fetch('http://185.222.163.15:8000/api/operator/preview_work', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
                     const pvData = await pvRes.json().catch(()=>({}));
                     
                     if (!pvRes.ok) { 
@@ -1437,7 +1437,7 @@
 
         async function checkAdminNotifications() {
             try {
-                const res = await fetch('/api/admin/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/admin/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.suspicious_alerts > 0) {
                     document.getElementById('adminAlertBanner').style.display = 'block';
@@ -1453,12 +1453,12 @@
         function approveShift(id) {
             const cb = document.getElementById(`bonus_${id}`);
             const apply = cb ? cb.checked : false;
-            fetch(`/api/admin/approve_shift/${id}?apply_bonus=${apply}`, {method:'POST', headers:{'Authorization':'Bearer ' + authToken}}).then(() => loadPendingShifts());
+            fetch(`http://185.222.163.15:8000/api/admin/approve_shift/${id}?apply_bonus=${apply}`, {method:'POST', headers:{'Authorization':'Bearer ' + authToken}}).then(() => loadPendingShifts());
         }
 
         async function loadPendingShifts() {
             try {
-                const res = await fetch('/api/admin/pending_shifts', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/admin/pending_shifts', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('pendingList'); div.innerHTML = '';
                 
@@ -1532,7 +1532,7 @@
 
                             content = `<img class="card-img" src="/${s.photo || 'static/placeholder.png'}" onclick="showImageZoom('/${s.photo || 'static/placeholder.png'}')"><div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | شماره ست: ${toPersianDigits(s.set_num)} <span style="color:#e74c3c; font-weight:bold;">(ست ${toPersianDigits(s.monthly_set_rank)} این ماه)</span><br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${bonusHtml}`;
                         }
-                        div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} (${s.day_name}) | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
+                        div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} (${s.day_name}) | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('http://185.222.163.15:8000/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
                     });
                 }
             } catch(e) {}
@@ -1563,12 +1563,12 @@
 
         async function loadAdminUsersAndMachines() {
             try {
-                const resMach = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resMach = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataMach = await resMach.json();
                 const manMachineSelect = document.getElementById('manMachine');
                 if(manMachineSelect) manMachineSelect.innerHTML = dataMach.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
 
-                const resUsers = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resUsers = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataUsers = await resUsers.json();
                 
                 window.allOperators = dataUsers.users.filter(u => u.role === 'operator');
@@ -1595,7 +1595,7 @@
 
             try {
                 const excludeParam = editingAdminShiftId ? `&exclude_shift_id=${editingAdminShiftId}` : '';
-                const res = await fetch(`/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}${excludeParam}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}${excludeParam}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const alertBox = document.getElementById('manCheckShiftAlert');
                 const btn = document.getElementById('manSubmitBtn');
@@ -1611,7 +1611,7 @@
             } catch(e) {}
 
             try {
-                const resLast = await fetch(`/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resLast = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataLast = await resLast.json();
                 const divLast = document.getElementById('manLastShiftDisplay');
                 let htmlLast = '';
@@ -1647,7 +1647,7 @@
                 }
                 divLast.innerHTML = htmlLast;
 
-                const resPrev = await fetch(`/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resPrev = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataPrev = await resPrev.json();
                 const divPrev = document.getElementById('manImmediatePrevDisplay');
                 if (dataPrev.exists) {
@@ -1676,7 +1676,7 @@
                 }
                 
                 if (!date) {
-                    const resSug = await fetch(`/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                    const resSug = await fetch(`http://185.222.163.15:8000/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                     const dataSug = await resSug.json();
                     if (dataSug.date) {
                         document.getElementById('manDate').value = toPersianDigits(dataSug.date);
@@ -1728,7 +1728,7 @@
         }
 
         function setManTodayDate() {
-            fetch('/api/today').then(r => r.json()).then(d => {
+            fetch('http://185.222.163.15:8000/api/today').then(r => r.json()).then(d => {
                 document.getElementById('manDate').value = toPersianDigits(d.date);
                 $('#manDate').persianDatepicker('setDate', d.date);
                 triggerManFetch();
@@ -1804,7 +1804,7 @@
         
         async function loadUsers() {
             try {
-                const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('usersList'); div.innerHTML = '';
                 data.users.forEach(u => {
@@ -1818,7 +1818,7 @@
             if (newName) {
                 const newShift = role === 'operator' ? prompt("شیفت جدید (صبح یا شب):", shift) : null;
                 if (role !== 'operator' || (newShift === 'صبح' || newShift === 'شب')) {
-                    fetch(`/api/admin/users/${id}`, {method:'PUT', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify({name: newName, shift_type: newShift})}).then(()=>loadUsers());
+                    fetch(`http://185.222.163.15:8000/api/admin/users/${id}`, {method:'PUT', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify({name: newName, shift_type: newShift})}).then(()=>loadUsers());
                 }
             }
         }
@@ -1832,7 +1832,7 @@
                 shift_type: document.getElementById('createShiftDiv').style.display !== 'none' ? document.getElementById('newShift').value : null
             };
             try {
-                const res = await fetch('/api/admin/create_user', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify(body)});
+                const res = await fetch('http://185.222.163.15:8000/api/admin/create_user', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify(body)});
                 if(res.ok) loadUsers(); else alert("خطا در ساخت");
             } catch(e) {}
         }
@@ -1865,7 +1865,7 @@
             
             weekSelect.innerHTML = '<option value="">در حال دریافت...</option>';
             try {
-                const res = await fetch(`/api/get_weeks?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/get_weeks?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 
                 weekSelect.innerHTML = '';
@@ -1895,7 +1895,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) {
                     const errText = await res.text();
                     throw new Error(errText.substring(0, 200));
@@ -2042,7 +2042,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) {
                     const errText = await res.text();
                     throw new Error(errText.substring(0, 200));
@@ -2194,7 +2194,7 @@
             const year = document.getElementById('salaryYear').value;
             const month = document.getElementById('salaryMonth').value;
             try {
-                const res = await fetch(`/api/admin/salary_settings?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.price) {
                     let parts = data.price.toString().split('.');
@@ -2224,7 +2224,7 @@
             const showOpposite = document.getElementById('showOppositeSalaryToOp').checked;
             
             try {
-                const res = await fetch(`/api/admin/salary_settings?year=${year}&month=${month}&price=${price}&chador_price=${chadorPrice}&show_salary=${show}&show_opposite_salary=${showOpposite}`, {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}&price=${price}&chador_price=${chadorPrice}&show_salary=${show}&show_opposite_salary=${showOpposite}`, {
                     method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 if (res.ok) alert("✅ تنظیمات حقوق با موفقیت ذخیره شد.");
@@ -2255,7 +2255,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`/api/admin/monthly_financials?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/monthly_financials?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2360,7 +2360,7 @@
             }
             
             try {
-                const res = await fetch(`/api/admin/monthly_financials?year=${year}&month=${month}`, {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/monthly_financials?year=${year}&month=${month}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                     body: JSON.stringify({ shift_financials, machine_financials })
                 });
@@ -2392,7 +2392,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`/api/admin/duration_analysis?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/duration_analysis?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2449,7 +2449,7 @@
 
         async function loadAdminViewMachines() {
             try {
-                const res = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const filterSelect = document.getElementById('admViewMachineFilter');
                 if (filterSelect) {
@@ -2471,7 +2471,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`/api/admin/all_shifts?start_date=${start}&end_date=${end}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=${start}&end_date=${end}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2534,7 +2534,7 @@
             document.getElementById('manSubmitBtn').innerText = "ذخیره تغییرات";
             
             setTimeout(() => {
-                fetch(`/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } })
+                fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } })
                 .then(r => r.json()).then(data => {
                     const shift = data.shifts.find(s => s.id === id);
                     if (!shift) { alert("خطا در بارگذاری اطلاعات."); return; }
@@ -2594,7 +2594,7 @@
         async function deleteAdminShift(id) {
             if (!confirm('آیا از حذف این کارکرد مطمئن هستید؟')) return;
             try {
-                const res = await fetch(`/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (res.ok) { alert('✅ حذف شد.'); loadAdminViewShifts(); }
                 else alert('❌ خطا در حذف.');
             } catch(e) { alert("خطای شبکه."); }
@@ -2606,7 +2606,7 @@
 
         async function loadDeleteMachines() {
             try {
-                const res = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const filterSelect = document.getElementById('delFilterMachine');
                 if (filterSelect) {
@@ -2621,7 +2621,7 @@
             let shift = document.getElementById('delFilterShift').value;
             
             try {
-                const res = await fetch(`/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('deleteList'); div.innerHTML = '';
                 
@@ -2651,14 +2651,14 @@
         async function deleteAdminShiftFromList(id) {
             if (!confirm('حذف شود؟')) return;
             try {
-                const res = await fetch(`/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (res.ok) { alert('حذف شد'); loadDeleteList(); }
             } catch(e) {}
         }
 
         async function initAdminSearch() {
             try {
-                const res = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const sel = document.getElementById('srchMachine');
                 if (sel) {
@@ -2732,7 +2732,7 @@
             if (!div) return;
             div.innerHTML = '<p style="text-align:center;">در حال دریافت...</p>';
             try {
-                const res = await fetch('/api/admin/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/admin/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
                 div.innerHTML = '';
@@ -2759,7 +2759,7 @@
             const input = document.getElementById('newMachineName');
             const name = input.value.trim();
             if (!name) { alert('نام چرخ را وارد کنید'); return; }
-            const res = await fetch('/api/admin/machines', {
+            const res = await fetch('http://185.222.163.15:8000/api/admin/machines', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ name: name, reset_period: 5000000, start_counter: 0 })
@@ -2773,7 +2773,7 @@
             if (newReset === null) return;
             const newStart = prompt(`شمارنده شروع (فعلی ${start}):`, start);
             if (newStart === null) return;
-            const res = await fetch(`/api/admin/machines/${encodeURIComponent(name)}`, {
+            const res = await fetch(`http://185.222.163.15:8000/api/admin/machines/${encodeURIComponent(name)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ reset_period: parseInt(newReset) || 5000000, start_counter: parseInt(newStart) || 0 })
