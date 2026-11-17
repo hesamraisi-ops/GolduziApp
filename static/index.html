@@ -958,7 +958,7 @@
             const textEl = document.getElementById('syncStatusText');
             if (textEl) textEl.innerHTML = '⏳ در حال دریافت دیتابیس...';
             
-            originalFetch('https://185-222-163-15.sslip.io/api/sync/download_all', { headers: { 'Authorization': `Bearer ${authToken}` } })
+            originalFetch('http://185.222.163.15:8000/api/sync/download_all', { headers: { 'Authorization': `Bearer ${authToken}` } })
                 .then(r => r.json())
                 .then(dbData => {
                     localStorage.setItem('offline_db', JSON.stringify(dbData));
@@ -995,7 +995,7 @@
             if (textEl) textEl.innerHTML = '⏳ در حال دریافت دیتابیس...';
             
             try {
-                const res = await (nativeFetch || window.fetch)('https://185-222-163-15.sslip.io/api/sync/download_all', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await (nativeFetch || window.fetch)('http://185.222.163.15:8000/api/sync/download_all', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const dbData = await res.json();
                 
@@ -1032,7 +1032,7 @@
             let [url, options] = args;
             
             // درخواست‌های لاگین و سینک هرگز نباید در موتور آفلاین گیر کنند
-            if (typeof url !== 'string' || !url.startsWith('https://185-222-163-15.sslip.io/api/') || url.includes('https://185-222-163-15.sslip.io/api/login') || url.includes('https://185-222-163-15.sslip.io/api/sync/')) {
+            if (typeof url !== 'string' || !url.startsWith('http://185.222.163.15:8000/api/') || url.includes('http://185.222.163.15:8000/api/login') || url.includes('http://185.222.163.15:8000/api/sync/')) {
                 return originalFetch.apply(this, args);
             }
             
@@ -1059,12 +1059,12 @@
                 } catch(e) {}
 
                 if (!dbData || !dbData.shifts) {
-                    if (path === 'https://185-222-163-15.sslip.io/api/admin/users') return new Response(JSON.stringify({users: []}), {status: 200});
+                    if (path === 'http://185.222.163.15:8000/api/admin/users') return new Response(JSON.stringify({users: []}), {status: 200});
                     if (path.includes('/machines')) return new Response(JSON.stringify({machines: []}), {status: 200});
-                    if (path === 'https://185-222-163-15.sslip.io/api/admin/notifications') return new Response(JSON.stringify({suspicious_alerts: 0}), {status: 200});
-                    if (path === 'https://185-222-163-15.sslip.io/api/admin/pending_shifts') return new Response(JSON.stringify({status: 'ok', shifts: []}), {status: 200});
-                    if (path === 'https://185-222-163-15.sslip.io/api/admin/all_shifts') return new Response(JSON.stringify({status: 'ok', shifts: []}), {status: 200});
-                    if (path === 'https://185-222-163-15.sslip.io/api/admin/search_shifts') return new Response(JSON.stringify({status: 'ok', shifts: [], total: 0}), {status: 200});
+                    if (path === 'http://185.222.163.15:8000/api/admin/notifications') return new Response(JSON.stringify({suspicious_alerts: 0}), {status: 200});
+                    if (path === 'http://185.222.163.15:8000/api/admin/pending_shifts') return new Response(JSON.stringify({status: 'ok', shifts: []}), {status: 200});
+                    if (path === 'http://185.222.163.15:8000/api/admin/all_shifts') return new Response(JSON.stringify({status: 'ok', shifts: []}), {status: 200});
+                    if (path === 'http://185.222.163.15:8000/api/admin/search_shifts') return new Response(JSON.stringify({status: 'ok', shifts: [], total: 0}), {status: 200});
                     return new Response(JSON.stringify({detail: 'اطلاعات در حافظه نیست.'}), {status: 404});
                 }
 
@@ -1072,18 +1072,18 @@
                 const allUsers = dbData.users || [];
                 const allMachines = dbData.machines || [];
 
-                if (path === 'https://185-222-163-15.sslip.io/api/admin/pending_shifts') {
+                if (path === 'http://185.222.163.15:8000/api/admin/pending_shifts') {
                     let pending = allShifts.filter(s => s.status === 'pending').map(s => ({...s, potential_bonus: s.jig_bonus || 0, monthly_set_rank: 1}));
                     return new Response(JSON.stringify({status: 'ok', shifts: pending}), {status: 200});
                 }
-                if (path === 'https://185-222-163-15.sslip.io/api/admin/all_shifts') {
+                if (path === 'http://185.222.163.15:8000/api/admin/all_shifts') {
                     let start = urlObj.searchParams.get('start_date') || '1300-01-01';
                     let end = urlObj.searchParams.get('end_date') || '1500-12-31';
                     start = start.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
                     end = end.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
                     return new Response(JSON.stringify({status: 'ok', shifts: allShifts.filter(s => s.date >= start && s.date <= end)}), {status: 200});
                 }
-                if (path === 'https://185-222-163-15.sslip.io/api/admin/search_shifts') {
+                if (path === 'http://185.222.163.15:8000/api/admin/search_shifts') {
                     let d = urlObj.searchParams.get('design_code');
                     let sn = urlObj.searchParams.get('set_number');
                     let p = urlObj.searchParams.get('parts');
@@ -1101,12 +1101,12 @@
                     return new Response(JSON.stringify({status: 'ok', shifts: filtered, total: filtered.length}), {status: 200});
                 }
                 
-                if (path === 'https://185-222-163-15.sslip.io/api/admin/users') return new Response(JSON.stringify({users: allUsers}), {status: 200});
-                if (path === 'https://185-222-163-15.sslip.io/api/admin/machines') return new Response(JSON.stringify({machines: allMachines}), {status: 200});
-                if (path === 'https://185-222-163-15.sslip.io/api/machines') return new Response(JSON.stringify({machines: allMachines.map(m=>m.name)}), {status: 200});
-                if (path === 'https://185-222-163-15.sslip.io/api/admin/notifications') return new Response(JSON.stringify({suspicious_alerts: 0}), {status: 200});
+                if (path === 'http://185.222.163.15:8000/api/admin/users') return new Response(JSON.stringify({users: allUsers}), {status: 200});
+                if (path === 'http://185.222.163.15:8000/api/admin/machines') return new Response(JSON.stringify({machines: allMachines}), {status: 200});
+                if (path === 'http://185.222.163.15:8000/api/machines') return new Response(JSON.stringify({machines: allMachines.map(m=>m.name)}), {status: 200});
+                if (path === 'http://185.222.163.15:8000/api/admin/notifications') return new Response(JSON.stringify({suspicious_alerts: 0}), {status: 200});
 
-                if (path === 'https://185-222-163-15.sslip.io/api/operator/last_shifts') {
+                if (path === 'http://185.222.163.15:8000/api/operator/last_shifts') {
                     const machine = urlObj.searchParams.get('machine');
                     let opId = urlObj.searchParams.get('target_operator_id');
                     let shift = urlObj.searchParams.get('target_shift_type');
@@ -1116,7 +1116,7 @@
                     const fmt = (s) => s ? { exists: true, data: { date: s.date, day_name: s.day_name, shift_type: s.shift, machine: s.machine, counter: s.counter, design: s.design, set_number: s.set_num, parts: s.parts, status: s.status, zero_reason: s.zero_reason, op_name: s.op_name } } : { exists: false };
                     return new Response(JSON.stringify({ same: fmt(same), opposite: fmt(opp) }), {status:200});
                 }
-                if (path === 'https://185-222-163-15.sslip.io/api/operator/immediate_prev_info') {
+                if (path === 'http://185.222.163.15:8000/api/operator/immediate_prev_info') {
                     const date = urlObj.searchParams.get('date');
                     const machine = urlObj.searchParams.get('machine');
                     const shift_type = urlObj.searchParams.get('shift_type');
@@ -1134,7 +1134,7 @@
                 if (path.includes('/reports/') || path.includes('financials') || path.includes('analysis')) {
                     return new Response(JSON.stringify({status: 'empty', detail: 'آفلاین: گزارشات نیاز به اینترنت دارند.'}), {status: 200});
                 }
-                if (path === 'https://185-222-163-15.sslip.io/api/admin/salary_settings') {
+                if (path === 'http://185.222.163.15:8000/api/admin/salary_settings') {
                     return new Response(JSON.stringify({price: 0, chador_price: 0, show_salary: false, show_opposite_salary: false}), {status: 200});
                 }
 
@@ -1213,7 +1213,7 @@
         }
 
         function setTodayDate() {
-            fetch('https://185-222-163-15.sslip.io/api/today').then(r => r.json()).then(d => {
+            fetch('http://185.222.163.15:8000/api/today').then(r => r.json()).then(d => {
                 document.getElementById('date').value = toPersianDigits(d.date);
                 $('#date').persianDatepicker('setDate', d.date);
                 checkExistingShift();
@@ -1241,7 +1241,7 @@
         async function fetchAndSetSuggestedDate() {
             try {
                 const machineVal = document.getElementById('machine') ? document.getElementById('machine').value : '';
-                let url = 'https://185-222-163-15.sslip.io/api/operator/suggest_date?t=' + Date.now();
+                let url = 'http://185.222.163.15:8000/api/operator/suggest_date?t=' + Date.now();
                 if (machineVal) url += `&machine=${encodeURIComponent(machineVal)}`;
                 
                 const res = await fetch(url, { headers: { 'Authorization': `Bearer ${authToken}` } });
@@ -1270,7 +1270,7 @@
             if (!date || !machine || !shift) return;
 
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${encodeURIComponent(shift)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${encodeURIComponent(shift)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('immediatePrevDisplay');
                 if (!div) return;
@@ -1316,7 +1316,7 @@
             const machineVal = document.getElementById('machine') ? document.getElementById('machine').value : '';
             if (!machineVal) return;
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/operator/last_shifts?machine=${encodeURIComponent(machineVal)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machineVal)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('lastShiftDisplay');
                 if (!div) return;
@@ -1343,7 +1343,7 @@
             const pass = toEnglishDigits(document.getElementById('password').value);
 
             var xhr = new XMLHttpRequest();
-            xhr.open("POST", "https://185-222-163-15.sslip.io/api/login", true);
+            xhr.open("POST", "http://185.222.163.15:8000/api/login", true);
             xhr.setRequestHeader("Content-Type", "application/json");
             
             xhr.onreadystatechange = function() {
@@ -1362,7 +1362,7 @@
                             // دانلود دیتابیس آفلاین در پس‌زمینه (با تاخیر کوچک)
                             setTimeout(() => {
                                 var syncXhr = new XMLHttpRequest();
-                                syncXhr.open("GET", "https://185-222-163-15.sslip.io/api/sync/download_all", true);
+                                syncXhr.open("GET", "http://185.222.163.15:8000/api/sync/download_all", true);
                                 syncXhr.setRequestHeader("Authorization", "Bearer " + data.token);
                                 syncXhr.onreadystatechange = function() {
                                     if (syncXhr.readyState === 4 && syncXhr.status === 200) {
@@ -1400,7 +1400,7 @@
 
         async function loadMachines() {
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const select = document.getElementById('machine');
                 if(select) select.innerHTML = data.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
@@ -1415,7 +1415,7 @@
 
         async function checkOperatorNotifications() {
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/operator/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/operator/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.rejected_count > 0) {
                     lastRejectedDate = data.last_rejected_date;
@@ -1467,7 +1467,7 @@
             let sortOrder = document.getElementById('opListSortOrder') ? document.getElementById('opListSortOrder').value : 'desc';
             if (!start || !end) return;
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/operator/reports?start_date=${start}&end_date=${end}&machine=${encodeURIComponent(mach)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/reports?start_date=${start}&end_date=${end}&machine=${encodeURIComponent(mach)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (sortOrder === 'asc') data.details.reverse();
                 const div = document.getElementById('opShiftListData'); div.innerHTML = '';
@@ -1522,7 +1522,7 @@
             const machine = document.getElementById('machine').value;
             if (!date || !machine) return;
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const alertBox = document.getElementById('checkShiftAlert');
                 const btn = document.getElementById('submitBtn');
@@ -1572,7 +1572,7 @@
             isEditingDateLoading = true;
             document.getElementById('date').disabled = true;
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/operator/shift/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/shift/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (res.ok) {
                     document.getElementById('formTitle').innerText = "✏️ ویرایش کارکرد";
@@ -1650,12 +1650,12 @@
                         fd.append("machine", machineVal); fd.append("counter", 0); fd.append("design_code", "000"); fd.append("set_number", 0); fd.append("parts", "");
                         fd.append("zero_reason", document.getElementById('zeroReason').value);
                         fd.append("zero_note", document.getElementById('zeroNote').value);
-                        const res = await fetch(`https://185-222-163-15.sslip.io/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                        const res = await fetch(`http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
                         if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
                         else { alert("✅ کارکرد صفر ویرایش شد!"); showSection('operatorDashboard'); }
                     } else {
                         const zeroPayload = { date: dateVal, machine: machineVal, zero_reason: document.getElementById('zeroReason').value, zero_note: document.getElementById('zeroNote').value };
-                        const res = await fetch('https://185-222-163-15.sslip.io/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
+                        const res = await fetch('http://185.222.163.15:8000/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
                         if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
                         else { alert("✅ کارکرد صفر ثبت شد!"); showSection('operatorDashboard'); }
                     }
@@ -1695,7 +1695,7 @@
                     
                     if (photoFile) fd.append("photo", photoFile);
 
-                    const pvRes = await fetch('https://185-222-163-15.sslip.io/api/operator/preview_work', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                    const pvRes = await fetch('http://185.222.163.15:8000/api/operator/preview_work', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
                     const pvData = await pvRes.json().catch(()=>({}));
                     
                     if (!pvRes.ok) { 
@@ -1756,7 +1756,7 @@
                     }
                     document.getElementById('previewContent').innerHTML = detailsHtml;
                     
-                    shiftToSubmit = { fd, url: editingShiftId ? `https://185-222-163-15.sslip.io/api/operator/edit_shift/${editingShiftId}` : 'https://185-222-163-15.sslip.io/api/submit_shift', method: editingShiftId ? 'PUT' : 'POST' };
+                    shiftToSubmit = { fd, url: editingShiftId ? `http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}` : 'http://185.222.163.15:8000/api/submit_shift', method: editingShiftId ? 'PUT' : 'POST' };
                     document.getElementById('previewModal').style.display = 'flex';
                     btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
                 }
@@ -1793,7 +1793,7 @@
 
         async function checkAdminNotifications() {
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/admin/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/admin/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.suspicious_alerts > 0) {
                     document.getElementById('adminAlertBanner').style.display = 'block';
@@ -1809,7 +1809,7 @@
         function approveShift(id) {
             const cb = document.getElementById(`bonus_${id}`);
             const apply = cb ? cb.checked : false;
-            fetch(`https://185-222-163-15.sslip.io/api/admin/approve_shift/${id}?apply_bonus=${apply}`, {method:'POST', headers:{'Authorization':'Bearer ' + authToken}}).then(() => loadPendingShifts());
+            fetch(`http://185.222.163.15:8000/api/admin/approve_shift/${id}?apply_bonus=${apply}`, {method:'POST', headers:{'Authorization':'Bearer ' + authToken}}).then(() => loadPendingShifts());
         }
 
         async function loadPendingShifts() {
@@ -1818,7 +1818,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/admin/pending_shifts', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/admin/pending_shifts', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) throw new Error("HTTP Error " + res.status);
                 const data = await res.json();
                 div.innerHTML = '';
@@ -1898,7 +1898,7 @@
 
                             content = `<img class="card-img" src="/${s.photo || 'static/placeholder.png'}" onclick="showImageZoom('/${s.photo || 'static/placeholder.png'}')"><div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | شماره ست: ${toPersianDigits(s.set_num)} <span style="color:#e74c3c; font-weight:bold;">(ست ${toPersianDigits(s.monthly_set_rank)} این ماه)</span><br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${bonusHtml}`;
                         }
-                        div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} (${s.day_name}) | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('https://185-222-163-15.sslip.io/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
+                        div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} (${s.day_name}) | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('http://185.222.163.15:8000/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
                     });
                 }
             } catch(e) {
@@ -1932,12 +1932,12 @@
 
         async function loadAdminUsersAndMachines() {
             try {
-                const resMach = await fetch('https://185-222-163-15.sslip.io/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resMach = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataMach = await resMach.json();
                 const manMachineSelect = document.getElementById('manMachine');
                 if(manMachineSelect) manMachineSelect.innerHTML = dataMach.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
 
-                const resUsers = await fetch('https://185-222-163-15.sslip.io/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resUsers = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataUsers = await resUsers.json();
                 
                 window.allOperators = dataUsers.users.filter(u => u.role === 'operator');
@@ -1964,7 +1964,7 @@
 
             try {
                 const excludeParam = editingAdminShiftId ? `&exclude_shift_id=${editingAdminShiftId}` : '';
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}${excludeParam}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}${excludeParam}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const alertBox = document.getElementById('manCheckShiftAlert');
                 const btn = document.getElementById('manSubmitBtn');
@@ -1980,7 +1980,7 @@
             } catch(e) {}
 
             try {
-                const resLast = await fetch(`https://185-222-163-15.sslip.io/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resLast = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataLast = await resLast.json();
                 const divLast = document.getElementById('manLastShiftDisplay');
                 let htmlLast = '';
@@ -2016,7 +2016,7 @@
                 }
                 divLast.innerHTML = htmlLast;
 
-                const resPrev = await fetch(`https://185-222-163-15.sslip.io/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resPrev = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataPrev = await resPrev.json();
                 const divPrev = document.getElementById('manImmediatePrevDisplay');
                 if (dataPrev.exists) {
@@ -2045,7 +2045,7 @@
                 }
                 
                 if (!date) {
-                    const resSug = await fetch(`https://185-222-163-15.sslip.io/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                    const resSug = await fetch(`http://185.222.163.15:8000/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                     const dataSug = await resSug.json();
                     if (dataSug.date) {
                         document.getElementById('manDate').value = toPersianDigits(dataSug.date);
@@ -2097,7 +2097,7 @@
         }
 
         function setManTodayDate() {
-            fetch('https://185-222-163-15.sslip.io/api/today').then(r => r.json()).then(d => {
+            fetch('http://185.222.163.15:8000/api/today').then(r => r.json()).then(d => {
                 document.getElementById('manDate').value = toPersianDigits(d.date);
                 $('#manDate').persianDatepicker('setDate', d.date);
                 triggerManFetch();
@@ -2159,7 +2159,7 @@
             const photoFile = document.getElementById('manPhoto').files[0];
             if (photoFile) fd.append("photo", photoFile);
             
-            const url = editingAdminShiftId ? `https://185-222-163-15.sslip.io/api/admin/edit_shift/${editingAdminShiftId}` : 'https://185-222-163-15.sslip.io/api/admin/manual_shift';
+            const url = editingAdminShiftId ? `http://185.222.163.15:8000/api/admin/edit_shift/${editingAdminShiftId}` : 'http://185.222.163.15:8000/api/admin/manual_shift';
             const method = editingAdminShiftId ? 'PUT' : 'POST';
             
             try {
@@ -2173,7 +2173,7 @@
         
         async function loadUsers() {
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('usersList'); div.innerHTML = '';
                 data.users.forEach(u => {
@@ -2187,7 +2187,7 @@
             if (newName) {
                 const newShift = role === 'operator' ? prompt("شیفت جدید (صبح یا شب):", shift) : null;
                 if (role !== 'operator' || (newShift === 'صبح' || newShift === 'شب')) {
-                    fetch(`https://185-222-163-15.sslip.io/api/admin/users/${id}`, {method:'PUT', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify({name: newName, shift_type: newShift})}).then(()=>loadUsers());
+                    fetch(`http://185.222.163.15:8000/api/admin/users/${id}`, {method:'PUT', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify({name: newName, shift_type: newShift})}).then(()=>loadUsers());
                 }
             }
         }
@@ -2201,7 +2201,7 @@
                 shift_type: document.getElementById('createShiftDiv').style.display !== 'none' ? document.getElementById('newShift').value : null
             };
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/admin/create_user', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify(body)});
+                const res = await fetch('http://185.222.163.15:8000/api/admin/create_user', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify(body)});
                 if(res.ok) loadUsers(); else alert("خطا در ساخت");
             } catch(e) {}
         }
@@ -2234,7 +2234,7 @@
             
             weekSelect.innerHTML = '<option value="">در حال دریافت...</option>';
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/get_weeks?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/get_weeks?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 
                 weekSelect.innerHTML = '';
@@ -2264,7 +2264,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) {
                     const errText = await res.text();
                     throw new Error(errText.substring(0, 200));
@@ -2411,7 +2411,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) {
                     const errText = await res.text();
                     throw new Error(errText.substring(0, 200));
@@ -2563,7 +2563,7 @@
             const year = document.getElementById('salaryYear').value;
             const month = document.getElementById('salaryMonth').value;
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/salary_settings?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.price) {
                     let parts = data.price.toString().split('.');
@@ -2593,7 +2593,7 @@
             const showOpposite = document.getElementById('showOppositeSalaryToOp').checked;
             
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/salary_settings?year=${year}&month=${month}&price=${price}&chador_price=${chadorPrice}&show_salary=${show}&show_opposite_salary=${showOpposite}`, {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}&price=${price}&chador_price=${chadorPrice}&show_salary=${show}&show_opposite_salary=${showOpposite}`, {
                     method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 if (res.ok) alert("✅ تنظیمات حقوق با موفقیت ذخیره شد.");
@@ -2624,7 +2624,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/monthly_financials?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/monthly_financials?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2729,7 +2729,7 @@
             }
             
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/monthly_financials?year=${year}&month=${month}`, {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/monthly_financials?year=${year}&month=${month}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                     body: JSON.stringify({ shift_financials, machine_financials })
                 });
@@ -2761,7 +2761,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/duration_analysis?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/duration_analysis?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2818,7 +2818,7 @@
 
         async function loadAdminViewMachines() {
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const filterSelect = document.getElementById('admViewMachineFilter');
                 if (filterSelect) {
@@ -2840,7 +2840,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/all_shifts?start_date=${start}&end_date=${end}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=${start}&end_date=${end}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2903,7 +2903,7 @@
             document.getElementById('manSubmitBtn').innerText = "ذخیره تغییرات";
             
             setTimeout(() => {
-                fetch(`https://185-222-163-15.sslip.io/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } })
+                fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } })
                 .then(r => r.json()).then(data => {
                     const shift = data.shifts.find(s => s.id === id);
                     if (!shift) { alert("خطا در بارگذاری اطلاعات."); return; }
@@ -2963,7 +2963,7 @@
         async function deleteAdminShift(id) {
             if (!confirm('آیا از حذف این کارکرد مطمئن هستید؟')) return;
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (res.ok) { alert('✅ حذف شد.'); loadAdminViewShifts(); }
                 else alert('❌ خطا در حذف.');
             } catch(e) { alert("خطای شبکه."); }
@@ -2975,7 +2975,7 @@
 
         async function loadDeleteMachines() {
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const filterSelect = document.getElementById('delFilterMachine');
                 if (filterSelect) {
@@ -2990,7 +2990,7 @@
             let shift = document.getElementById('delFilterShift').value;
             
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('deleteList'); div.innerHTML = '';
                 
@@ -3020,14 +3020,14 @@
         async function deleteAdminShiftFromList(id) {
             if (!confirm('حذف شود؟')) return;
             try {
-                const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (res.ok) { alert('حذف شد'); loadDeleteList(); }
             } catch(e) {}
         }
 
         async function initAdminSearch() {
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const sel = document.getElementById('srchMachine');
                 if (sel) {
@@ -3048,7 +3048,7 @@
             const div = document.getElementById('adminSearchResults');
             div.innerHTML = '<p style="text-align:center;">در حال جستجو...</p>';
             
-            let url = `https://185-222-163-15.sslip.io/api/admin/search_shifts?sort_order=${sortOrder}`;
+            let url = `http://185.222.163.15:8000/api/admin/search_shifts?sort_order=${sortOrder}`;
             if (design) url += `&design_code=${encodeURIComponent(design)}`;
             if (setNum) url += `&set_number=${encodeURIComponent(setNum)}`;
             if (parts) url += `&parts=${encodeURIComponent(parts)}`;
@@ -3101,7 +3101,7 @@
             if (!div) return;
             div.innerHTML = '<p style="text-align:center;">در حال دریافت...</p>';
             try {
-                const res = await fetch('https://185-222-163-15.sslip.io/api/admin/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('http://185.222.163.15:8000/api/admin/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
                 div.innerHTML = '';
@@ -3128,7 +3128,7 @@
             const input = document.getElementById('newMachineName');
             const name = input.value.trim();
             if (!name) { alert('نام چرخ را وارد کنید'); return; }
-            const res = await fetch('https://185-222-163-15.sslip.io/api/admin/machines', {
+            const res = await fetch('http://185.222.163.15:8000/api/admin/machines', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ name: name, reset_period: 5000000, start_counter: 0 })
@@ -3142,7 +3142,7 @@
             if (newReset === null) return;
             const newStart = prompt(`شمارنده شروع (فعلی ${start}):`, start);
             if (newStart === null) return;
-            const res = await fetch(`https://185-222-163-15.sslip.io/api/admin/machines/${encodeURIComponent(name)}`, {
+            const res = await fetch(`http://185.222.163.15:8000/api/admin/machines/${encodeURIComponent(name)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ reset_period: parseInt(newReset) || 5000000, start_counter: parseInt(newStart) || 0 })

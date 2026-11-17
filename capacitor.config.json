@@ -1,13 +1,5 @@
 {
   "appId": "com.golduzi.app",
   "appName": "GolduziApp",
-  "webDir": "static",
-  "server": {
-    "androidScheme": "https"
-  },
-  "plugins": {
-    "CapacitorHttp": {
-      "enabled": true
-    }
-  }
+  "webDir": "static"
 }
