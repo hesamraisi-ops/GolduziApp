@@ -70,78 +70,36 @@
         .zero-checkbox input { width: auto; margin: 0; margin-left: 10px; scale: 1.5; }
         .zero-checkbox label { margin: 0; color: #721c24; cursor: pointer; }
     
-        /* Splash Screen Styles */
-        #appSplash {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #f8f5fc 0%, #ece4f7 100%);
-            z-index: 99999; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; text-align: center;
-            transition: opacity 0.5s ease;
-        }
-        #appSplash::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background-image: radial-gradient(circle at 10% 20%, rgba(156, 39, 176, 0.05) 0%, transparent 20%),
-                              radial-gradient(circle at 90% 80%, rgba(156, 39, 176, 0.05) 0%, transparent 20%);
-            pointer-events: none;
-        }
-        .splash-icon {
-            width: 130px; height: 130px; border-radius: 30px;
-            box-shadow: 0 10px 30px rgba(74, 20, 140, 0.2);
-            margin-bottom: 25px;
-        }
-        .splash-title { color: #4a148c; font-size: 40px; font-weight: 900; margin-bottom: 10px; }
-        .splash-subtitle { color: #673ab7; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
-        .splash-desc { color: #7b1fa2; font-size: 14px; line-height: 1.8; margin-bottom: 40px; opacity: 0.8; }
-        .splash-btn {
-            background: linear-gradient(90deg, #7b1fa2, #4a148c); color: white;
-            border: none; border-radius: 12px; padding: 15px 50px;
-            font-size: 18px; font-weight: bold; width: 80%; max-width: 300px;
-            box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer;
-            display: none; opacity: 0; transition: opacity 0.5s ease;
-        }
-        .loader {
-            border: 4px solid #e1bee7; border-top: 4px solid #4a148c;
-            border-radius: 50%; width: 40px; height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-</style>
+        </style>
 </head>
 <body>
 
-    <div id="appSplash">
-        <img src="icon.png" class="splash-icon" alt="سوزن">
-        <div class="splash-title">سوزن</div>
-        <div class="splash-subtitle">به سوزن خوش آمدید</div>
-        <div class="splash-desc">
-            اپلیکیشن محاسبه کارکرد سوزن‌های شیفت‌های ماه<br>
-            در کارگاه گلدوزی کامپیوتری ماه روچ استایل
-        </div>
-        <div id="splashLoader" class="loader"></div>
-        <button id="splashBtn" class="splash-btn" onclick="hideSplash()">شروع کنید</button>
+    <!-- Custom Splash Screen based on main.png -->
+    <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-color: #f8f5fc; display: flex; align-items: flex-end; justify-content: center; background-image: url('main.png'); background-size: cover; background-position: center; transition: opacity 0.4s ease;">
+        <!-- دکمه نامرئی دقیقا روی نوشته "شروع کنید" در عکس -->
+        <button onclick="hideSplash()" style="width: 70%; max-width: 300px; height: 55px; margin-bottom: 13%; background: transparent; border: none; outline: none; cursor: pointer; z-index: 100000;"></button>
     </div>
+    
+    <script>
+        window.addEventListener('load', () => {
+            if (localStorage.getItem('token')) {
+                // اگر کاربر قبلا لاگین کرده، اسپلش را سریع رد کن
+                document.getElementById('appSplash').style.display = 'none';
+            }
+        });
+
+        function hideSplash() {
+            const splash = document.getElementById('appSplash');
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                if(typeof showSection === 'function') showSection('loginScreen');
+            }, 400);
+        }
+    </script>
 
 
-    <div class="container active" id="loginScreen" style="max-width: 400px;">
-        
-        <div style="text-align: center; margin-bottom: 25px;">
-            <h3 style="color: #4a148c; font-size: 16px; margin-bottom: 10px;">سامانه مدیریت و محاسبه کارکرد سوزن‌های گلدوزی</h3>
-            <p style="color: #666; font-size: 12px; line-height: 1.6;">ثبت کارکرد، محاسبه تولید و گزارش عملکرد شیفت‌های ماه روچ استایل</p>
-        </div>
-
-        <input type="tel" id="phone" placeholder="۰۹۱۲۳۴۵۶۷۸۹">
-        <input type="password" id="password" placeholder="****">
-        <button onclick="doLogin()">ورود</button>
-        <div id="loginStatus" style="color: red; text-align:center;"></div>
-
-        <div style="text-align: center; margin-top: 30px; color: #888; font-size: 12px;">
-            <p style="margin-bottom: 5px; font-weight: bold; color: #673ab7;">دقت در ثبت، نظم در تولید</p>
-            <p style="margin-bottom: 10px; font-size: 10px; letter-spacing: 1px; color: #999;">MAHROCH STYLE | EMBROIDERY MANAGEMENT</p>
-            <p style="font-size: 11px;">نسخه ۱.۰ آزمایشی</p>
-        </div>
-
-    </div>
+    
 
     <div class="container" id="operatorDashboard" style="max-width: 400px;">
         <button class="logout-btn" onclick="doLogout()">خروج</button>
@@ -2846,33 +2804,11 @@
 
 <!-- UI Update: 1794935390 -->
 
-    <script>
-        window.addEventListener('load', () => {
-            // اگر کاربر قبلا لاگین نکرده باشد، صفحه اسپلش را نشان بده
-            if (!localStorage.getItem('token')) {
-                setTimeout(() => {
-                    document.getElementById('splashLoader').style.display = 'none';
-                    const btn = document.getElementById('splashBtn');
-                    btn.style.display = 'block';
-                    setTimeout(() => btn.style.opacity = '1', 50);
-                }, 1500); // ۱.۵ ثانیه لودینگ
-            } else {
-                // اگر لاگین است، اسپلش را سریع رد کن
-                document.getElementById('appSplash').style.display = 'none';
-            }
-        });
-
-        function hideSplash() {
-            const splash = document.getElementById('appSplash');
-            splash.style.opacity = '0';
-            setTimeout(() => {
-                splash.style.display = 'none';
-                if(typeof showSection === 'function') showSection('loginScreen');
-            }, 500);
-        }
-    </script>
+    
 
 
 <!-- Splash Update: 1794935602 -->
+
+<!-- Final Splash: 1794936358 -->
 </body>
 </html>
