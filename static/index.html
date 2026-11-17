@@ -74,16 +74,15 @@
 </head>
 <body>
 
-    <!-- Custom Splash Screen based on main.png -->
-    <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-color: #f8f5fc; display: flex; align-items: flex-end; justify-content: center; background-image: url('main.png'); background-size: cover; background-position: center; transition: opacity 0.4s ease;">
-        <!-- دکمه نامرئی دقیقا روی نوشته "شروع کنید" در عکس -->
-        <button onclick="hideSplash()" style="width: 70%; max-width: 300px; height: 55px; margin-bottom: 13%; background: transparent; border: none; outline: none; cursor: pointer; z-index: 100000;"></button>
+    <!-- New Splash Screen -->
+    <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; transition: opacity 0.4s ease;">
+        <button onclick="hideSplash()" style="background: linear-gradient(90deg, #7b1fa2, #4a148c); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; font-family: 'Vazirmatn', sans-serif; margin-bottom: 22%; z-index: 100000;">شروع کنید</button>
     </div>
     
     <script>
         window.addEventListener('load', () => {
             if (localStorage.getItem('token')) {
-                // اگر کاربر قبلا لاگین کرده، اسپلش را سریع رد کن
+                // اگر کاربر لاگین است، اسپلش را نشان نده
                 document.getElementById('appSplash').style.display = 'none';
             }
         });
@@ -93,10 +92,16 @@
             splash.style.opacity = '0';
             setTimeout(() => {
                 splash.style.display = 'none';
-                if(typeof showSection === 'function') showSection('loginScreen');
+                // نمایش صفحه لاگین
+                document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+                const loginEl = document.getElementById('loginScreen');
+                if (loginEl) loginEl.classList.add('active');
             }, 400);
         }
     </script>
+
+
+    
 
 
     
@@ -2810,5 +2815,7 @@
 <!-- Splash Update: 1794935602 -->
 
 <!-- Final Splash: 1794936358 -->
+
+<!-- Final Rebuild: 1794937801 -->
 </body>
 </html>
