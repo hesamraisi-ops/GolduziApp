@@ -1375,60 +1375,6 @@ async def search_shifts(
     return {"status": "ok", "shifts": shifts, "total": len(shifts)}
 
 
-@app.get("/api/admin/pending_shifts")
-async def get_pending_shifts(payload: dict = Depends(verify_admin)):
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT * FROM shifts WHERE status='pending' ORDER BY date DESC") as cursor:
-            rows = await cursor.fetchall()
-    result = []
-    for r in rows:
-        work_val = None
-        if not r[12]:
-            try:
-                w, _ = await calculate_work_logic(r[5], r[3], r[4], r[6], r[8], r[9], r[15] if len(r)>15 else 0, r[16] if len(r)>16 else 0)
-                work_val = w
-            except: pass
-        try: rank = await get_set_monthly_rank(r[5], r[3])
-        except: rank = 1
-        try: day_n = get_day_name(r[3])
-        except: day_n = ""
-        result.append({
-            "id": r[0], "op_name": r[2], "date": r[3], "day_name": day_n,
-            "shift": r[4], "machine": r[5], "counter": r[6], "design": r[7],
-            "set_num": r[8], "parts": r[9], "photo": r[10], "status": r[11],
-            "zero_reason": r[12], "zero_note": r[14] if len(r)>14 else "",
-            "work": work_val, "potential_bonus": r[15] if len(r)>15 else 0,
-            "is_chador": r[16] if len(r)>16 else 0, "chador_count": r[17] if len(r)>17 else 0,
-            "monthly_set_rank": rank
-        })
-    return {"status": "ok", "shifts": result}
-
-@app.get("/api/sync/download_all")
-async def sync_download_all(payload: dict = Depends(verify_token)):
-    # نسخه ۳.۰.۰: دانلود خام و فوق سریع دیتابیس بدون محاسبات سنگین
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT * FROM shifts") as cursor:
-            rows = await cursor.fetchall()
-        shifts = []
-        for r in rows:
-            try: day_n = get_day_name(r[3])
-            except: day_n = ""
-            shifts.append({
-                "id": r[0], "op_id": r[1], "op_name": r[2], "date": r[3], "day_name": day_n, 
-                "shift": r[4], "machine": r[5], "counter": r[6], "design": r[7], "set_num": r[8], 
-                "parts": r[9], "photo": r[10], "status": r[11], "zero_reason": r[12], 
-                "zero_note": r[14] if len(r)>14 else "", "jig_bonus": r[15] if len(r)>15 else 0,
-                "is_chador": r[16] if len(r)>16 else 0, "chador_count": r[17] if len(r)>17 else 0, 
-                "chador_invoice": r[18] if len(r)>18 else "", "work": None # محاسبه سمت کلاینت انجام میشود
-            })
-            
-        async with db.execute("SELECT id, name, phone, role, shift_type FROM users") as cursor:
-            users = [{"id": r[0], "name": r[1], "phone": r[2], "role": r[3], "shift_type": r[4]} for r in await cursor.fetchall()]
-        async with db.execute("SELECT name, reset_period, start_counter FROM machines") as cursor:
-            machines = [{"name": r[0], "reset_period": r[1], "start_counter": r[2]} for r in await cursor.fetchall()]
-
-    return {"status": "ok", "shifts": shifts, "users": users, "machines": machines}
-
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     response = FileResponse("static/index.html")

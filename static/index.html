@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+
+    <script>
+        const nativeFetch = window.fetch.bind(window);
+        window.fetch = function(url, options) {
+            // اگر آدرس با /api/ شروع شده بود، آدرس کامل سرور را به آن اضافه کن
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                url = 'http://185.222.163.15:8000' + url;
+            }
+            return nativeFetch(url, options);
+        };
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2c3e50">
@@ -11,7 +23,7 @@
     <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>سیستم گلدوزی (نسخه APK 1.0) آفلاین کامل)</title>
+    <title>سیستم گلدوزی (نسخه ۱۶.۶)</title>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
         body { font-family: 'Vazirmatn', sans-serif; background-color: #ecf0f1; margin: 0; padding: 20px; color: #333; }
@@ -61,116 +73,8 @@
 </head>
 <body>
 
-    <script>
-        
-        let authToken = localStorage.getItem('token');
-        let userRole = localStorage.getItem('role');
-        let userShift = localStorage.getItem('shift_type');
-    
-        
-        let authToken = localStorage.getItem('token');
-        let userRole = localStorage.getItem('role');
-        let userShift = localStorage.getItem('shift_type');
-    
-        
-        
-        
-        
-    
-        // تعریف امن تابع اصلی مرورگر (فقط یک بار)
-        
-
-        // تعریف امن تابع اصلی fetch مرورگر
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-    
-        
-
-        
-        
-        
-        
-        
-        
-        
-        
-
-        
-
-        
-
-        
-
-        if (!localStorage.getItem('sw_cleared_v220')) {
-            localStorage.setItem('sw_cleared_v220', 'true');
-            
-                });
-                caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
-            }
-            setTimeout(() => window.location.reload(true), 500);
-        }
-    </script>
-
-
-
-    <script>
-        // کش‌شکن قاتل: سرویس ورکر قدیمی را حذف میکند تا فایل جدید لود شود
-        if ('serviceWorker' in navigator && !localStorage.getItem('sw_killed_v210')) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) { registration.unregister(); }
-                localStorage.setItem('sw_killed_v210', 'true');
-                setTimeout(() => window.location.reload(true), 500);
-            });
-        }
-    </script>
-
-
-
-    <script>
-        // پاکسازی اجباری کش
-        );
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) { registration.unregister(); }
-            });
-        }
-    </script>
-
-<!-- Force clear cache v2 -->
-
-
-    <script>
-        // پاکسازی اجباری کش در هر بار لود شدن
-        );
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister();
-                }
-            });
-        }
-    </script>
-
-<!-- Force clear cache on load -->
-
-    <!-- v1.0.1 Banner Fix -->
-    <div id="syncStatusBanner" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 99999; text-align: center; padding: 8px; font-size: 13px; font-weight: bold; background: #95a5a6; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center; gap: 15px;">
-        <span id="syncStatusText">در حال بررسی وضعیت...</span>
-        <button id="manualSyncBtn" onclick="manualSync()" style="width: auto; padding: 4px 10px; margin: 0; font-size: 12px; background: white; color: #2c3e50; border-radius: 4px;">🔄 بروزرسانی دیتا</button>
-    </div>
-    <div style="height: 35px;"></div>
-
     <div class="container active" id="loginScreen" style="max-width: 400px;">
-        <div style="text-align:center; margin-bottom: 25px;">
-            <h2 style="color:#2c3e50; font-size: 18px; margin-bottom: 5px; line-height: 1.5;">نرم افزار محاسبه کارکرد کارگاه ماه روچ استایل</h2>
-            <span style="color:#7f8c8d; font-size: 13px; background: #ecf0f1; padding: 4px 12px; border-radius: 15px;">نسخه ۵.۵.۰ (آفلاین)</span>
-        </div>
+        <h2>🔐 ورود به سیستم (نسخه ۱۶.۶)</h2>
         <input type="tel" id="phone" placeholder="۰۹۱۲۳۴۵۶۷۸۹">
         <input type="password" id="password" placeholder="****">
         <button onclick="doLogin()">ورود</button>
@@ -783,381 +687,153 @@
         </div>
     </div>
 
-    <!-- OfflineEngine_v1 -->
     <script>
-        const nativeFetch = window.fetch.bind(window);
+        let authToken = localStorage.getItem('token');
+        let userRole = localStorage.getItem('role');
+        let userShift = localStorage.getItem('shift_type');
+        let adminChartInst = null, opChartInst = null;
+        let editingShiftId = null;
+        let editingAdminShiftId = null;
+        let shiftToSubmit = null;
+        let lastRejectedDate = null;
+        let isEditingDateLoading = false;
 
-        
-        
-        
-        
-    
-        // ── ثبت Service Worker ──
-        
-
-        // ── تنظیمات دیتابیس محلی (IndexedDB) ──
-        const DB_NAME = 'GolduziOfflineDB';
-        const DB_VERSION = 1;
-        let idb;
-
-        let dbReady = false;
-        function initOfflineDB() {
-            return new Promise((resolve, reject) => {
-                if (dbReady) return resolve();
-                const req = indexedDB.open(DB_NAME, DB_VERSION);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains('api_cache')) db.createObjectStore('api_cache');
-                    if (!db.objectStoreNames.contains('sync_queue')) db.createObjectStore('sync_queue', { autoIncrement: true });
-                };
-                req.onsuccess = (e) => { idb = e.target.result; dbReady = true; resolve(); };
-                req.onerror = (e) => reject(e);
-            });
+        function handleMachineChange() {
+            checkExistingShift();
+            loadLastShifts();
+            loadImmediatePrev();
+            fetchAndSetSuggestedDate();
+            
+            const mach = document.getElementById('machine').value;
+            if (mach.includes('چادر')) {
+                document.getElementById('chadorCheckboxContainer').style.display = 'flex';
+            } else {
+                document.getElementById('chadorCheckboxContainer').style.display = 'none';
+                document.getElementById('isChadorWork').checked = false;
+                toggleChadorMode();
+            }
         }
 
-        async function waitForDb() {
-            if (dbReady) return;
-            await new Promise(r => {
-                const i = setInterval(() => { if (dbReady) { clearInterval(i); r(); } }, 50);
-            });
+        function toggleChadorMode() {
+            const isChador = document.getElementById('isChadorWork').checked;
+            if (isChador) {
+                document.getElementById('designWrapper').style.display = 'none';
+                document.getElementById('setNumberWrapper').style.display = 'none';
+                document.getElementById('partsWrapper').style.display = 'none';
+                document.getElementById('bonusContainer').style.display = 'none';
+                document.getElementById('chadorFields').style.display = 'block';
+                document.getElementById('requestBonus').checked = false;
+            } else {
+                document.getElementById('designWrapper').style.display = 'block';
+                document.getElementById('setNumberWrapper').style.display = 'block';
+                document.getElementById('partsWrapper').style.display = 'block';
+                document.getElementById('bonusContainer').style.display = 'flex';
+                document.getElementById('chadorFields').style.display = 'none';
+            }
         }
 
-        async function idbGet(store, key) {
-            await waitForDb();
-            return new Promise((res) => {
-                const tx = idb.transaction(store, 'readonly').objectStore(store).get(key);
-                tx.onsuccess = () => res(tx.result);
-                tx.onerror = () => res(null);
-            });
+        function toEnglishDigits(str) {
+            if (str === null || str === undefined) return '';
+            const persian = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+            const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            str = str.toString();
+            for (let i = 0; i < 10; i++) { str = str.replace(persian[i], english[i]); }
+            return str;
         }
 
-        async function idbPut(store, key, val) {
-            await waitForDb();
-            return new Promise((res, rej) => {
-                try {
-                    const tx = idb.transaction(store, 'readwrite');
-                    if (key) tx.objectStore(store).put(val, key);
-                    else tx.objectStore(store).put(val);
-                    tx.oncomplete = () => res();
-                    tx.onerror = (e) => rej(e.target.error);
-                } catch(e) { rej(e); }
-            });
-        }
-        function idbGetAll(store) {
-            return new Promise((res) => {
-                if (!idb) return res([]);
-                const tx = idb.transaction(store, 'readonly').objectStore(store).getAll();
-                tx.onsuccess = () => res(tx.result);
-            });
-        }
-        function idbClear(store) {
-            return new Promise((res) => {
-                if (!idb) return res();
-                const tx = idb.transaction(store, 'readwrite').objectStore(store).clear();
-                tx.oncomplete = () => res();
-            });
+        function toPersianDigits(str) {
+            if (str === null || str === undefined) return '';
+            const persian = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+            return str.toString().replace(/\d/g, x => persian[x]);
         }
 
-        // تبدیل FormData به آرایه برای ذخیره در IndexedDB
-        function serializeBody(body) {
-            if (!body) return null;
-            if (body instanceof FormData) {
-                const arr = [];
-                for (let pair of body.entries()) {
-                    if (pair[1] instanceof File) {
-                        // فایل‌ها را فعلاً به صورت Base64 ذخیره می‌کنیم
-                        arr.push([pair[0], { _type: 'file', name: pair[1].name, type: pair[1].type, data: pair[1] }]);
-                    } else {
-                        arr.push(pair);
+        function formatNum(num) {
+            if (num === null || num === undefined) return 'نامشخص';
+            return toPersianDigits(Number(num).toLocaleString('en-US'));
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            let cleanStr = toEnglishDigits(dateStr.toString()).replace(/\//g, '-');
+            let parts = cleanStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            let months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+            let m = parseInt(parts[1]);
+            let d = parseInt(parts[2]);
+            let y = parts[0];
+            if (isNaN(m) || isNaN(d) || isNaN(parseInt(y))) return dateStr;
+            let dayStr = d < 10 ? '0'+d : d;
+            return toPersianDigits(`${dayStr} ${months[m-1]} ${y}`);
+        }
+
+        function formatCounterInput(input) {
+            let raw = toEnglishDigits(input.value).replace(/[^\d]/g, '');
+            if (raw) { input.value = toPersianDigits(Number(raw).toLocaleString('en-US')); } else { input.value = ''; }
+        }
+
+        function formatDecimalInput(input) {
+            let value = input.value;
+            let englishStr = toEnglishDigits(value);
+            englishStr = englishStr.replace(/٫/g, '.');
+            englishStr = englishStr.replace(/[^\d\.]/g, '');
+            
+            let parts = englishStr.split('.');
+            let integerPart = parts[0];
+            let decimalPart = parts.length > 1 ? parts[1] : null;
+            
+            let formattedInteger = integerPart ? Number(integerPart).toLocaleString('en-US') : '';
+            let finalStr = formattedInteger;
+            if (decimalPart !== null) {
+                finalStr += '.' + decimalPart;
+            }
+            
+            input.value = toPersianDigits(finalStr);
+        }
+
+        function formatPersianInput(input) {
+            let raw = toEnglishDigits(input.value).replace(/[^\d]/g, '');
+            input.value = toPersianDigits(raw);
+        }
+
+        function parseError(detail) {
+            if (!detail) return "مشکلی پیش آمد";
+            if (typeof detail === 'string') return detail;
+            if (Array.isArray(detail)) {
+                return detail.map(e => {
+                    if (typeof e === 'string') return e;
+                    if (e.msg) {
+                        const field = e.loc ? e.loc.filter(x => x !== 'body').join('.') : '';
+                        return field ? `${field}: ${e.msg}` : e.msg;
                     }
-                }
-                return { _type: 'FormData', data: arr };
+                    return JSON.stringify(e);
+                }).join(' | ');
             }
-            return body;
+            return String(detail);
         }
 
-        // تبدیل آرایه ذخیره شده به FormData اصلی برای ارسال
-        async function deserializeBody(serialized) {
-            if (!serialized || serialized._type !== 'FormData') return serialized;
-            const fd = new FormData();
-            for (let [key, val] of serialized.data) {
-                if (val && val._type === 'file') {
-                    const res = await fetch(URL.createObjectURL(val.data));
-                    const blob = await res.blob();
-                    fd.append(key, blob, val.name);
-                } else {
-                    fd.append(key, val);
-                }
-            }
-            return fd;
-        }
-
-        // ── هوشمندسازی URL برای کش آفلاین ──
-        function normalizeUrl(url) {
+        $(document).ready(function() {
             try {
-                let u = new URL(url, window.location.origin);
-                u.searchParams.delete('t');
-                u.searchParams.delete('_');
-                return u.pathname + u.search;
-            } catch(e) { return url; }
-        }
+                $('#date').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true, onSelect: function() { checkExistingShift(); loadImmediatePrev(); } });
+                $('#opListStartDate, #opListEndDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true });
+                $('#manDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true, onSelect: function() { triggerManFetch(); } });
+                $('#admViewStartDate, #admViewEndDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true });
+                $('#date, #opListStartDate, #opListEndDate, #manDate, #admViewStartDate, #admViewEndDate').on('click', function() { $(this).persianDatepicker('show'); });
+            } catch (e) { console.log("Datepicker error", e); }
 
-        function getPrevDate(dateStr) {
-            let parts = dateStr.split('-');
-            let y = parseInt(parts[0]), m = parseInt(parts[1]), d = parseInt(parts[2]);
-            d--;
-            if (d < 1) {
-                m--;
-                if (m < 1) { m = 12; y--; }
-                if (m <= 6) d = 31;
-                else if (m <= 11) d = 30;
-                else {
-                    let rem = y % 33;
-                    d = [1, 5, 9, 13, 17, 22, 26, 30].includes(rem) ? 30 : 29;
-                }
-            }
-            return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        }
-
-        function updateSyncBanner() {
-            const textEl = document.getElementById('syncStatusText');
-            const banner = document.getElementById('syncStatusBanner');
-            const syncBtn = document.getElementById('manualSyncBtn');
-            if (!textEl || !banner) return;
-            
-            const token = localStorage.getItem('token');
-            if (!token || token === 'undefined' || token === 'null') {
-                banner.style.background = '#95a5a6';
-                textEl.innerHTML = `🔒 برای استفاده از سیستم وارد شوید`;
-                if (syncBtn) syncBtn.style.display = 'none';
-                return;
-            } else {
-                if (syncBtn) syncBtn.style.display = 'inline-block';
-            }
-
-            const lastSync = localStorage.getItem('last_sync_time') || 'هنوز انجام نشده';
-            let count = 0;
-            try {
-                const raw = localStorage.getItem('offline_db');
-                if (raw) count = JSON.parse(raw).shifts.length;
-            } catch(e) {}
-
-            if (navigator.onLine) {
-                banner.style.background = '#27ae60';
-                textEl.innerHTML = `🌐 آنلاین | سینک: ${lastSync} | ${count} رکورد`;
-            } else {
-                banner.style.background = '#e74c3c';
-                textEl.innerHTML = `🔴 آفلاین | سینک: ${lastSync} | ${count} رکورد`;
-            }
-        }
-        
-        window.manualSync = function() {
-            if (!navigator.onLine) { alert('برای بروزرسانی باید به اینترنت متصل باشید.'); return; }
-            if (!authToken) { alert('لطفا ابتدا وارد سیستم شوید.'); return; }
-            
-            const textEl = document.getElementById('syncStatusText');
-            if (textEl) textEl.innerHTML = '⏳ در حال دریافت دیتابیس...';
-            
-            originalFetch('http://185.222.163.15:8000/api/sync/download_all', { headers: { 'Authorization': `Bearer ${authToken}` } })
-                .then(r => r.json())
-                .then(dbData => {
-                    localStorage.setItem('offline_db', JSON.stringify(dbData));
-                    const now = new Date();
-                    localStorage.setItem('last_sync_time', `${now.toLocaleDateString('fa-IR')} - ${now.toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'})}`);
-                    if (textEl) textEl.innerHTML = `✅ ${dbData.shifts.length} رکورد سینک شد.`;
-                    setTimeout(updateSyncBanner, 3000);
-                })
-                .catch(e => {
-                    if (textEl) textEl.innerHTML = '❌ خطا در سینک.';
-                    setTimeout(updateSyncBanner, 3000);
-                });
-        };
-
-        window.addEventListener('online', () => { 
-            console.log("🌐 اینترنت وصل شد. تلاش برای سینک...");
-            updateSyncBanner(); 
-            if(authToken) prefetchOfflineData(); 
-            syncOfflineQueue();
-        });
-        window.addEventListener('offline', updateSyncBanner);
-
-        async function prefetchOfflineData() {
-            if (!navigator.onLine) {
-                alert('برای سینک باید به اینترنت متصل باشید.');
-                return false;
-            }
-            if (!authToken) {
-                alert('لطفا ابتدا وارد سیستم شوید و سپس سینک کنید.');
-                return false;
-            }
-            
-            const textEl = document.getElementById('syncStatusText');
-            if (textEl) textEl.innerHTML = '⏳ در حال دریافت دیتابیس...';
-            
-            try {
-                const res = await (nativeFetch || window.fetch)('http://185.222.163.15:8000/api/sync/download_all', { headers: { 'Authorization': `Bearer ${authToken}` } });
-                if (!res.ok) throw new Error("HTTP " + res.status);
-                const dbData = await res.json();
-                
-                localStorage.setItem('offline_db', JSON.stringify(dbData));
-                
-                if (!localStorage.getItem('offline_db')) throw new Error("حافظه گوشی پر است.");
-
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-                const dateStr = now.toLocaleDateString('fa-IR');
-                localStorage.setItem('last_sync_time', `${dateStr} - ${timeStr}`);
-                
-                if (textEl) textEl.innerHTML = `✅ ${dbData.shifts.length} رکورد سینک شد.`;
-                setTimeout(updateSyncBanner, 3000);
-                return true;
-            } catch(e) { 
-                console.error('Sync failed:', e); 
-                if (textEl) textEl.innerHTML = '❌ خطا در سینک: ' + e.message;
-                setTimeout(updateSyncBanner, 4000);
-                return false;
-            }
-        }
-
-        // ── هک کردن window.fetch ──
-        
-        
-        // ── اینترسپتور ایمن (نسخه APK 1.0) ──
-        
-        // ── اینترسپتور ایمن (نسخه APK 1.0) ──
-        
-        
-        const originalFetch = window.fetch;
-        window.fetch = async function(...args) {
-            let [url, options] = args;
-            
-            // درخواست‌های لاگین و سینک هرگز نباید در موتور آفلاین گیر کنند
-            if (typeof url !== 'string' || !url.startsWith('http://185.222.163.15:8000/api/') || url.includes('http://185.222.163.15:8000/api/login') || url.includes('http://185.222.163.15:8000/api/sync/')) {
-                return originalFetch.apply(this, args);
-            }
-            
-            const method = (options && options.method) || 'GET';
-            const isGet = method === 'GET';
-            const urlObj = new URL(url, window.location.origin);
-            const path = urlObj.pathname;
-
-            if (navigator.onLine) {
-                try {
-                    const fetchPromise = originalFetch.apply(this, args);
-                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000));
-                    const response = await Promise.race([fetchPromise, timeoutPromise]);
-                    if (response) return response;
-                } catch (err) { console.warn("Network failed. Fallback to offline."); }
-            }
-
-            // ── حالت آفلاین ──
-            if (isGet) {
-                let dbData = null;
-                try {
-                    const raw = localStorage.getItem('offline_db');
-                    if (raw) dbData = JSON.parse(raw);
-                } catch(e) {}
-
-                if (!dbData || !dbData.shifts) {
-                    if (path === 'http://185.222.163.15:8000/api/admin/users') return new Response(JSON.stringify({users: []}), {status: 200});
-                    if (path.includes('/machines')) return new Response(JSON.stringify({machines: []}), {status: 200});
-                    if (path === 'http://185.222.163.15:8000/api/admin/notifications') return new Response(JSON.stringify({suspicious_alerts: 0}), {status: 200});
-                    if (path === 'http://185.222.163.15:8000/api/admin/pending_shifts') return new Response(JSON.stringify({status: 'ok', shifts: []}), {status: 200});
-                    if (path === 'http://185.222.163.15:8000/api/admin/all_shifts') return new Response(JSON.stringify({status: 'ok', shifts: []}), {status: 200});
-                    if (path === 'http://185.222.163.15:8000/api/admin/search_shifts') return new Response(JSON.stringify({status: 'ok', shifts: [], total: 0}), {status: 200});
-                    return new Response(JSON.stringify({detail: 'اطلاعات در حافظه نیست.'}), {status: 404});
-                }
-
-                const allShifts = dbData.shifts || [];
-                const allUsers = dbData.users || [];
-                const allMachines = dbData.machines || [];
-
-                if (path === 'http://185.222.163.15:8000/api/admin/pending_shifts') {
-                    let pending = allShifts.filter(s => s.status === 'pending').map(s => ({...s, potential_bonus: s.jig_bonus || 0, monthly_set_rank: 1}));
-                    return new Response(JSON.stringify({status: 'ok', shifts: pending}), {status: 200});
-                }
-                if (path === 'http://185.222.163.15:8000/api/admin/all_shifts') {
-                    let start = urlObj.searchParams.get('start_date') || '1300-01-01';
-                    let end = urlObj.searchParams.get('end_date') || '1500-12-31';
-                    start = start.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
-                    end = end.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
-                    return new Response(JSON.stringify({status: 'ok', shifts: allShifts.filter(s => s.date >= start && s.date <= end)}), {status: 200});
-                }
-                if (path === 'http://185.222.163.15:8000/api/admin/search_shifts') {
-                    let d = urlObj.searchParams.get('design_code');
-                    let sn = urlObj.searchParams.get('set_number');
-                    let p = urlObj.searchParams.get('parts');
-                    let m = urlObj.searchParams.get('machine');
-                    let s = urlObj.searchParams.get('shift');
-                    let sort = urlObj.searchParams.get('sort_order') || 'desc';
-                    let filtered = allShifts.filter(x => {
-                        if (d && !x.design?.includes(d)) return false;
-                        if (sn && x.set_num != sn) return false;
-                        if (p && !x.parts?.includes(p)) return false;
-                        if (m && m !== 'all' && x.machine !== m) return false;
-                        if (s && s !== 'all' && x.shift !== s) return false;
-                        return true;
-                    }).sort((a,b) => sort === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date));
-                    return new Response(JSON.stringify({status: 'ok', shifts: filtered, total: filtered.length}), {status: 200});
-                }
-                
-                if (path === 'http://185.222.163.15:8000/api/admin/users') return new Response(JSON.stringify({users: allUsers}), {status: 200});
-                if (path === 'http://185.222.163.15:8000/api/admin/machines') return new Response(JSON.stringify({machines: allMachines}), {status: 200});
-                if (path === 'http://185.222.163.15:8000/api/machines') return new Response(JSON.stringify({machines: allMachines.map(m=>m.name)}), {status: 200});
-                if (path === 'http://185.222.163.15:8000/api/admin/notifications') return new Response(JSON.stringify({suspicious_alerts: 0}), {status: 200});
-
-                if (path === 'http://185.222.163.15:8000/api/operator/last_shifts') {
-                    const machine = urlObj.searchParams.get('machine');
-                    let opId = urlObj.searchParams.get('target_operator_id');
-                    let shift = urlObj.searchParams.get('target_shift_type');
-                    if (!opId && authToken) { try { const p = JSON.parse(atob(authToken.split('.')[1])); opId = p.sub; shift = shift || p.shift_type; } catch(e){} }
-                    let same = allShifts.filter(s => s.op_id == opId && s.machine == machine && s.shift == shift).sort((a,b) => b.date.localeCompare(a.date))[0];
-                    let opp = allShifts.filter(s => s.machine == machine && s.shift != shift).sort((a,b) => b.date.localeCompare(a.date))[0];
-                    const fmt = (s) => s ? { exists: true, data: { date: s.date, day_name: s.day_name, shift_type: s.shift, machine: s.machine, counter: s.counter, design: s.design, set_number: s.set_num, parts: s.parts, status: s.status, zero_reason: s.zero_reason, op_name: s.op_name } } : { exists: false };
-                    return new Response(JSON.stringify({ same: fmt(same), opposite: fmt(opp) }), {status:200});
-                }
-                if (path === 'http://185.222.163.15:8000/api/operator/immediate_prev_info') {
-                    const date = urlObj.searchParams.get('date');
-                    const machine = urlObj.searchParams.get('machine');
-                    const shift_type = urlObj.searchParams.get('shift_type');
-                    const exp_shift = shift_type === 'شب' ? 'صبح' : 'شب';
-                    let exp_date = date;
-                    if (shift_type !== 'شب') exp_date = getPrevDate(date);
-                    const match = allShifts.find(s => s.date === exp_date && s.machine == machine && s.shift === exp_shift);
-                    if (match) {
-                        return new Response(JSON.stringify({ exists: true, data: { date: match.date, day_name: match.day_name, shift_type: match.shift, machine: match.machine, counter: match.counter, design: match.design, set_number: match.set_num, parts: match.parts, status: match.status, zero_reason: match.zero_reason, operator_name: match.op_name, jig_bonus: 0 } }), {status:200});
-                    } else {
-                        return new Response(JSON.stringify({ exists: false, expected_date: exp_date, expected_shift: exp_shift }), {status:200});
-                    }
-                }
-
-                if (path.includes('/reports/') || path.includes('financials') || path.includes('analysis')) {
-                    return new Response(JSON.stringify({status: 'empty', detail: 'آفلاین: گزارشات نیاز به اینترنت دارند.'}), {status: 200});
-                }
-                if (path === 'http://185.222.163.15:8000/api/admin/salary_settings') {
-                    return new Response(JSON.stringify({price: 0, chador_price: 0, show_salary: false, show_opposite_salary: false}), {status: 200});
-                }
-
-                return new Response(JSON.stringify({detail:'اطلاعات در حافظه نیست'}), {status:404});
-            } else {
-                await processLocalMutation(path, urlObj, options);
-                await queueMutation(url, method, options);
-                return new Response(JSON.stringify({status:'queued', message:'آفلاین - در صف سینک'}), {status:200});
-            }
-        };
-
-                   partsContainer.appendChild(label);
+            const partsList = ["جیگ", "پشت بدن", "آستین", "تک", "شلوار", "پندول", "سریگ"];
+            const partsContainer = document.getElementById('parts-container');
+            const manPartsContainer = document.getElementById('manPartsContainer');
+            partsList.forEach(part => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" value="${part}"> ${part}`;
+                partsContainer.appendChild(label);
                 
                 const manLabel = document.createElement('label');
                 manLabel.innerHTML = `<input type="checkbox" value="${part}"> ${part}`;
                 manPartsContainer.appendChild(manLabel);
             });
 
-            updateSyncBanner();
-        if (navigator.onLine) syncOfflineQueue();
-        updateSyncBanner();
-        setInterval(updateSyncBanner, 3000);
-        routeUser();
+            routeUser();
         });
 
         function showSection(id) {
@@ -1189,31 +865,41 @@
             }
         }
 
-        function doLogout() { localStorage.removeItem("token"); location.reload(); }
+        function doLogout() { localStorage.clear(); location.reload(); }
+
+        async function doLogin() {
+            const res = await fetch('/api/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone_number: toEnglishDigits(document.getElementById('phone').value), password: toEnglishDigits(document.getElementById('password').value)})
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('token', data.token); 
+                localStorage.setItem('role', data.role); 
+                localStorage.setItem('shift_type', data.shift_type || '');
+                localStorage.setItem('userName', data.name);
+                authToken = data.token; userRole = data.role; userShift = data.shift_type; location.reload();
+            } else { document.getElementById('loginStatus').innerText = parseError(data.detail); }
+        }
 
         function routeUser() {
             document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-            const token = localStorage.getItem('token');
-            const role = localStorage.getItem('role');
-            
-            if (!token || token === 'undefined' || token === 'null') {
-                showSection('loginScreen');
-            } else if (role === 'admin') {
+            if (!authToken) showSection('loginScreen');
+            else if (userRole === 'admin') {
                 showSection('adminScreen');
                 document.getElementById('adminWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'مدیر'}`;
-                if (navigator.onLine) prefetchOfflineData(); 
-            } else {
+            }
+            else {
                 showSection('operatorDashboard');
                 document.getElementById('opWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'اپراتور'}`;
-                document.getElementById('operatorShiftDisplay').innerHTML = `<div class="shift-badge">شیفت شما: ${localStorage.getItem('shift_type') || ''}</div>`;
+                document.getElementById('operatorShiftDisplay').innerHTML = `<div class="shift-badge">شیفت شما: ${userShift}</div>`;
                 loadMachines();
                 checkOperatorNotifications();
-                if (navigator.onLine) prefetchOfflineData();
             }
         }
 
         function setTodayDate() {
-            fetch('http://185.222.163.15:8000/api/today').then(r => r.json()).then(d => {
+            fetch('/api/today').then(r => r.json()).then(d => {
                 document.getElementById('date').value = toPersianDigits(d.date);
                 $('#date').persianDatepicker('setDate', d.date);
                 checkExistingShift();
@@ -1241,7 +927,7 @@
         async function fetchAndSetSuggestedDate() {
             try {
                 const machineVal = document.getElementById('machine') ? document.getElementById('machine').value : '';
-                let url = 'http://185.222.163.15:8000/api/operator/suggest_date?t=' + Date.now();
+                let url = '/api/operator/suggest_date?t=' + Date.now();
                 if (machineVal) url += `&machine=${encodeURIComponent(machineVal)}`;
                 
                 const res = await fetch(url, { headers: { 'Authorization': `Bearer ${authToken}` } });
@@ -1270,7 +956,7 @@
             if (!date || !machine || !shift) return;
 
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${encodeURIComponent(shift)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${encodeURIComponent(shift)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('immediatePrevDisplay');
                 if (!div) return;
@@ -1316,7 +1002,7 @@
             const machineVal = document.getElementById('machine') ? document.getElementById('machine').value : '';
             if (!machineVal) return;
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machineVal)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/operator/last_shifts?machine=${encodeURIComponent(machineVal)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('lastShiftDisplay');
                 if (!div) return;
@@ -1332,75 +1018,33 @@
                             <strong>چرخ:</strong> ${toPersianDigits(s.machine)}<br>
                             ${workHtml}
                         </div>
-                function doLogin() {
-            const btn = document.querySelector('#loginScreen button');
-            const statusEl = document.getElementById('loginStatus');
-            btn.disabled = true;
-            statusEl.innerText = "در حال بررسی...";
-            statusEl.style.color = "blue";
-
-            const phone = toEnglishDigits(document.getElementById('phone').value);
-            const pass = toEnglishDigits(document.getElementById('password').value);
-
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "http://185.222.163.15:8000/api/login", true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-            
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            localStorage.setItem('token', data.token); 
-                            localStorage.setItem('role', data.role); 
-                            localStorage.setItem('shift_type', data.shift_type || '');
-                            localStorage.setItem('userName', data.name);
-                            
-                            statusEl.innerText = "✅ ورود موفق. در حال انتقال...";
-                            statusEl.style.color = "green";
-                            
-                            // دانلود دیتابیس آفلاین در پس‌زمینه (با تاخیر کوچک)
-                            setTimeout(() => {
-                                var syncXhr = new XMLHttpRequest();
-                                syncXhr.open("GET", "http://185.222.163.15:8000/api/sync/download_all", true);
-                                syncXhr.setRequestHeader("Authorization", "Bearer " + data.token);
-                                syncXhr.onreadystatechange = function() {
-                                    if (syncXhr.readyState === 4 && syncXhr.status === 200) {
-                                        localStorage.setItem('offline_db', syncXhr.responseText);
-                                        var now = new Date();
-                                        localStorage.setItem('last_sync_time', now.toLocaleDateString('fa-IR') + ' - ' + now.toLocaleTimeString('fa-IR', {hour:'2-digit', minute:'2-digit'}));
-                                    }
-                                    window.location.reload();
-                                };
-                                syncXhr.send();
-                            }, 100);
-                            
-                        } catch(e) {
-                            statusEl.innerText = "خطا در پردازش اطلاعات سرور";
-                            statusEl.style.color = "red";
-                            btn.disabled = false;
-                        }
-                    } else {
-                        try {
-                            var err = JSON.parse(xhr.responseText);
-                            statusEl.innerText = parseError(err.detail);
-                        } catch(e) {
-                            statusEl.innerText = "خطای سرور: " + xhr.status;
-                        }
-                        statusEl.style.color = "red";
-                        btn.disabled = false;
-                    }
+                    </div>`;
+                } else {
+                    html += `<div style="background:#e8f8f5; padding:10px; border-radius:8px; border:1px solid #1abc9c; text-align:center; color:#16a085; font-size:14px; margin-bottom:10px;">هنوز شیفتی برای این چرخ ثبت نکرده‌اید.</div>`;
                 }
-            };
-            xhr.send(JSON.stringify({phone_number: phone, password: pass}));
-        }
-
-                    } catch(e) { console.error(e); }
+                
+                if (data.opposite.exists) {
+                    const s = data.opposite.data;
+                    let workHtml = s.zero_reason ? `<span style="color:#e74c3c;">⚠️ کارکرد صفر: ${s.zero_reason}</span>` : `طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_number)} | شمارنده: ${formatNum(s.counter)}`;
+                    html += `<div style="background:#f4f6f7; padding:12px; border-radius:8px; border:1px solid #bdc3c7;">
+                        <div style="font-weight:bold; color:#7f8c8d; margin-bottom:5px; font-size:15px;">🔄 آخرین شیفت مخالف (${s.shift_type}) این چرخ:</div>
+                        <div style="font-size:13px; line-height:1.6; color:#2c3e50;">
+                            <strong>تاریخ:</strong> ${formatDate(s.date)} (${s.day_name})<br>
+                            <strong>چرخ:</strong> ${toPersianDigits(s.machine)}<br>
+                            <strong>اپراتور:</strong> ${s.op_name}<br>
+                            ${workHtml}
+                        </div>
+                    </div>`;
+                } else {
+                    html += `<div style="background:#f4f6f7; padding:10px; border-radius:8px; border:1px solid #bdc3c7; text-align:center; color:#7f8c8d; font-size:14px;">هنوز شیفت مخالفی برای این چرخ ثبت نشده است.</div>`;
+                }
+                div.innerHTML = html;
+            } catch(e) { console.error(e); }
         }
 
         async function loadMachines() {
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const select = document.getElementById('machine');
                 if(select) select.innerHTML = data.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
@@ -1415,7 +1059,7 @@
 
         async function checkOperatorNotifications() {
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/operator/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('/api/operator/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.rejected_count > 0) {
                     lastRejectedDate = data.last_rejected_date;
@@ -1467,7 +1111,7 @@
             let sortOrder = document.getElementById('opListSortOrder') ? document.getElementById('opListSortOrder').value : 'desc';
             if (!start || !end) return;
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/operator/reports?start_date=${start}&end_date=${end}&machine=${encodeURIComponent(mach)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/operator/reports?start_date=${start}&end_date=${end}&machine=${encodeURIComponent(mach)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (sortOrder === 'asc') data.details.reverse();
                 const div = document.getElementById('opShiftListData'); div.innerHTML = '';
@@ -1522,7 +1166,7 @@
             const machine = document.getElementById('machine').value;
             if (!date || !machine) return;
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const alertBox = document.getElementById('checkShiftAlert');
                 const btn = document.getElementById('submitBtn');
@@ -1572,7 +1216,7 @@
             isEditingDateLoading = true;
             document.getElementById('date').disabled = true;
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/operator/shift/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/operator/shift/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (res.ok) {
                     document.getElementById('formTitle').innerText = "✏️ ویرایش کارکرد";
@@ -1650,12 +1294,12 @@
                         fd.append("machine", machineVal); fd.append("counter", 0); fd.append("design_code", "000"); fd.append("set_number", 0); fd.append("parts", "");
                         fd.append("zero_reason", document.getElementById('zeroReason').value);
                         fd.append("zero_note", document.getElementById('zeroNote').value);
-                        const res = await fetch(`http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                        const res = await fetch(`/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
                         if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
                         else { alert("✅ کارکرد صفر ویرایش شد!"); showSection('operatorDashboard'); }
                     } else {
                         const zeroPayload = { date: dateVal, machine: machineVal, zero_reason: document.getElementById('zeroReason').value, zero_note: document.getElementById('zeroNote').value };
-                        const res = await fetch('http://185.222.163.15:8000/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
+                        const res = await fetch('/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
                         if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
                         else { alert("✅ کارکرد صفر ثبت شد!"); showSection('operatorDashboard'); }
                     }
@@ -1695,7 +1339,7 @@
                     
                     if (photoFile) fd.append("photo", photoFile);
 
-                    const pvRes = await fetch('http://185.222.163.15:8000/api/operator/preview_work', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                    const pvRes = await fetch('/api/operator/preview_work', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
                     const pvData = await pvRes.json().catch(()=>({}));
                     
                     if (!pvRes.ok) { 
@@ -1756,7 +1400,7 @@
                     }
                     document.getElementById('previewContent').innerHTML = detailsHtml;
                     
-                    shiftToSubmit = { fd, url: editingShiftId ? `http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}` : 'http://185.222.163.15:8000/api/submit_shift', method: editingShiftId ? 'PUT' : 'POST' };
+                    shiftToSubmit = { fd, url: editingShiftId ? `/api/operator/edit_shift/${editingShiftId}` : '/api/submit_shift', method: editingShiftId ? 'PUT' : 'POST' };
                     document.getElementById('previewModal').style.display = 'flex';
                     btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
                 }
@@ -1793,7 +1437,7 @@
 
         async function checkAdminNotifications() {
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/admin/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('/api/admin/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.suspicious_alerts > 0) {
                     document.getElementById('adminAlertBanner').style.display = 'block';
@@ -1809,24 +1453,14 @@
         function approveShift(id) {
             const cb = document.getElementById(`bonus_${id}`);
             const apply = cb ? cb.checked : false;
-            fetch(`http://185.222.163.15:8000/api/admin/approve_shift/${id}?apply_bonus=${apply}`, {method:'POST', headers:{'Authorization':'Bearer ' + authToken}}).then(() => loadPendingShifts());
+            fetch(`/api/admin/approve_shift/${id}?apply_bonus=${apply}`, {method:'POST', headers:{'Authorization':'Bearer ' + authToken}}).then(() => loadPendingShifts());
         }
 
         async function loadPendingShifts() {
-            const div = document.getElementById('pendingList'); 
-            if (!div) return;
-            div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
-            
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/admin/pending_shifts', { headers: { 'Authorization': `Bearer ${authToken}` } });
-                if (!res.ok) throw new Error("HTTP Error " + res.status);
+                const res = await fetch('/api/admin/pending_shifts', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
-                div.innerHTML = '';
-                
-                if (!data.shifts || data.shifts.length === 0) {
-                    div.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding: 20px;">هیچ کارکردی در انتظار تایید نیست.</p>';
-                    return;
-                }
+                const div = document.getElementById('pendingList'); div.innerHTML = '';
                 
                 const machSelect = document.getElementById('admFilterMachine');
                 const shiftSelect = document.getElementById('admFilterShift');
@@ -1898,13 +1532,10 @@
 
                             content = `<img class="card-img" src="/${s.photo || 'static/placeholder.png'}" onclick="showImageZoom('/${s.photo || 'static/placeholder.png'}')"><div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | شماره ست: ${toPersianDigits(s.set_num)} <span style="color:#e74c3c; font-weight:bold;">(ست ${toPersianDigits(s.monthly_set_rank)} این ماه)</span><br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${bonusHtml}`;
                         }
-                        div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} (${s.day_name}) | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('http://185.222.163.15:8000/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
+                        div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} (${s.day_name}) | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
                     });
                 }
-            } catch(e) {
-                console.error(e);
-                if(div) div.innerHTML = `<p style="text-align:center; color:#e74c3c; padding: 20px;">خطا در دریافت اطلاعات.<br><small>${e.message || ''}</small><br><br>لطفا دکمه «بروزرسانی دیتا» در بالای صفحه را بزنید.</p>`;
-            }
+            } catch(e) {}
         }
 
         function showImageZoom(src) {
@@ -1932,12 +1563,12 @@
 
         async function loadAdminUsersAndMachines() {
             try {
-                const resMach = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resMach = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataMach = await resMach.json();
                 const manMachineSelect = document.getElementById('manMachine');
                 if(manMachineSelect) manMachineSelect.innerHTML = dataMach.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
 
-                const resUsers = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resUsers = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataUsers = await resUsers.json();
                 
                 window.allOperators = dataUsers.users.filter(u => u.role === 'operator');
@@ -1964,7 +1595,7 @@
 
             try {
                 const excludeParam = editingAdminShiftId ? `&exclude_shift_id=${editingAdminShiftId}` : '';
-                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}${excludeParam}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}${excludeParam}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const alertBox = document.getElementById('manCheckShiftAlert');
                 const btn = document.getElementById('manSubmitBtn');
@@ -1980,7 +1611,7 @@
             } catch(e) {}
 
             try {
-                const resLast = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resLast = await fetch(`/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataLast = await resLast.json();
                 const divLast = document.getElementById('manLastShiftDisplay');
                 let htmlLast = '';
@@ -2016,7 +1647,7 @@
                 }
                 divLast.innerHTML = htmlLast;
 
-                const resPrev = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resPrev = await fetch(`/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataPrev = await resPrev.json();
                 const divPrev = document.getElementById('manImmediatePrevDisplay');
                 if (dataPrev.exists) {
@@ -2045,7 +1676,7 @@
                 }
                 
                 if (!date) {
-                    const resSug = await fetch(`http://185.222.163.15:8000/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                    const resSug = await fetch(`/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                     const dataSug = await resSug.json();
                     if (dataSug.date) {
                         document.getElementById('manDate').value = toPersianDigits(dataSug.date);
@@ -2097,7 +1728,7 @@
         }
 
         function setManTodayDate() {
-            fetch('http://185.222.163.15:8000/api/today').then(r => r.json()).then(d => {
+            fetch('/api/today').then(r => r.json()).then(d => {
                 document.getElementById('manDate').value = toPersianDigits(d.date);
                 $('#manDate').persianDatepicker('setDate', d.date);
                 triggerManFetch();
@@ -2159,7 +1790,7 @@
             const photoFile = document.getElementById('manPhoto').files[0];
             if (photoFile) fd.append("photo", photoFile);
             
-            const url = editingAdminShiftId ? `http://185.222.163.15:8000/api/admin/edit_shift/${editingAdminShiftId}` : 'http://185.222.163.15:8000/api/admin/manual_shift';
+            const url = editingAdminShiftId ? `/api/admin/edit_shift/${editingAdminShiftId}` : '/api/admin/manual_shift';
             const method = editingAdminShiftId ? 'PUT' : 'POST';
             
             try {
@@ -2173,7 +1804,7 @@
         
         async function loadUsers() {
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('usersList'); div.innerHTML = '';
                 data.users.forEach(u => {
@@ -2187,7 +1818,7 @@
             if (newName) {
                 const newShift = role === 'operator' ? prompt("شیفت جدید (صبح یا شب):", shift) : null;
                 if (role !== 'operator' || (newShift === 'صبح' || newShift === 'شب')) {
-                    fetch(`http://185.222.163.15:8000/api/admin/users/${id}`, {method:'PUT', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify({name: newName, shift_type: newShift})}).then(()=>loadUsers());
+                    fetch(`/api/admin/users/${id}`, {method:'PUT', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify({name: newName, shift_type: newShift})}).then(()=>loadUsers());
                 }
             }
         }
@@ -2201,7 +1832,7 @@
                 shift_type: document.getElementById('createShiftDiv').style.display !== 'none' ? document.getElementById('newShift').value : null
             };
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/admin/create_user', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify(body)});
+                const res = await fetch('/api/admin/create_user', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify(body)});
                 if(res.ok) loadUsers(); else alert("خطا در ساخت");
             } catch(e) {}
         }
@@ -2234,7 +1865,7 @@
             
             weekSelect.innerHTML = '<option value="">در حال دریافت...</option>';
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/get_weeks?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/get_weeks?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 
                 weekSelect.innerHTML = '';
@@ -2264,7 +1895,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) {
                     const errText = await res.text();
                     throw new Error(errText.substring(0, 200));
@@ -2411,7 +2042,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) {
                     const errText = await res.text();
                     throw new Error(errText.substring(0, 200));
@@ -2563,7 +2194,7 @@
             const year = document.getElementById('salaryYear').value;
             const month = document.getElementById('salaryMonth').value;
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/admin/salary_settings?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 if (data.price) {
                     let parts = data.price.toString().split('.');
@@ -2593,7 +2224,7 @@
             const showOpposite = document.getElementById('showOppositeSalaryToOp').checked;
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}&price=${price}&chador_price=${chadorPrice}&show_salary=${show}&show_opposite_salary=${showOpposite}`, {
+                const res = await fetch(`/api/admin/salary_settings?year=${year}&month=${month}&price=${price}&chador_price=${chadorPrice}&show_salary=${show}&show_opposite_salary=${showOpposite}`, {
                     method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 if (res.ok) alert("✅ تنظیمات حقوق با موفقیت ذخیره شد.");
@@ -2624,7 +2255,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/monthly_financials?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/admin/monthly_financials?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2729,7 +2360,7 @@
             }
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/monthly_financials?year=${year}&month=${month}`, {
+                const res = await fetch(`/api/admin/monthly_financials?year=${year}&month=${month}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                     body: JSON.stringify({ shift_financials, machine_financials })
                 });
@@ -2761,7 +2392,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/duration_analysis?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/admin/duration_analysis?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2818,7 +2449,7 @@
 
         async function loadAdminViewMachines() {
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const filterSelect = document.getElementById('admViewMachineFilter');
                 if (filterSelect) {
@@ -2840,7 +2471,7 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=${start}&end_date=${end}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/admin/all_shifts?start_date=${start}&end_date=${end}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 div.innerHTML = '';
                 
@@ -2903,7 +2534,7 @@
             document.getElementById('manSubmitBtn').innerText = "ذخیره تغییرات";
             
             setTimeout(() => {
-                fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } })
+                fetch(`/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } })
                 .then(r => r.json()).then(data => {
                     const shift = data.shifts.find(s => s.id === id);
                     if (!shift) { alert("خطا در بارگذاری اطلاعات."); return; }
@@ -2963,7 +2594,7 @@
         async function deleteAdminShift(id) {
             if (!confirm('آیا از حذف این کارکرد مطمئن هستید؟')) return;
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (res.ok) { alert('✅ حذف شد.'); loadAdminViewShifts(); }
                 else alert('❌ خطا در حذف.');
             } catch(e) { alert("خطای شبکه."); }
@@ -2975,7 +2606,7 @@
 
         async function loadDeleteMachines() {
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const filterSelect = document.getElementById('delFilterMachine');
                 if (filterSelect) {
@@ -2990,7 +2621,7 @@
             let shift = document.getElementById('delFilterShift').value;
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const div = document.getElementById('deleteList'); div.innerHTML = '';
                 
@@ -3020,14 +2651,14 @@
         async function deleteAdminShiftFromList(id) {
             if (!confirm('حذف شود؟')) return;
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (res.ok) { alert('حذف شد'); loadDeleteList(); }
             } catch(e) {}
         }
 
         async function initAdminSearch() {
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const sel = document.getElementById('srchMachine');
                 if (sel) {
@@ -3048,7 +2679,7 @@
             const div = document.getElementById('adminSearchResults');
             div.innerHTML = '<p style="text-align:center;">در حال جستجو...</p>';
             
-            let url = `http://185.222.163.15:8000/api/admin/search_shifts?sort_order=${sortOrder}`;
+            let url = `/api/admin/search_shifts?sort_order=${sortOrder}`;
             if (design) url += `&design_code=${encodeURIComponent(design)}`;
             if (setNum) url += `&set_number=${encodeURIComponent(setNum)}`;
             if (parts) url += `&parts=${encodeURIComponent(parts)}`;
@@ -3101,7 +2732,7 @@
             if (!div) return;
             div.innerHTML = '<p style="text-align:center;">در حال دریافت...</p>';
             try {
-                const res = await fetch('http://185.222.163.15:8000/api/admin/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch('/api/admin/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
                 div.innerHTML = '';
@@ -3128,7 +2759,7 @@
             const input = document.getElementById('newMachineName');
             const name = input.value.trim();
             if (!name) { alert('نام چرخ را وارد کنید'); return; }
-            const res = await fetch('http://185.222.163.15:8000/api/admin/machines', {
+            const res = await fetch('/api/admin/machines', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ name: name, reset_period: 5000000, start_counter: 0 })
@@ -3142,7 +2773,7 @@
             if (newReset === null) return;
             const newStart = prompt(`شمارنده شروع (فعلی ${start}):`, start);
             if (newStart === null) return;
-            const res = await fetch(`http://185.222.163.15:8000/api/admin/machines/${encodeURIComponent(name)}`, {
+            const res = await fetch(`/api/admin/machines/${encodeURIComponent(name)}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ reset_period: parseInt(newReset) || 5000000, start_counter: parseInt(newStart) || 0 })
