@@ -1,18 +1,6 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-
-    <script>
-        const nativeFetch = window.fetch.bind(window);
-        window.fetch = function(url, options) {
-            // اگر آدرس با /api/ شروع شده بود، آدرس کامل سرور را به آن اضافه کن
-            if (typeof url === 'string' && url.startsWith('/api/')) {
-                url = 'http://185.222.163.15:8000' + url;
-            }
-            return nativeFetch(url, options);
-        };
-    </script>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2c3e50">
@@ -69,42 +57,33 @@
         .zero-checkbox { display: flex; align-items: center; background: #fdf2f2; border: 1px solid #f5c6cb; padding: 10px; border-radius: 8px; margin-bottom: 15px; cursor: pointer;}
         .zero-checkbox input { width: auto; margin: 0; margin-left: 10px; scale: 1.5; }
         .zero-checkbox label { margin: 0; color: #721c24; cursor: pointer; }
-    
-        </style>
+    </style>
 </head>
 <body>
 
-    <!-- New Splash Screen -->
     <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; transition: opacity 0.4s ease;">
-        <button onclick="hideSplash()" style="background: linear-gradient(90deg, #7b1fa2, #4a148c); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; font-family: 'Vazirmatn', sans-serif; margin-bottom: 22%; z-index: 100000;">شروع کنید</button>
+        <button onclick="hideSplash()" style="background: linear-gradient(90deg, #7b2cbf, #5a189a); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; font-family: 'Vazirmatn', sans-serif; margin-bottom: 22%; z-index: 100000;">شروع کنید</button>
     </div>
     
     <script>
-        window.addEventListener('load', () => {
-            if (localStorage.getItem('token')) {
-                // اگر کاربر لاگین است، اسپلش را نشان نده
-                document.getElementById('appSplash').style.display = 'none';
-            }
-        });
-
+        // اسپلش را در زمان لود شدن مخفی نمی‌کنیم تا کاربر دکمه را ببیند.
         function hideSplash() {
             const splash = document.getElementById('appSplash');
             splash.style.opacity = '0';
             setTimeout(() => {
                 splash.style.display = 'none';
-                // نمایش صفحه لاگین
-                document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-                const loginEl = document.getElementById('loginScreen');
-                if (loginEl) loginEl.classList.add('active');
             }, 400);
         }
     </script>
 
 
-    
-
-
-    
+    <div class="container active" id="loginScreen" style="max-width: 400px;">
+        <h2>🔐 ورود به سیستم (نسخه ۱۶.۶)</h2>
+        <input type="tel" id="phone" placeholder="۰۹۱۲۳۴۵۶۷۸۹">
+        <input type="password" id="password" placeholder="****">
+        <button onclick="doLogin()">ورود</button>
+        <div id="loginStatus" style="color: red; text-align:center;"></div>
+    </div>
 
     <div class="container" id="operatorDashboard" style="max-width: 400px;">
         <button class="logout-btn" onclick="doLogout()">خروج</button>
@@ -1425,7 +1404,7 @@
                     }
                     document.getElementById('previewContent').innerHTML = detailsHtml;
                     
-                    shiftToSubmit = { fd, url: editingShiftId ? `/api/operator/edit_shift/${editingShiftId}` : '/api/submit_shift', method: editingShiftId ? 'PUT' : 'POST' };
+                    shiftToSubmit = { fd, url: editingShiftId ? `http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}` : '/api/submit_shift', method: editingShiftId ? 'PUT' : 'POST' };
                     document.getElementById('previewModal').style.display = 'flex';
                     btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
                 }
@@ -1815,7 +1794,7 @@
             const photoFile = document.getElementById('manPhoto').files[0];
             if (photoFile) fd.append("photo", photoFile);
             
-            const url = editingAdminShiftId ? `/api/admin/edit_shift/${editingAdminShiftId}` : '/api/admin/manual_shift';
+            const url = editingAdminShiftId ? `http://185.222.163.15:8000/api/admin/edit_shift/${editingAdminShiftId}` : '/api/admin/manual_shift';
             const method = editingAdminShiftId ? 'PUT' : 'POST';
             
             try {
@@ -2704,7 +2683,7 @@
             const div = document.getElementById('adminSearchResults');
             div.innerHTML = '<p style="text-align:center;">در حال جستجو...</p>';
             
-            let url = `/api/admin/search_shifts?sort_order=${sortOrder}`;
+            let url = `http://185.222.163.15:8000/api/admin/search_shifts?sort_order=${sortOrder}`;
             if (design) url += `&design_code=${encodeURIComponent(design)}`;
             if (setNum) url += `&set_number=${encodeURIComponent(setNum)}`;
             if (parts) url += `&parts=${encodeURIComponent(parts)}`;
@@ -2807,15 +2786,6 @@
         }
     </script>
 
-<!-- UI Update: 1794935390 -->
-
-    
-
-
-<!-- Splash Update: 1794935602 -->
-
-<!-- Final Splash: 1794936358 -->
-
-<!-- Final Rebuild: 1794937801 -->
+<!-- Final Perfect Splash: 1794938232 -->
 </body>
 </html>
