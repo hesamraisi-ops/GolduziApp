@@ -61,6 +61,43 @@
 </head>
 <body>
 
+    <!-- Fixed Splash Screen -->
+    <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; transition: opacity 0.4s ease;">
+        <button id="startBtn" style="background: linear-gradient(90deg, #7b2cbf, #5a189a); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; font-family: 'Vazirmatn', sans-serif; margin-bottom: 22%; z-index: 100000;">شروع کنید</button>
+    </div>
+    
+    <script>
+        function hideSplash() {
+            const splash = document.getElementById('appSplash');
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    // نمایش صفحه لاگین
+                    document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+                    const loginEl = document.getElementById('loginScreen');
+                    if (loginEl) loginEl.classList.add('active');
+                }, 400);
+            }
+        }
+
+        // استفاده از Event Listener برای اطمینان از کارکرد دکمه
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('token')) {
+                // اگر لاگین است، اسپلش را نشان نده
+                const splash = document.getElementById('appSplash');
+                if (splash) splash.style.display = 'none';
+            } else {
+                // اتصال دکمه به تابع
+                const btn = document.getElementById('startBtn');
+                if (btn) {
+                    btn.addEventListener('click', hideSplash);
+                }
+            }
+        });
+    </script>
+
+
     <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; transition: opacity 0.4s ease;">
         <button onclick="hideSplash()" style="background: linear-gradient(90deg, #7b2cbf, #5a189a); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; font-family: 'Vazirmatn', sans-serif; margin-bottom: 22%; z-index: 100000;">شروع کنید</button>
     </div>
@@ -2810,3 +2847,5 @@
 </html>
 
 <!-- Final Polish: 1794938720 -->
+
+<!-- Final Fix: 1794939300 -->
