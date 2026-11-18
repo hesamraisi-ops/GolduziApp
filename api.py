@@ -47,6 +47,8 @@ def clean_date(d: str) -> str:
 
 async def init_db():
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         await db.execute('''CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT UNIQUE, password_hash TEXT, 
             name TEXT, role TEXT DEFAULT 'operator', shift_type TEXT)''')
@@ -144,6 +146,8 @@ def verify_admin(payload: dict = Depends(verify_token)):
 
 async def get_machine_info(machine_name):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT reset_period, start_counter FROM machines WHERE name=?", (machine_name,)) as cursor:
             row = await cursor.fetchone()
             return row if row else (5000000, 0)
@@ -151,6 +155,8 @@ async def get_machine_info(machine_name):
 async def get_immediate_previous_shift(machine, date_str, shift_type):
     target_date = clean_date(date_str)
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT * FROM shifts WHERE machine=? AND status='approved' ORDER BY id DESC", (machine,)) as cursor:
             rows = await cursor.fetchall()
     if shift_type == 'شب':
@@ -170,6 +176,8 @@ async def get_immediate_previous_shift(machine, date_str, shift_type):
 async def get_last_valid_shift_before(machine, date_str, shift_type):
     target_date = clean_date(date_str)
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT * FROM shifts WHERE machine=? AND status='approved' AND zero_reason IS NULL", (machine,)) as cursor:
             rows = await cursor.fetchall()
     valid_rows = []
@@ -211,6 +219,8 @@ async def calculate_work_logic(machine, date_str, shift_type, counter, set_numbe
         return work, False
     else:
         async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
             async with db.execute("SELECT count(*) FROM shifts WHERE machine=?", (machine,)) as cursor:
                 total_machine_shifts = (await cursor.fetchone())[0]
         
@@ -255,6 +265,8 @@ async def get_set_monthly_rank(machine, date_str, design_code=None, set_number=N
     except: return 1
         
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT date, jig_bonus FROM shifts WHERE machine=? AND status='approved'", (machine,)) as cursor:
             rows = await cursor.fetchall()
             
@@ -274,6 +286,8 @@ async def get_set_monthly_rank(machine, date_str, design_code=None, set_number=N
 async def check_missing_shifts(operator_id: int, new_date_str: str, machine: str):
     new_date_clean = clean_date(new_date_str)
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT date FROM shifts WHERE operator_id=? AND machine=?", (operator_id, machine)) as cursor:
             rows = await cursor.fetchall()
     recorded_dates = set()
@@ -302,11 +316,13 @@ async def login(data: LoginData):
     clean_phone = normalize_phone(data.phone_number)
     pwd_hash = hash_password(data.password)
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT id, name, role, shift_type FROM users WHERE phone=? AND password_hash=?", (clean_phone, pwd_hash)) as cursor:
             row = await cursor.fetchone()
             if not row: raise HTTPException(status_code=401, detail="شماره یا رمز اشتباه است")
             user_id, name, role, shift_type = row
-            exp_time = datetime.now(timezone.utc) + timedelta(days=30)
+            exp_time = datetime.now(timezone.utc) + timedelta(days=3650)
             payload = {"sub": str(user_id), "name": name, "role": role, "exp": exp_time}
             if role == 'operator': payload["shift_type"] = shift_type
             token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
@@ -317,6 +333,8 @@ async def get_admin_stats(payload: dict = Depends(verify_admin)):
     today = jdatetime.date.today()
     start_date = (today - jdatetime.timedelta(days=6)).strftime("%Y-%m-%d")
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT date, shift_type, machine, counter, set_number, parts FROM shifts WHERE status='approved' AND date >= ?", (start_date,)) as cursor:
             rows = await cursor.fetchall()
     stats = {}
@@ -334,6 +352,8 @@ async def get_admin_stats(payload: dict = Depends(verify_admin)):
 async def get_admin_notifications(payload: dict = Depends(verify_admin)):
     alert_count = 0
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT machine, date, shift_type, counter, design_code, set_number, parts, zero_reason FROM shifts WHERE status='pending'") as cursor:
             rows = await cursor.fetchall()
             for r in rows:
@@ -347,6 +367,8 @@ async def get_all_shifts(start_date: str, end_date: str, payload: dict = Depends
     start_date = clean_date(start_date)
     end_date = clean_date(end_date)
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT * FROM shifts WHERE date BETWEEN ? AND ? ORDER BY date DESC", (start_date, end_date)) as cursor:
             rows = await cursor.fetchall()
             
@@ -368,6 +390,8 @@ async def get_all_shifts(start_date: str, end_date: str, payload: dict = Depends
 @app.post("/api/admin/approve_shift/{shift_id}")
 async def approve_shift(shift_id: int, apply_bonus: bool = False, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         bonus_val = 60000 if apply_bonus else 0
         await db.execute("UPDATE shifts SET status='approved', jig_bonus=? WHERE id=?", (bonus_val, shift_id))
         await db.commit()
@@ -376,6 +400,8 @@ async def approve_shift(shift_id: int, apply_bonus: bool = False, payload: dict 
 @app.post("/api/admin/reject_shift/{shift_id}")
 async def reject_shift(shift_id: int, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         await db.execute("UPDATE shifts SET status='rejected' WHERE id=?", (shift_id,))
         await db.commit()
         return {"status": "ok"}
@@ -383,6 +409,8 @@ async def reject_shift(shift_id: int, payload: dict = Depends(verify_admin)):
 @app.delete("/api/admin/delete_shift/{shift_id}")
 async def delete_shift(shift_id: int, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         await db.execute("DELETE FROM shifts WHERE id=?", (shift_id,))
         await db.commit()
         return {"status": "ok"}
@@ -400,6 +428,8 @@ async def manual_shift(
     try:
         date = clean_date(date)
         async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
             async with db.execute("SELECT name FROM users WHERE id=?", (operator_id,)) as cursor:
                 row = await cursor.fetchone()
                 op_name = row[0] if row else "نامشخص"
@@ -438,6 +468,8 @@ async def admin_edit_shift(
     try:
         date = clean_date(date)
         async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
             async with db.execute("SELECT name FROM users WHERE id=?", (operator_id,)) as cursor:
                 row = await cursor.fetchone()
                 op_name = row[0] if row else "نامشخص"
@@ -469,6 +501,8 @@ async def admin_edit_shift(
 @app.get("/api/admin/machines")
 async def get_machines_admin(payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT name, reset_period, start_counter FROM machines") as cursor:
             rows = await cursor.fetchall()
             return {"machines": [{"name": r[0], "reset_period": r[1], "start_counter": r[2]} for r in rows]}
@@ -476,6 +510,8 @@ async def get_machines_admin(payload: dict = Depends(verify_admin)):
 @app.post("/api/admin/machines")
 async def add_machine(data: MachineData, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         try:
             await db.execute("INSERT INTO machines (name, reset_period, start_counter) VALUES (?, ?, ?)", (data.name, data.reset_period, data.start_counter))
             await db.commit()
@@ -485,6 +521,8 @@ async def add_machine(data: MachineData, payload: dict = Depends(verify_admin)):
 @app.put("/api/admin/machines/{machine_name}")
 async def update_machine(machine_name: str, data: UpdateMachineData, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         await db.execute("UPDATE machines SET reset_period=?, start_counter=? WHERE name=?", (data.reset_period, data.start_counter, machine_name))
         await db.commit()
         return {"status": "ok"}
@@ -497,6 +535,8 @@ async def get_duration_analysis(year: int, month: int, payload: dict = Depends(v
     end_str = jdatetime.date(year, month, days_in_month).strftime("%Y-%m-%d")
     
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT machine, design_code, set_number, COUNT(id), MIN(date), MAX(date) FROM shifts WHERE status='approved' AND zero_reason IS NULL AND is_chador=0 AND date >= ? AND date <= ? GROUP BY machine, design_code, set_number", (start_str, end_str)) as cursor:
             rows = await cursor.fetchall()
             
@@ -531,6 +571,8 @@ async def get_duration_analysis(year: int, month: int, payload: dict = Depends(v
 @app.get("/api/machines")
 async def get_machines_public(payload: dict = Depends(verify_token)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT name FROM machines") as cursor:
             return {"machines": [r[0] for r in await cursor.fetchall()]}
 
@@ -558,6 +600,8 @@ async def check_shift(
         params.append(exclude_shift_id)
     
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute(query, params) as cursor:
             rows = await cursor.fetchall()
     
@@ -578,6 +622,8 @@ async def check_shift(
 @app.get("/api/operator/shift/{shift_id}")
 async def get_shift_detail(shift_id: int, payload: dict = Depends(verify_token)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT * FROM shifts WHERE id=?", (shift_id,)) as cursor:
             row = await cursor.fetchone()
             if row: return {"status": "ok", "data": {"id": row[0], "machine": row[5], "counter": row[6], "design": row[7], "set_number": row[8], "parts": row[9], "photo_path": row[10], "date": row[3], "zero_reason": row[12], "zero_note": row[14] if len(row)>14 else "", "request_bonus": row[15] if len(row)>15 else 0, "is_chador": row[16] if len(row)>16 else 0, "chador_count": row[17] if len(row)>17 else 0, "chador_invoice": row[18] if len(row)>18 else ""}}
@@ -591,6 +637,8 @@ async def edit_shift(
 ):
     try:
         async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
             async with db.execute("SELECT photo_path, date, shift_type, status FROM shifts WHERE id=? AND operator_id=?", (shift_id, payload["sub"])) as cursor:
                 row = await cursor.fetchone()
                 if not row: raise HTTPException(404, "یافت نشد")
@@ -647,6 +695,8 @@ async def submit_zero(data: dict, payload: dict = Depends(verify_token)):
         
         await check_missing_shifts(int(payload["sub"]), date, machine)
         async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
             async with db.execute("SELECT id, date FROM shifts WHERE machine=? AND shift_type=? AND status IN ('approved', 'pending', 'rejected')", (machine, payload.get("shift_type"))) as cursor:
                 rows = await cursor.fetchall()
             for r in rows:
@@ -668,6 +718,8 @@ async def get_last_shifts(machine: Optional[str] = None, target_operator_id: Opt
     shift = target_shift_type if target_shift_type else payload.get("shift_type")
     
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         query_same = "SELECT date, shift_type, machine, counter, design_code, set_number, parts, status, zero_reason FROM shifts WHERE operator_id=? AND shift_type=? "
         params_same = [op_id, shift]
         if machine: query_same += "AND machine=? "; params_same.append(machine)
@@ -698,6 +750,8 @@ async def get_immediate_prev_info(date: str, machine: str, shift_type: str, targ
     except: return {"exists": False}
         
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT date, shift_type, machine, counter, design_code, set_number, parts, status, zero_reason, operator_name, jig_bonus FROM shifts WHERE machine LIKE ? AND shift_type LIKE ?", (f"%{machine.strip()}%", f"%{expected_shift.strip()}%")) as cursor:
             rows = await cursor.fetchall()
             
@@ -727,6 +781,8 @@ async def suggest_date(machine: Optional[str] = None, target_operator_id: Option
     shift = target_shift_type if target_shift_type else payload.get("shift_type")
     
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         query = "SELECT date FROM shifts WHERE operator_id=? AND shift_type=? "
         params = [op_id, shift]
         if machine: query += "AND machine=? "; params.append(machine)
@@ -756,6 +812,8 @@ async def suggest_date(machine: Optional[str] = None, target_operator_id: Option
 @app.get("/api/operator/notifications")
 async def get_operator_notifications(payload: dict = Depends(verify_token)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT COUNT(*), MAX(date) FROM shifts WHERE operator_id=? AND status='rejected'", (payload["sub"],)) as cursor:
             row = await cursor.fetchone()
     return {"rejected_count": row[0], "last_rejected_date": row[1]}
@@ -777,6 +835,8 @@ async def preview_work(machine: str = Form(...), date: str = Form(...), counter:
         pending_warning = False
         if not immediate_prev:
             async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
                 if shift == 'شب': q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='صبح' AND status='pending'", (machine, date)
                 else:
                     try:
@@ -797,6 +857,8 @@ async def get_operator_stats(payload: dict = Depends(verify_token)):
     today = jdatetime.date.today()
     start_date = (today - jdatetime.timedelta(days=6)).strftime("%Y-%m-%d")
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT date, shift_type, machine, counter, set_number, parts, zero_reason FROM shifts WHERE operator_id=? AND status='approved' AND date >= ?", (payload["sub"], start_date)) as cursor:
             rows = await cursor.fetchall()
     daily_work = {}
@@ -813,6 +875,8 @@ async def get_operator_reports(start_date: str, end_date: str, machine: str = "a
     start_date = clean_date(start_date)
     end_date = clean_date(end_date)
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT id, date, shift_type, machine, counter, design_code, set_number, parts, photo_path, zero_reason, status, zero_note, jig_bonus, is_chador, chador_count, chador_invoice FROM shifts WHERE operator_id=?", (payload["sub"],)) as cursor:
             rows = await cursor.fetchall()
     
@@ -875,6 +939,8 @@ async def submit_shift(machine: str = Form(...), date: str = Form(...), design_c
         
         bonus_val = 60000 if request_bonus == "true" else 0
         async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
             async with db.execute("SELECT id, date FROM shifts WHERE machine=? AND shift_type=? AND status IN ('approved', 'pending', 'rejected')", (machine, payload["shift_type"])) as cursor:
                 rows = await cursor.fetchall()
             for r in rows:
@@ -890,6 +956,8 @@ async def submit_shift(machine: str = Form(...), date: str = Form(...), design_c
 @app.get("/api/admin/users")
 async def get_users(payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT id, name, phone, role, shift_type FROM users") as cursor:
             return {"users": [{"id": r[0], "name": r[1], "phone": r[2], "role": r[3], "shift_type": r[4]} for r in await cursor.fetchall()]}
 
@@ -899,6 +967,8 @@ async def create_user(data: CreateUserData, payload: dict = Depends(verify_admin
     pwd_hash = hash_password(data.password)
     final_shift = data.shift_type if data.role == "operator" else None
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         try:
             await db.execute("INSERT INTO users (phone, password_hash, name, role, shift_type) VALUES (?, ?, ?, ?, ?)", (clean_phone, pwd_hash, data.name, data.role, final_shift))
             await db.commit()
@@ -908,6 +978,8 @@ async def create_user(data: CreateUserData, payload: dict = Depends(verify_admin
 @app.put("/api/admin/users/{user_id}")
 async def update_user(user_id: int, data: UpdateUserData, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         if data.password: await db.execute("UPDATE users SET name=?, shift_type=?, password_hash=? WHERE id=?", (data.name, data.shift_type, hash_password(data.password), user_id))
         else: await db.execute("UPDATE users SET name=?, shift_type=? WHERE id=?", (data.name, data.shift_type, user_id))
         await db.commit()
@@ -940,6 +1012,8 @@ async def get_weeks(year: int, month: int, payload: dict = Depends(verify_token)
 @app.get("/api/admin/salary_settings")
 async def get_salary_settings(year: int, month: int, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary FROM monthly_prices WHERE year=? AND month=?", (year, month)) as cursor:
             row = await cursor.fetchone()
             if row: return {"price": row[0], "chador_price": row[1], "show_salary": bool(row[2]), "show_opposite_salary": bool(row[3])}
@@ -948,6 +1022,8 @@ async def get_salary_settings(year: int, month: int, payload: dict = Depends(ver
 @app.post("/api/admin/salary_settings")
 async def save_salary_settings(year: int, month: int, price: float, chador_price: float, show_salary: bool, show_opposite_salary: bool, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         await db.execute("INSERT OR REPLACE INTO monthly_prices (year, month, price, chador_price, show_salary, show_opposite_salary) VALUES (?, ?, ?, ?, ?, ?)", (year, month, price, chador_price, 1 if show_salary else 0, 1 if show_opposite_salary else 0))
         await db.commit()
     return {"status": "ok"}
@@ -955,6 +1031,8 @@ async def save_salary_settings(year: int, month: int, price: float, chador_price
 @app.get("/api/admin/monthly_financials")
 async def get_monthly_financials(year: int, month: int, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT name, shift_type FROM users WHERE role='operator'") as cursor:
             users = await cursor.fetchall()
             
@@ -1002,6 +1080,8 @@ async def get_monthly_financials(year: int, month: int, payload: dict = Depends(
 @app.post("/api/admin/monthly_financials")
 async def save_monthly_financials(data: dict, year: int, month: int, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         await db.execute("DELETE FROM monthly_shift_financials WHERE year=? AND month=?", (year, month))
         await db.execute("DELETE FROM monthly_machine_financials WHERE year=? AND month=?", (year, month))
         
@@ -1041,6 +1121,8 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
     
     is_admin = payload.get("role") == "admin"
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary FROM monthly_prices WHERE year=? AND month=?", (year, month)) as c:
             price_row = await c.fetchone()
         price = price_row[0] if price_row else 0
@@ -1160,6 +1242,8 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
     
     is_admin = payload.get("role") == "admin"
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary FROM monthly_prices WHERE year=? AND month=?", (year, month)) as c:
             price_row = await c.fetchone()
         price = price_row[0] if price_row else 0
@@ -1351,6 +1435,8 @@ async def search_shifts(
     query += f" ORDER BY date {order}, id {order}"
 
     async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA synchronous=NORMAL;")
         async with db.execute(query, params) as cursor:
             rows = await cursor.fetchall()
 

@@ -883,10 +883,25 @@
 
         function routeUser() {
             document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-            if (!authToken) showSection('loginScreen');
-            else if (userRole === 'admin') {
-                showSection('adminScreen');
-                document.getElementById('adminWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'مدیر'}`;
+            var token = localStorage.getItem('token');
+            var role = localStorage.getItem('role');
+            
+            // فقط اگر توکن به طور کامل وجود نداشت، صفحه لاگین را نشان بده
+            if (!token || token === 'undefined' || token === 'null') {
+                if (document.getElementById('loginScreen')) document.getElementById('loginScreen').classList.add('active');
+            } else if (role === 'admin') {
+                if (document.getElementById('adminScreen')) {
+                    document.getElementById('adminScreen').classList.add('active');
+                    if(document.getElementById('adminWelcomeName')) document.getElementById('adminWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'مدیر'}`;
+                }
+            } else if (role === 'operator') {
+                if (document.getElementById('operatorDashboard')) {
+                    document.getElementById('operatorDashboard').classList.add('active');
+                    if(document.getElementById('opWelcomeName')) document.getElementById('opWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'اپراتور'}`;
+                    if(document.getElementById('operatorShiftDisplay')) document.getElementById('operatorShiftDisplay').innerHTML = `<div class="shift-badge">شیفت شما: ${localStorage.getItem('shift_type') || ''}</div>`;
+                }
+            }
+        }`;
             }
             else {
                 showSection('operatorDashboard');
