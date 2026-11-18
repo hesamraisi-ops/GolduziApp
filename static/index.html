@@ -2810,6 +2810,22 @@
             if (res.ok) loadAdminMachines(); else alert('خطا در ذخیره');
         }
     </script>
+
+    <script>
+        // در زمان لود شدن صفحه چک کن اگر کاربر لاگین است، صفحه شروع را مخفی کن
+        document.addEventListener('DOMContentLoaded', function() {
+            var token = localStorage.getItem('token');
+            if (token && token !== 'undefined' && token !== 'null') {
+                var splash = document.getElementById('appSplash');
+                if (splash) {
+                    splash.style.display = 'none';
+                }
+            }
+        });
+    </script>
+
+
+<!-- Fix Splash Login: 1795025855 -->
 </body>
 </html>
 
