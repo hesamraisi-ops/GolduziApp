@@ -1165,7 +1165,7 @@
                         div.innerHTML += `
                         <div class="card">
                             <div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift_type}</strong> ${statusBadge}</div>
-                            <img class="card-img" src="/${d.photo_path || 'static/placeholder.png'}" onclick="showImageZoom('/${d.photo_path || 'static/placeholder.png'}')">
+                            <img class="card-img" src="http://185.222.163.15:8000/${d.photo_path || 'static/placeholder.png'}" onclick="showImageZoom('http://185.222.163.15:8000/${d.photo_path || 'static/placeholder.png'}')">
                             <div style="font-size:13px; line-height:1.6; margin-top:10px; margin-bottom:5px;">
                                 ${mach === 'all' ? `<strong>چرخ: ${toPersianDigits(d.machine)}</strong><br>` : ''}
                                 شمارنده: ${formatNum(d.counter)}<br>طرح: ${toPersianDigits(d.design_code)} | ست: ${toPersianDigits(d.set_number)}<br>تکه‌ها: ${d.parts || 'ثبت نشده'}<br>
@@ -1559,7 +1559,7 @@
                                 }
                             }
 
-                            content = `<img class="card-img" src="/${s.photo || 'static/placeholder.png'}" onclick="showImageZoom('/${s.photo || 'static/placeholder.png'}')"><div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | شماره ست: ${toPersianDigits(s.set_num)} <span style="color:#e74c3c; font-weight:bold;">(ست ${toPersianDigits(s.monthly_set_rank)} این ماه)</span><br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${bonusHtml}`;
+                            content = `<img class="card-img" src="http://185.222.163.15:8000/${s.photo || 'static/placeholder.png'}" onclick="showImageZoom('http://185.222.163.15:8000/${s.photo || 'static/placeholder.png'}')"><div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | شماره ست: ${toPersianDigits(s.set_num)} <span style="color:#e74c3c; font-weight:bold;">(ست ${toPersianDigits(s.monthly_set_rank)} این ماه)</span><br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${bonusHtml}`;
                         }
                         div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} (${s.day_name}) | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('http://185.222.163.15:8000/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
                     });
@@ -2535,7 +2535,7 @@
                         div.innerHTML += `
                         <div class="card">
                             <div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift} | ${d.op_name}</strong> ${statusBadge}</div>
-                            <img class="card-img" src="/${d.photo || 'static/placeholder.png'}" onclick="showImageZoom('/${d.photo || 'static/placeholder.png'}')">
+                            <img class="card-img" src="http://185.222.163.15:8000/${d.photo || 'static/placeholder.png'}" onclick="showImageZoom('http://185.222.163.15:8000/${d.photo || 'static/placeholder.png'}')">
                             <div style="font-size:13px; line-height:1.6; margin-top:10px; margin-bottom:5px;">
                                 ${mach === 'all' ? `<strong>چرخ: ${toPersianDigits(d.machine)}</strong><br>` : ''}
                                 شمارنده: ${formatNum(d.counter)}<br>طرح: ${toPersianDigits(d.design)} | ست: ${toPersianDigits(d.set_num)}<br>تکه‌ها: ${d.parts || 'ثبت نشده'}<br>
@@ -2741,7 +2741,7 @@
                             (d.work !== null ? `<strong style="color:#2ecc71;">کارکرد: ${formatNum(d.work)}</strong>` : '<strong style="color:#e74c3c;">نامشخص</strong>');
                         div.innerHTML += `<div class="card">
                             <div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift} | ${d.op_name}</strong> ${statusBadge}</div>
-                            ${d.photo ? `<img class="card-img" src="/${d.photo}" onclick="showImageZoom('/${d.photo}')">` : ''}
+                            ${d.photo ? `<img class="card-img" src="http://185.222.163.15:8000/${d.photo}" onclick="showImageZoom('http://185.222.163.15:8000/${d.photo}')">` : ''}
                             <div style="font-size:13px; line-height:1.6;">
                                 <strong>چرخ:</strong> ${toPersianDigits(d.machine)} | <strong>شمارنده:</strong> ${formatNum(d.counter)}<br>
                                 <strong>طرح:</strong> ${toPersianDigits(d.design)} | <strong>ست:</strong> ${toPersianDigits(d.set_num)} | <strong>تکه‌ها:</strong> ${d.parts || 'ثبت نشده'}<br>
@@ -2826,6 +2826,8 @@
 
 
 <!-- Fix Splash Login: 1795025855 -->
+
+<!-- Fix Images: 1795026719 -->
 </body>
 </html>
 
