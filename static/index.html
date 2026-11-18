@@ -3,710 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#2c3e50">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <link rel="manifest" href="/static/manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <title>سیستم گلدوزی (نسخه ۱۶.۶)</title>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+    <title>نرم افزار سوزن</title>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
         body { font-family: 'Vazirmatn', sans-serif; background-color: #ecf0f1; margin: 0; padding: 20px; color: #333; }
-        .container { background-color: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 800px; margin: auto; display: none; position: relative; }
+        .container { background-color: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; margin: auto; display: none; position: relative; }
         .container.active { display: block; }
         h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; font-size: 20px;}
-        .logout-btn { position: absolute; top: 15px; left: 15px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; width: auto; z-index: 10; }
         input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: inherit; font-size: 16px; }
         button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-bottom: 10px; }
         button:disabled { background-color: #95a5a6; cursor: not-allowed; }
-        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-        .admin-grid button { height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px;}
-        .admin-grid button span { font-size: 24px; margin-bottom: 5px;}
-        .btn-confirm { background: #2980b9; } .btn-manual { background: #8e44ad; } .btn-report { background: #d35400; } .btn-analysis { background: #16a085; } .btn-machine { background: #7f8c8d; } .btn-users { background: #2c3e50; } .btn-delete { background: #c0392b; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;}
-        .section-header h3 { margin: 0; }
-        .back-btn { background: #95a5a6; width: auto; padding: 8px 15px; margin: 0; font-size: 14px;}
-        .chart-container { width: 100%; height: 250px; margin-bottom: 20px; }
-        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
-        .card-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-bottom: 10px; background: #000; cursor: pointer; }
-        .card-actions { display: flex; gap: 10px; margin-top: 10px;}
-        .card-actions button { margin: 0; padding: 8px; }
-        .tabs { display: flex; gap: 10px; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
-        .tab { padding: 10px 20px; cursor: pointer; font-weight: bold; color: #777; }
-        .tab.active { color: #2980b9; border-bottom: 3px solid #2980b9; margin-bottom: -2px; }
-        .report-item { display: flex; justify-content: space-between; padding: 15px; border-radius: 8px; margin-bottom: 10px; color: white; cursor: pointer;}
-        .status-low { background: #e74c3c; } .status-good { background: #2ecc71; } .status-high { background: #f39c12; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
-        .close-modal { background: #e74c3c; margin-top: 15px; }
-        .machine-row { display: flex; justify-content: space-between; align-items: center; background: #f1f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px;}
-        .shift-badge { display: inline-block; background: #d1f2eb; color: #117a65; padding: 5px 10px; border-radius: 5px; font-weight: bold; margin-bottom: 15px; font-size: 14px; }
         
-        .dashboard-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 30px; }
-        .dashboard-btns button { margin: 0; height: 110px; font-size: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 12px; border: none; color: white; font-weight: bold; cursor: pointer; }
-        .dashboard-btns .btn-full { grid-column: span 2; }
+        #appSplash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+        .splash-btn { background: linear-gradient(90deg, #7b2cbf, #5a189a); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; margin-bottom: 22%; }
 
-        .today-btn { background: #3498db; padding: 8px; font-size: 14px; margin-top: -10px; margin-bottom: 15px; }
-        .datepicker-plot-area { font-family: 'Vazirmatn', sans-serif !important; z-index: 99999 !important; }
-        #editPhotoPreview { width: 100%; max-height: 150px; object-fit: contain; border-radius: 8px; margin-bottom: 15px; background: #000; display: none;}
+        .header-text { text-align: center; margin-bottom: 25px; }
+        .header-text h3 { color: #4a148c; font-size: 15px; margin-bottom: 8px; font-weight: bold; }
+        .header-text p { color: #666; font-size: 12px; line-height: 1.6; }
         
-        .zero-checkbox { display: flex; align-items: center; background: #fdf2f2; border: 1px solid #f5c6cb; padding: 10px; border-radius: 8px; margin-bottom: 15px; cursor: pointer;}
-        .zero-checkbox input { width: auto; margin: 0; margin-left: 10px; scale: 1.5; }
-        .zero-checkbox label { margin: 0; color: #721c24; cursor: pointer; }
+        .footer-text { text-align: center; margin-top: 25px; color: #888; font-size: 12px; }
+        .footer-text .slogan { font-weight: bold; color: #673ab7; margin-bottom: 5px; }
+        .footer-text .brand { font-size: 10px; letter-spacing: 1px; color: #999; margin-bottom: 10px; }
+        .footer-text .version { font-size: 11px; }
+
+        .logout-btn { background: #e74c3c; position: absolute; top: 15px; left: 15px; width: auto; padding: 5px 15px; font-size: 14px; }
+        .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-btns button { height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px; }
     </style>
-
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    
-
 </head>
 <body>
 
-    <div class="container active" id="loginScreen" style="max-width: 400px;">
-        
-        <div style="text-align: center; margin-bottom: 25px;">
-            <h3 style="color: #4a148c; font-size: 15px; margin-bottom: 8px; font-weight: bold;">سامانه مدیریت و محاسبه کارکرد سوزن‌های گلدوزی</h3>
-            <p style="color: #666; font-size: 12px; line-height: 1.6;">ثبت کارکرد، محاسبه تولید و گزارش عملکرد شیفت‌های ماه روچ استایل</p>
-        </div>
+    <!-- Splash Screen -->
+    <div id="appSplash">
+        <button class="splash-btn" onclick="hideSplash()">شروع کنید</button>
+    </div>
 
+    <!-- Login Screen -->
+    <div class="container active" id="loginScreen" style="max-width: 400px; margin-top: 50px;">
+        <div class="header-text">
+            <h3>سامانه مدیریت و محاسبه کارکرد سوزن‌های گلدوزی</h3>
+            <p>ثبت کارکرد، محاسبه تولید و گزارش عملکرد شیفت‌های ماه روچ استایل</p>
+        </div>
+        
         <input type="tel" id="phone" placeholder="۰۹۱۲۳۴۵۶۷۸۹">
         <input type="password" id="password" placeholder="****">
-        <button onclick="doLogin()">ورود</button>
-        <div id="loginStatus" style="color: red; text-align:center;"></div>
-        <div style="text-align: center; margin-top: 25px; color: #888; font-size: 12px;">
-            <p style="margin-bottom: 5px; font-weight: bold; color: #673ab7;">دقت در ثبت، نظم در تولید</p>
-            <p style="margin-bottom: 10px; font-size: 10px; letter-spacing: 1px; color: #999;">MAHROCH STYLE | EMBROIDERY MANAGEMENT</p>
-            <p style="font-size: 11px;">نسخه ۱.۰ آزمایشی</p>
-        </div>
+        <button onclick="doLogin()" id="loginBtn">ورود</button>
+        <div id="loginStatus" style="color: red; text-align:center; margin-bottom: 15px;"></div>
 
-    </div>
-
-    <div class="container" id="operatorDashboard" style="max-width: 400px;">
-        <button class="logout-btn" onclick="doLogout()">خروج</button>
-        <h2 id="opWelcomeName" style="color:#2c3e50; text-align:center; font-size:18px; margin-bottom:20px;"></h2>
-        <div id="opNotifAlert" style="display:none; background:#f8d7da; color:#721c24; padding:10px; border-radius:8px; margin-bottom:15px; text-align:center; font-weight:bold; cursor:pointer; border: 1px solid #f5c6cb;" onclick="goToRejectedShifts()"></div>
-        <div id="operatorShiftDisplay" style="text-align: center;"></div>
-        <div class="dashboard-btns">
-            <button class="btn-manual" style="background:#8e44ad;" onclick="showSection('registerSection')">📝<br>ثبت کارکرد</button>
-            <button class="btn-view" style="background: #2980b9;" onclick="openOpShiftList()">📋<br>مشاهده کارکردها</button>
-            <button class="btn-report" style="background: #27ae60; grid-column: span 1;" onclick="showSection('weeklyReportSection'); initWeeklyReport()">📅<br>گزارش هفتگی</button>
-            <button class="btn-report" style="background: #2980b9; grid-column: span 1;" onclick="showSection('monthlyReportSection'); initMonthlyReport()">📅<br>گزارش ماهانه</button>
+        <div class="footer-text">
+            <div class="slogan">دقت در ثبت، نظم در تولید</div>
+            <div class="brand">MAHROCH STYLE | EMBROIDERY MANAGEMENT</div>
+            <div class="version">نسخه ۱.۰ آزمایشی</div>
         </div>
     </div>
 
-    <div class="container" id="registerSection" style="max-width: 500px;">
-        <div class="section-header">
-            <h3 id="formTitle">📝 ثبت کارکرد</h3>
-            <button class="back-btn" onclick="showSection('operatorDashboard')">بازگشت</button>
-        </div>
-        <div id="lastShiftDisplay" style="margin-bottom: 15px;"></div>
-        <div id="immediatePrevDisplay" style="margin-bottom: 15px;"></div>
-        <div id="checkShiftAlert" style="display: none; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-            ⚠️ برای این چرخ و تاریخ قبلا ثبت شده! <button id="editExistingBtn" style="background: #c82333; margin-top:10px;">✏️ ویرایش کارکرد قبلی</button>
-        </div>
-        <form id="shiftForm">
-            <label>چرخ</label>
-            <select id="machine" onchange="handleMachineChange()"></select>
-
-            <label>تاریخ (برای تقویم کلیک کنید)</label>
-            <input type="text" id="date" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="checkExistingShift(); loadImmediatePrev();">
-            <button type="button" class="today-btn" onclick="setTodayDate()">📅 درج سریع تاریخ امروز</button>
-            
-            <div class="zero-checkbox">
-                <input type="checkbox" id="isZeroWork" onchange="toggleZeroMode()">
-                <label for="isZeroWork">دستگاه امروز کار نکرده (ثبت کارکرد صفر)</label>
-            </div>
-
-            <div id="normalFields">
-                <img id="editPhotoPreview" src="">
-                <label>شمارنده سوزن</label>
-                <input type="text" id="counter" placeholder="۱,۲۵۰,۰۰۰" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right;">
-                
-                <div class="zero-checkbox" id="chadorCheckboxContainer" style="display:none; background:#e8f4f8; border-color:#3498db; margin-top:10px; margin-bottom:15px;">
-                    <input type="checkbox" id="isChadorWork" onchange="toggleChadorMode()">
-                    <label for="isChadorWork" style="color:#2980b9; cursor:pointer;">دوخت چادر</label>
-                </div>
-
-                <div id="designWrapper">
-                    <label>کد طرح</label>
-                    <input type="text" id="design_code" placeholder="۲۰۶" oninput="formatPersianInput(this)">
-                </div>
-                <div id="setNumberWrapper">
-                    <label>شماره ست</label>
-                    <input type="text" id="set_number" placeholder="۱۱۲" oninput="formatPersianInput(this)">
-                </div>
-                <div id="partsWrapper">
-                    <label>تکه‌های دوخته شده</label>
-                    <div class="parts-container" id="parts-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;"></div>
-                </div>
-                
-                <div id="chadorFields" style="display: none; background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #3498db;">
-                    <label style="color: #2980b9;">تعداد چادر دوخته شده</label>
-                    <input type="text" id="chadorCount" placeholder="۱۲" oninput="formatPersianInput(this)">
-                    <label style="color: #2980b9; margin-top:10px; display:block;">شماره فاکتورها (حداقل یکی الزامی است)</label>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                        <input type="text" id="chadorInvoice1" placeholder="فاکتور ۱ (اجباری)" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="chadorInvoice2" placeholder="فاکتور ۲" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="chadorInvoice3" placeholder="فاکتور ۳" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="chadorInvoice4" placeholder="فاکتور ۴" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="chadorInvoice5" placeholder="فاکتور ۵" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="chadorInvoice6" placeholder="فاکتور ۶" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                    </div>
-                </div>
-
-                <div id="bonusContainer" class="zero-checkbox" style="background:#e8f8f5; border-color:#1abc9c; margin-top:10px; flex-direction: column; align-items: flex-start; padding: 12px;">
-                    <div style="display:flex; align-items:center; width:100%;">
-                        <input type="checkbox" id="requestBonus" style="margin-left:10px; margin-bottom:0; scale:1.5;">
-                        <label for="requestBonus" style="color:#16a085; font-weight:bold; cursor:pointer; margin:0; font-size:16px;">ست جدید</label>
-                    </div>
-                    <div style="font-size:12px; color:#7f8c8d; margin-top:5px; margin-right: 25px;">(درخواست ۶۰,۰۰۰ سوزن پاداش - پس از تایید مدیر)</div>
-                </div>
-
-                <label>عکس صفحه دستگاه (دوربین یا گالری)</label>
-                <input type="file" id="photo" accept="image/*" style="border:2px dashed #ccc;">
-            </div>
-
-            <div id="zeroFields" style="display: none; background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                <label style="color: #856404;">علت توقف کار</label>
-                <select id="zeroReason">
-                    <option value="غیبت">غیبت</option>
-                    <option value="خرابی دستگاه">خرابی دستگاه</option>
-                    <option value="نبود ست">نبود ست برای دوخت</option>
-                    <option value="سایر">سایر</option>
-                </select>
-                <label style="color: #856404;">توضیحات بیشتر (اختیاری)</label>
-                <input type="text" id="zeroNote" placeholder="توضیح دهید...">
-            </div>
-
-            <button type="submit" id="submitBtn">ارسال به مدیر</button>
-        </form>
-    </div>
-
-    <div class="container" id="opShiftListSection">
-        <div class="section-header"><h3>📋 کارکردهای من</h3><button class="back-btn" onclick="showSection('operatorDashboard')">بازگشت</button></div>
-        <div style="margin-bottom:15px; background:#ecf0f1; padding:12px; border-radius:8px; border: 1px solid #bdc3c7;">
-            <label style="font-weight:bold; margin-bottom:8px; display:block; color:#2c3e50; font-size:15px;">🔍 انتخاب چرخ برای مشاهده:</label>
-            <select id="opListMachine" style="margin-bottom:10px; background:white; font-weight:bold; border: 1px solid #95a5a6; padding: 10px; font-size:16px;">
-                <option value="all">همه چرخ‌ها</option>
-            </select>
-            <label style="font-weight:bold; margin-bottom:8px; display:block; color:#2c3e50; font-size:15px;">↕ ترتیب:</label>
-            <select id="opListSortOrder" style="margin-bottom:0; background:white; font-weight:bold; border: 1px solid #95a5a6; padding: 10px; font-size:16px;">
-                <option value="desc">جدید به قدیم</option>
-                <option value="asc">قدیم به جدید</option>
-            </select>
-        </div>
-        <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <input type="text" id="opListStartDate" placeholder="از تاریخ" style="font-size:14px; text-align:center;">
-            <input type="text" id="opListEndDate" placeholder="تا تاریخ" style="font-size:14px; text-align:center;">
-            <button style="margin:0; width:80px; background:#2980b9; font-size:14px;" onclick="loadOpShiftList()">جستجو</button>
-        </div>
-        <div id="opShiftListData"></div>
-    </div>
-
-    <div class="container" id="monthlyReportSection">
-        <div class="section-header"><h3>📅 گزارش ماهانه</h3><button class="back-btn" onclick="backFromMonthly()">بازگشت</button></div>
-        
-        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
-                <select id="monthlyYear" onchange="loadMonthlyReport()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
-            </div>
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
-                <select id="monthlyMonth" onchange="loadMonthlyReport()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                    <option value="1">فروردین</option>
-                    <option value="2">اردیبهشت</option>
-                    <option value="3">خرداد</option>
-                    <option value="4">تیر</option>
-                    <option value="5">مرداد</option>
-                    <option value="6">شهریور</option>
-                    <option value="7">مهر</option>
-                    <option value="8">آبان</option>
-                    <option value="9">آذر</option>
-                    <option value="10">دی</option>
-                    <option value="11">بهمن</option>
-                    <option value="12">اسفند</option>
-                </select>
-            </div>
-        </div>
-        <div id="monthlyReportContent" style="line-height: 2.2; font-size: 15px;"></div>
-    </div>
-
-    <div class="container" id="weeklyReportSection">
-        <div class="section-header"><h3>📅 گزارش هفتگی</h3><button class="back-btn" onclick="backFromWeekly()">بازگشت</button></div>
-        
-        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
-                <select id="reportYear" onchange="updateWeekDropdown()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
-            </div>
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
-                <select id="reportMonth" onchange="updateWeekDropdown()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                    <option value="1">فروردین</option>
-                    <option value="2">اردیبهشت</option>
-                    <option value="3">خرداد</option>
-                    <option value="4">تیر</option>
-                    <option value="5">مرداد</option>
-                    <option value="6">شهریور</option>
-                    <option value="7">مهر</option>
-                    <option value="8">آبان</option>
-                    <option value="9">آذر</option>
-                    <option value="10">دی</option>
-                    <option value="11">بهمن</option>
-                    <option value="12">اسفند</option>
-                </select>
-            </div>
-            <div style="flex:2;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">هفته:</label>
-                <select id="reportWeek" onchange="loadWeeklyReport()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                    <option value="">در حال بارگذاری...</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="weeklyReportContent" style="line-height: 2; font-size: 15px;"></div>
-    </div>
-
+    <!-- Admin Dashboard -->
     <div class="container" id="adminScreen">
         <button class="logout-btn" onclick="doLogout()">خروج</button>
         <h2 id="adminWelcomeName" style="color:#2c3e50; text-align:center; font-size:18px; margin-bottom:20px;"></h2>
-        <div id="adminAlertBanner" style="display:none; background:#f8d7da; color:#721c24; padding:10px; border-radius:8px; margin-bottom:15px; text-align:center; font-weight:bold; cursor:pointer; border: 1px solid #f5c6cb;" onclick="showSection('adminConfirmSection'); loadPendingShifts()">
-            ⚠️ توجه: شما <span id="adminAlertCount">۰</span> کارکرد مشکوک برای بررسی دارید!
-        </div>
-        <!-- v16.6 Dashboard -->
-        <div class="admin-grid">
-            <!-- عملیات روزانه -->
-            <button class="btn-confirm" onclick="showSection('adminConfirmSection'); loadPendingShifts()"><span>✅</span> تایید کارکرد</button>
-            <button class="btn-manual" onclick="showSection('adminManualSection')"><span>📝</span> ثبت دستی</button>
-            <button class="btn-view" style="background: #3498db;" onclick="showSection('adminViewShiftsSection'); initAdminViewShifts()"><span>📋</span> مشاهده کارکرد</button>
-            <button class="btn-view" style="background: #9b59b6;" onclick="showSection('adminSearchSection'); initAdminSearch()"><span>🔍</span> جستجوی کارکرد</button>
-            
-            <!-- گزارشات -->
-            <button class="btn-report" style="background: #27ae60;" onclick="showSection('weeklyReportSection'); initWeeklyReport()"><span>📅</span> گزارش هفتگی</button>
-            <button class="btn-report" style="background: #2980b9;" onclick="showSection('monthlyReportSection'); initMonthlyReport()"><span>📅</span> گزارش ماهانه</button>
-            <button class="btn-analysis" style="background: #d35400;" onclick="showSection('adminAnalysisSection'); initAdminAnalysis()"><span>⏱</span> تحلیل زمان دوخت</button>
-            <button class="btn-analysis" style="background: #8e44ad;" onclick="showSection('adminMonthlyFinancialsSection'); initMonthlyFinancials()"><span>💵</span> مالی ماهانه</button>
-            
-            <!-- تنظیمات -->
-            <button class="btn-analysis" style="background: #16a085;" onclick="showSection('adminSalarySection'); initSalarySettings()"><span>💰</span> تنظیمات حقوق</button>
-            <button class="btn-machine" onclick="showSection('adminMachineSection'); loadAdminMachines()"><span>⚙️</span> تنظیمات چرخ</button>
-            <button class="btn-users" onclick="showSection('adminUserSection'); loadUsers()"><span>👥</span> تنظیمات کاربران</button>
-            <button class="btn-delete" onclick="showSection('adminDeleteSection'); initAdminDelete()"><span>🗑</span> حذف کارکرد</button>
+        <div class="grid-btns">
+            <button class="btn-confirm" style="background:#2980b9;" onclick="alert('در حال توسعه')">✅ تایید کارکرد</button>
+            <button class="btn-manual" style="background:#8e44ad;" onclick="alert('در حال توسعه')">📝 ثبت دستی</button>
         </div>
     </div>
 
-    <div class="container" id="adminConfirmSection">
-        <div class="section-header"><h3>✅ تایید کارکرد</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        
-        <div style="margin-bottom:15px; background:#ecf0f1; padding:12px; border-radius:8px; border: 1px solid #bdc3c7;">
-            <div style="display:flex; gap:10px;">
-                <div style="flex:1;">
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">چرخ:</label>
-                    <select id="admFilterMachine" onchange="loadPendingShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="all">همه چرخ‌ها</option>
-                    </select>
-                </div>
-                <div style="flex:1;">
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شیفت:</label>
-                    <select id="admFilterShift" onchange="loadPendingShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="all">همه شیفت‌ها</option>
-                        <option value="صبح">صبح</option>
-                        <option value="شب">شب</option>
-                    </select>
-                </div>
-                <div style="flex:1;">
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">ترتیب:</label>
-                    <select id="admSortOrder" onchange="loadPendingShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="desc">جدید به قدیم</option>
-                        <option value="asc">قدیم به جدید</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div id="pendingList"></div>
-    </div>
-
-    <div class="container" id="adminManualSection" style="max-width: 500px;">
-        <div class="section-header"><h3 id="manFormTitle">📝 ثبت دستی / ویرایش</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        
-        <div id="manEditingInfo" style="display: none; background: #e8f8f5; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; color: #16a085; font-weight: bold; border: 1px solid #1abc9c;"></div>
-        <div id="manLastShiftDisplay" style="margin-bottom: 15px;"></div>
-        <div id="manImmediatePrevDisplay" style="margin-bottom: 15px;"></div>
-        <div id="manCheckShiftAlert" style="display: none; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-            ⚠️ برای این اپراتور، چرخ و تاریخ قبلا ثبت شده!
-        </div>
-
-        <form id="manualForm">
-            <label>شیفت</label>
-            <select id="manShift" required onchange="triggerManFetch()">
-                <option value="صبح">صبح</option>
-                <option value="شب">شب</option>
-            </select>
-
-            <label>چرخ</label>
-            <select id="manMachine" required onchange="handleManMachineChange()"></select>
-
-            <label>تاریخ (برای تقویم کلیک کنید)</label>
-            <input type="text" id="manDate" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="triggerManFetch()">
-            <button type="button" class="today-btn" onclick="setManTodayDate()">📅 درج سریع تاریخ امروز</button>
-            
-            <div class="zero-checkbox" id="manZeroCheckboxContainer">
-                <input type="checkbox" id="manIsZeroWork" onchange="toggleManZeroMode()">
-                <label for="manIsZeroWork">دستگاه امروز کار نکرده (ثبت کارکرد صفر)</label>
-            </div>
-
-            <div id="manNormalFields">
-                <label>شمارنده سوزن</label>
-                <input type="text" id="manCounter" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right;">
-                
-                <div class="zero-checkbox" id="manChadorCheckboxContainer" style="display:none; background:#e8f4f8; border-color:#3498db; margin-top:10px; margin-bottom:15px;">
-                    <input type="checkbox" id="manIsChadorWork" onchange="toggleManChadorMode()">
-                    <label for="manIsChadorWork" style="color:#2980b9; cursor:pointer;">دوخت چادر</label>
-                </div>
-
-                <div id="manDesignWrapper">
-                    <label>کد طرح</label>
-                    <input type="text" id="manDesign" placeholder="۲۰۶" oninput="formatPersianInput(this)">
-                </div>
-                <div id="manSetNumberWrapper">
-                    <label>شماره ست</label>
-                    <input type="text" id="manSetNum" placeholder="۱۱۲" oninput="formatPersianInput(this)">
-                </div>
-                <div id="manPartsWrapper">
-                    <label>تکه‌های دوخته شده</label>
-                    <div class="parts-container" id="manPartsContainer" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;"></div>
-                </div>
-
-                <div id="manChadorFields" style="display: none; background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #3498db;">
-                    <label style="color: #2980b9;">تعداد چادر دوخته شده</label>
-                    <input type="text" id="manChadorCount" placeholder="۱۲" oninput="formatPersianInput(this)">
-                    <label style="color: #2980b9; margin-top:10px; display:block;">شماره فاکتورها (حداقل یکی الزامی است)</label>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                        <input type="text" id="manChadorInv1" placeholder="فاکتور ۱ (اجباری)" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="manChadorInv2" placeholder="فاکتور ۲" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="manChadorInv3" placeholder="فاکتور ۳" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="manChadorInv4" placeholder="فاکتور ۴" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="manChadorInv5" placeholder="فاکتور ۵" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                        <input type="text" id="manChadorInv6" placeholder="فاکتور ۶" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-                    </div>
-                </div>
-
-                <div id="manBonusContainer" class="zero-checkbox" style="background:#e8f8f5; border-color:#1abc9c; margin-top:10px; flex-direction: column; align-items: flex-start; padding: 12px;">
-                    <div style="display:flex; align-items:center; width:100%;">
-                        <input type="checkbox" id="manRequestBonus" style="margin-left:10px; margin-bottom:0; scale:1.5;">
-                        <label for="manRequestBonus" style="color:#16a085; font-weight:bold; cursor:pointer; margin:0; font-size:16px;">ست جدید</label>
-                    </div>
-                    <div style="font-size:12px; color:#7f8c8d; margin-top:5px; margin-right: 25px;">(درخواست ۶۰,۰۰۰ سوزن پاداش - پس از تایید مدیر)</div>
-                </div>
-
-                <label>عکس صفحه دستگاه (دوربین یا گالری)</label>
-                <input type="file" id="manPhoto" accept="image/*" style="border:2px dashed #ccc;">
-            </div>
-
-            <div id="manZeroFields" style="display: none; background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                <label style="color: #856404;">علت توقف کار</label>
-                <select id="manZeroReason">
-                    <option value="غیبت">غیبت</option>
-                    <option value="خرابی دستگاه">خرابی دستگاه</option>
-                    <option value="نبود ست">نبود ست برای دوخت</option>
-                    <option value="سایر">سایر</option>
-                </select>
-                <label style="color: #856404;">توضیحات بیشتر (اختیاری)</label>
-                <input type="text" id="manZeroNote" placeholder="توضیح دهید...">
-            </div>
-
-            <button type="submit" id="manSubmitBtn" style="background:#8e44ad;">ثبت</button>
-        </form>
-    </div>
-
-    <div class="container" id="adminSalarySection">
-        <div class="section-header"><h3>💰 تنظیمات حقوق</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        
-        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
-                <select id="salaryYear" onchange="loadSalarySettings()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
-            </div>
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
-                <select id="salaryMonth" onchange="loadSalarySettings()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                    <option value="1">فروردین</option>
-                    <option value="2">اردیبهشت</option>
-                    <option value="3">خرداد</option>
-                    <option value="4">تیر</option>
-                    <option value="5">مرداد</option>
-                    <option value="6">شهریور</option>
-                    <option value="7">مهر</option>
-                    <option value="8">آبان</option>
-                    <option value="9">آذر</option>
-                    <option value="10">دی</option>
-                    <option value="11">بهمن</option>
-                    <option value="12">اسفند</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="card">
-            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">قیمت هر سوزن (تومان):</label>
-            <input type="text" id="pricePerStitch" placeholder="مثلا ۳.۸۴۶" oninput="formatDecimalInput(this)" dir="ltr" style="text-align:right; font-size:18px; margin-bottom:15px;">
-            
-            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">نرخ هر چادر (تومان):</label>
-            <input type="text" id="pricePerChador" placeholder="مثلا ۵۰,۰۰۰" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right; font-size:18px; margin-bottom:15px;">
-            
-            <div class="zero-checkbox" style="background:#f8f9fa; border-color:#ced4da; margin-bottom:10px;">
-                <input type="checkbox" id="showSalaryToOp">
-                <label for="showSalaryToOp" style="color:#495057; cursor:pointer; font-weight:bold;">نمایش حقوق به اپراتورها در گزارشات</label>
-            </div>
-            
-            <div class="zero-checkbox" style="background:#f8f9fa; border-color:#ced4da; margin-bottom:15px;">
-                <input type="checkbox" id="showOppositeSalaryToOp">
-                <label for="showOppositeSalaryToOp" style="color:#495057; cursor:pointer; font-weight:bold;">نمایش حقوق شیفت مخالف به اپراتورها</label>
-            </div>
-            
-            <button style="background:#16a085;" onclick="saveSalarySettings()">💾 ذخیره تنظیمات</button>
+    <!-- Operator Dashboard -->
+    <div class="container" id="operatorDashboard" style="max-width: 400px;">
+        <button class="logout-btn" onclick="doLogout()">خروج</button>
+        <h2 id="opWelcomeName" style="color:#2c3e50; text-align:center; font-size:18px; margin-bottom:20px;"></h2>
+        <div id="operatorShiftDisplay" style="text-align: center; margin-bottom:20px;"></div>
+        <div class="grid-btns">
+            <button class="btn-manual" style="background:#8e44ad;" onclick="alert('در حال توسعه')">📝 ثبت کارکرد</button>
+            <button class="btn-view" style="background: #2980b9;" onclick="alert('در حال توسعه')">📋 مشاهده</button>
         </div>
     </div>
-
-    <div class="container" id="adminMonthlyFinancialsSection">
-        <div class="section-header"><h3>💵 مالی ماهانه (پاداش و جریمه)</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        
-        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
-                <select id="finYear" onchange="loadMonthlyFinancials()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
-            </div>
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
-                <select id="finMonth" onchange="loadMonthlyFinancials()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                    <option value="1">فروردین</option>
-                    <option value="2">اردیبهشت</option>
-                    <option value="3">خرداد</option>
-                    <option value="4">تیر</option>
-                    <option value="5">مرداد</option>
-                    <option value="6">شهریور</option>
-                    <option value="7">مهر</option>
-                    <option value="8">آبان</option>
-                    <option value="9">آذر</option>
-                    <option value="10">دی</option>
-                    <option value="11">بهمن</option>
-                    <option value="12">اسفند</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="monthlyFinancialsList"></div>
-    </div>
-
-    <div class="container" id="adminAnalysisSection">
-        <div class="section-header"><h3>⏱ تحلیل زمان دوخت</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        
-        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
-                <select id="analysisYear" onchange="loadAnalysis()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
-            </div>
-            <div style="flex:1;">
-                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
-                <select id="analysisMonth" onchange="loadAnalysis()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                    <option value="1">فروردین</option>
-                    <option value="2">اردیبهشت</option>
-                    <option value="3">خرداد</option>
-                    <option value="4">تیر</option>
-                    <option value="5">مرداد</option>
-                    <option value="6">شهریور</option>
-                    <option value="7">مهر</option>
-                    <option value="8">آبان</option>
-                    <option value="9">آذر</option>
-                    <option value="10">دی</option>
-                    <option value="11">بهمن</option>
-                    <option value="12">اسفند</option>
-                </select>
-            </div>
-        </div>
-        <div id="analysisData"></div>
-    </div>
-
-    <div class="container" id="adminViewShiftsSection">
-        <div class="section-header"><h3>📋 مشاهده کل کارکردها</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        
-        <div style="margin-bottom:15px; background:#ecf0f1; padding:12px; border-radius:8px; border: 1px solid #bdc3c7;">
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <div style="flex:1;">
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">چرخ:</label>
-                    <select id="admViewMachineFilter" onchange="loadAdminViewShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="all">همه چرخ‌ها</option>
-                    </select>
-                </div>
-                <div style="flex:1;">
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شیفت:</label>
-                    <select id="admViewShiftFilter" onchange="loadAdminViewShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="all">همه شیفت‌ها</option>
-                        <option value="صبح">صبح</option>
-                        <option value="شب">شب</option>
-                    </select>
-                </div>
-                <div style="flex:1;">
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">ترتیب:</label>
-                    <select id="admViewSortOrder" onchange="loadAdminViewShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="desc">جدید به قدیم</option>
-                        <option value="asc">قدیم به جدید</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <input type="text" id="admViewStartDate" placeholder="از تاریخ" style="font-size:14px; text-align:center;">
-            <input type="text" id="admViewEndDate" placeholder="تا تاریخ" style="font-size:14px; text-align:center;">
-            <button style="margin:0; width:80px; background:#2980b9; font-size:14px;" onclick="loadAdminViewShifts()">جستجو</button>
-        </div>
-        <div id="adminViewShiftsList"></div>
-    </div>
-
-    <div class="container" id="adminSearchSection">
-        <div class="section-header"><h3>🔍 جستجوی کارکرد</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        
-        <div style="margin-bottom:15px; background:#ecf0f1; padding:15px; border-radius:8px; border: 1px solid #bdc3c7;">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div>
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">کد طرح:</label>
-                    <input type="text" id="srchDesign" placeholder="مثلا ۲۰۶" oninput="formatPersianInput(this)" style="margin-bottom:0; padding:8px; font-size:14px;">
-                </div>
-                <div>
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شماره ست:</label>
-                    <input type="text" id="srchSetNum" placeholder="مثلا ۱۱۲" oninput="formatPersianInput(this)" style="margin-bottom:0; padding:8px; font-size:14px;">
-                </div>
-                <div>
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">تکه دوخته شده:</label>
-                    <select id="srchParts" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="">همه</option>
-                        <option value="جیگ">جیگ</option>
-                        <option value="پشت بدن">پشت بدن</option>
-                        <option value="آستین">آستین</option>
-                        <option value="تک">تک</option>
-                        <option value="شلوار">شلوار</option>
-                        <option value="پندول">پندول</option>
-                        <option value="سریگ">سریگ</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">چرخ:</label>
-                    <select id="srchMachine" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="">همه</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شیفت:</label>
-                    <select id="srchShift" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="">همه</option>
-                        <option value="صبح">صبح</option>
-                        <option value="شب">شب</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">ترتیب:</label>
-                    <select id="srchSortOrder" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="desc">جدید به قدیم</option>
-                        <option value="asc">قدیم به جدید</option>
-                    </select>
-                </div>
-            </div>
-            <button style="margin-top:15px; margin-bottom:0; background:#9b59b6;" onclick="loadAdminSearch()">🔍 جستجو</button>
-        </div>
-        
-        <div id="adminSearchResults"></div>
-    </div>
-
-    <div class="container" id="adminMachineSection">
-        <div class="section-header"><h3>⚙️ چرخ‌ها</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <input type="text" id="newMachineName" placeholder="نام چرخ" style="margin:0;">
-            <button style="margin:0; width:100px;" onclick="addMachine()">افزودن</button>
-        </div>
-        <div id="machineList"></div>
-    </div>
-
-    <div class="container" id="adminUserSection">
-        <div class="section-header"><h3>👥 کاربران</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        <div class="card" style="background:#e8f8f5;">
-            <input type="text" id="newName" placeholder="نام">
-            <input type="tel" id="newPhone" placeholder="شماره">
-            <input type="password" id="newPassword" placeholder="رمز">
-            <select id="newRole" onchange="toggleCreateShift()"><option value="operator">اپراتور</option><option value="admin">مدیر</option></select>
-            <div id="createShiftDiv"><select id="newShift"><option value="صبح">صبح</option><option value="شب">شب</option></select></div>
-            <button style="background:#2c3e50;" onclick="createUser()">ایجاد</button>
-        </div>
-        <div id="usersList"></div>
-    </div>
-
-    <div class="container" id="adminDeleteSection">
-        <div class="section-header"><h3>🗑 حذف</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
-        
-        <div style="margin-bottom:15px; background:#ecf0f1; padding:12px; border-radius:8px; border: 1px solid #bdc3c7;">
-            <div style="display:flex; gap:10px;">
-                <div style="flex:1;">
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">چرخ:</label>
-                    <select id="delFilterMachine" onchange="loadDeleteList()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="all">همه چرخ‌ها</option>
-                    </select>
-                </div>
-                <div style="flex:1;">
-                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شیفت:</label>
-                    <select id="delFilterShift" onchange="loadDeleteList()" style="margin-bottom:0; padding:8px; font-size:14px;">
-                        <option value="all">همه شیفت‌ها</option>
-                        <option value="صبح">صبح</option>
-                        <option value="شب">شب</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        
-        <div id="deleteList"></div>
-    </div>
-
-    <div class="modal" id="imageZoomModal" style="background: rgba(0,0,0,0.95); z-index: 9999; position: fixed; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center;" onclick="this.style.display='none'">
-        <span style="position:absolute; top:15px; right:20px; color:white; font-size:45px; font-weight:bold; cursor:pointer; z-index:10000;">&times;</span>
-        <img id="zoomedImage" src="" style="width: 100%; max-height: 95vh; object-fit: contain; pointer-events: none;">
-    </div>
-
-    <div class="modal" id="previewModal">
-        <div class="modal-content">
-            <h3 style="text-align:center; color:#2c3e50;">🔍 پیش‌نمایش ثبت کارکرد</h3>
-            <div id="previewContent" style="margin: 20px 0; font-size: 16px; line-height: 2;"></div>
-            <button style="background:#2ecc71;" onclick="confirmSubmitShift()">✅ تایید و ارسال به مدیر</button>
-            <button class="close-modal" onclick="document.getElementById('previewModal').style.display='none'">✏️ ویرایش اطلاعات</button>
-        </div>
-    </div>
-
-    <div class="modal" id="detailModal">
-        <div class="modal-content">
-            <img id="modalPhoto" src="" style="width:100%; border-radius:8px; margin-bottom:15px; cursor:pointer;">
-            <div id="modalDetails" style="font-size:14px; line-height: 1.8;"></div>
-            <button class="close-modal" onclick="document.getElementById('detailModal').style.display='none'">بستن</button>
-        </div>
-    </div>
-
-    
-
-    <!-- Ultimate Splash Screen -->
-    <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
-        
-        <!-- دکمه با دستور مستقیم: مخفی کردن اسپلش و اجبار به نمایش لاگین -->
-        <button onclick="
-            document.getElementById('appSplash').style.display='none';
-            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-            document.getElementById('loginScreen').classList.add('active');
-        " style="background: linear-gradient(90deg, #7b2cbf, #5a189a); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; font-family: 'Vazirmatn', sans-serif; margin-bottom: 22%; z-index: 100000;">شروع کنید</button>
-    </div>
-    
-    
-
-
-<!-- Login Texts: 1794940737 -->
 
     <script>
         const API_BASE = "http://185.222.163.15:8000";
@@ -722,17 +97,13 @@
             return str;
         }
 
-        function showSection(id) {
-            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-            const el = document.getElementById(id);
-            if (el) el.classList.add('active');
+        function hideSplash() {
+            document.getElementById('appSplash').style.display = 'none';
         }
 
         async function doLogin() {
-            const btn = document.querySelector('#loginScreen button[type="submit"]') || document.getElementById('loginBtn');
+            const btn = document.getElementById('loginBtn');
             const statusEl = document.getElementById('loginStatus');
-            if (!btn || !statusEl) return;
-            
             btn.disabled = true;
             statusEl.innerText = "در حال بررسی...";
             statusEl.style.color = "blue";
@@ -778,52 +149,23 @@
         function routeUser() {
             const token = localStorage.getItem('token');
             const role = localStorage.getItem('role');
+            
+            document.getElementById('appSplash').style.display = 'none';
             document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
 
             if (!token || token === 'undefined' || token === 'null') {
-                const el = document.getElementById('loginScreen');
-                if (el) el.classList.add('active');
+                document.getElementById('loginScreen').classList.add('active');
             } else if (role === 'admin') {
-                const el = document.getElementById('adminScreen');
-                if (el) {
-                    el.classList.add('active');
-                    const name = localStorage.getItem('userName') || 'مدیر';
-                    if(document.getElementById('adminWelcomeName')) document.getElementById('adminWelcomeName').innerText = `👋 خوش آمدید ${name}`;
-                }
+                document.getElementById('adminScreen').classList.add('active');
+                document.getElementById('adminWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'مدیر'}`;
             } else {
-                const el = document.getElementById('operatorDashboard');
-                if (el) {
-                    el.classList.add('active');
-                    const name = localStorage.getItem('userName') || 'اپراتور';
-                    if(document.getElementById('opWelcomeName')) document.getElementById('opWelcomeName').innerText = `👋 خوش آمدید ${name}`;
-                    if(document.getElementById('operatorShiftDisplay')) document.getElementById('operatorShiftDisplay').innerHTML = `<div class="shift-badge">شیفت شما: ${localStorage.getItem('shift_type') || ''}</div>`;
-                }
+                document.getElementById('operatorDashboard').classList.add('active');
+                document.getElementById('opWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'اپراتور'}`;
+                document.getElementById('operatorShiftDisplay').innerHTML = `<div style="background:#d1f2eb; color:#117a65; padding:5px 10px; border-radius:5px; font-weight:bold; display:inline-block;">شیفت شما: ${localStorage.getItem('shift_type') || ''}</div>`;
             }
         }
 
-        // راه‌اندازی Eruda برای دیباگ
-        if (!window.eruda) {
-            let script = document.createElement('script');
-            script.src = "https://cdn.jsdelivr.net/npm/eruda";
-            script.onload = () => { eruda.init(); };
-            document.head.appendChild(script);
-        }
-
-        // مقداردهی اولیه پس از لود صفحه
-        document.addEventListener('DOMContentLoaded', () => {
-            routeUser();
-            
-            // اتصال دکمه ورود به تابع
-            const loginBtn = document.querySelector('#loginScreen button');
-            if (loginBtn) {
-                loginBtn.onclick = (e) => { e.preventDefault(); doLogin(); };
-            }
-        });
+        document.addEventListener('DOMContentLoaded', routeUser);
     </script>
-
-
-<!-- Clean JS Build: 1795023511 -->
 </body>
 </html>
-
-<!-- Ultimate Build: 1794940307 -->
