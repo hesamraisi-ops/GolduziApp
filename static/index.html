@@ -3,115 +3,886 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2c3e50">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <link rel="manifest" href="/static/manifest.json">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
-    <title>نرم افزار سوزن</title>
+    <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>سیستم گلدوزی (نسخه ۱۶.۶)</title>
     <style>
         @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
         body { font-family: 'Vazirmatn', sans-serif; background-color: #ecf0f1; margin: 0; padding: 20px; color: #333; }
-        .container { background-color: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; margin: auto; display: none; position: relative; }
+        .container { background-color: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 800px; margin: auto; display: none; position: relative; }
         .container.active { display: block; }
         h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; font-size: 20px;}
+        .logout-btn { position: absolute; top: 15px; left: 15px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; width: auto; z-index: 10; }
         input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: inherit; font-size: 16px; }
         button { width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-bottom: 10px; }
         button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .admin-grid button { height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px;}
+        .admin-grid button span { font-size: 24px; margin-bottom: 5px;}
+        .btn-confirm { background: #2980b9; } .btn-manual { background: #8e44ad; } .btn-report { background: #d35400; } .btn-analysis { background: #16a085; } .btn-machine { background: #7f8c8d; } .btn-users { background: #2c3e50; } .btn-delete { background: #c0392b; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;}
+        .section-header h3 { margin: 0; }
+        .back-btn { background: #95a5a6; width: auto; padding: 8px 15px; margin: 0; font-size: 14px;}
+        .chart-container { width: 100%; height: 250px; margin-bottom: 20px; }
+        .card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+        .card-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-bottom: 10px; background: #000; cursor: pointer; }
+        .card-actions { display: flex; gap: 10px; margin-top: 10px;}
+        .card-actions button { margin: 0; padding: 8px; }
+        .tabs { display: flex; gap: 10px; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; font-weight: bold; color: #777; }
+        .tab.active { color: #2980b9; border-bottom: 3px solid #2980b9; margin-bottom: -2px; }
+        .report-item { display: flex; justify-content: space-between; padding: 15px; border-radius: 8px; margin-bottom: 10px; color: white; cursor: pointer;}
+        .status-low { background: #e74c3c; } .status-good { background: #2ecc71; } .status-high { background: #f39c12; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .close-modal { background: #e74c3c; margin-top: 15px; }
+        .machine-row { display: flex; justify-content: space-between; align-items: center; background: #f1f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px;}
+        .shift-badge { display: inline-block; background: #d1f2eb; color: #117a65; padding: 5px 10px; border-radius: 5px; font-weight: bold; margin-bottom: 15px; font-size: 14px; }
         
-        #appSplash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
-        .splash-btn { background: linear-gradient(90deg, #7b2cbf, #5a189a); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; margin-bottom: 22%; }
+        .dashboard-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 30px; }
+        .dashboard-btns button { margin: 0; height: 110px; font-size: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 12px; border: none; color: white; font-weight: bold; cursor: pointer; }
+        .dashboard-btns .btn-full { grid-column: span 2; }
 
-        .header-text { text-align: center; margin-bottom: 25px; }
-        .header-text h3 { color: #4a148c; font-size: 15px; margin-bottom: 8px; font-weight: bold; }
-        .header-text p { color: #666; font-size: 12px; line-height: 1.6; }
+        .today-btn { background: #3498db; padding: 8px; font-size: 14px; margin-top: -10px; margin-bottom: 15px; }
+        .datepicker-plot-area { font-family: 'Vazirmatn', sans-serif !important; z-index: 99999 !important; }
+        #editPhotoPreview { width: 100%; max-height: 150px; object-fit: contain; border-radius: 8px; margin-bottom: 15px; background: #000; display: none;}
         
-        .footer-text { text-align: center; margin-top: 25px; color: #888; font-size: 12px; }
-        .footer-text .slogan { font-weight: bold; color: #673ab7; margin-bottom: 5px; }
-        .footer-text .brand { font-size: 10px; letter-spacing: 1px; color: #999; margin-bottom: 10px; }
-        .footer-text .version { font-size: 11px; }
-
-        .logout-btn { background: #e74c3c; position: absolute; top: 15px; left: 15px; width: auto; padding: 5px 15px; font-size: 14px; }
-        .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .grid-btns button { height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px; }
+        .zero-checkbox { display: flex; align-items: center; background: #fdf2f2; border: 1px solid #f5c6cb; padding: 10px; border-radius: 8px; margin-bottom: 15px; cursor: pointer;}
+        .zero-checkbox input { width: auto; margin: 0; margin-left: 10px; scale: 1.5; }
+        .zero-checkbox label { margin: 0; color: #721c24; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <!-- Splash Screen -->
-    <div id="appSplash">
-        <button class="splash-btn" onclick="hideSplash()">شروع کنید</button>
+    <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
+        <button onclick="document.getElementById('appSplash').style.display='none';" style="background: linear-gradient(90deg, #7b2cbf, #5a189a); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; font-family: 'Vazirmatn', sans-serif; margin-bottom: 22%; z-index: 100000;">شروع کنید</button>
     </div>
 
-    <!-- Login Screen -->
-    <div class="container active" id="loginScreen" style="max-width: 400px; margin-top: 50px;">
-        <div class="header-text">
-            <h3>سامانه مدیریت و محاسبه کارکرد سوزن‌های گلدوزی</h3>
-            <p>ثبت کارکرد، محاسبه تولید و گزارش عملکرد شیفت‌های ماه روچ استایل</p>
-        </div>
+
+    <div class="container active" id="loginScreen" style="max-width: 400px;">
         
+        <div style="text-align: center; margin-bottom: 25px;">
+            <h3 style="color: #4a148c; font-size: 15px; margin-bottom: 8px; font-weight: bold;">سامانه مدیریت و محاسبه کارکرد سوزن‌های گلدوزی</h3>
+            <p style="color: #666; font-size: 12px; line-height: 1.6;">ثبت کارکرد، محاسبه تولید و گزارش عملکرد شیفت‌های ماه روچ استایل</p>
+        </div>
+
         <input type="tel" id="phone" placeholder="۰۹۱۲۳۴۵۶۷۸۹">
         <input type="password" id="password" placeholder="****">
-        <button onclick="doLogin()" id="loginBtn">ورود</button>
-        <div id="loginStatus" style="color: red; text-align:center; margin-bottom: 15px;"></div>
-
-        <div class="footer-text">
-            <div class="slogan">دقت در ثبت، نظم در تولید</div>
-            <div class="brand">MAHROCH STYLE | EMBROIDERY MANAGEMENT</div>
-            <div class="version">نسخه ۱.۰ آزمایشی</div>
+        <button onclick="doLogin()">ورود</button>
+        <div id="loginStatus" style="color: red; text-align:center;"></div>
+        <div style="text-align: center; margin-top: 25px; color: #888; font-size: 12px;">
+            <p style="margin-bottom: 5px; font-weight: bold; color: #673ab7;">دقت در ثبت، نظم در تولید</p>
+            <p style="margin-bottom: 10px; font-size: 10px; letter-spacing: 1px; color: #999;">MAHROCH STYLE | EMBROIDERY MANAGEMENT</p>
+            <p style="font-size: 11px;">نسخه ۱.۰ آزمایشی</p>
         </div>
+
     </div>
 
-    <!-- Admin Dashboard -->
-    <div class="container" id="adminScreen">
-        <button class="logout-btn" onclick="doLogout()">خروج</button>
-        <h2 id="adminWelcomeName" style="color:#2c3e50; text-align:center; font-size:18px; margin-bottom:20px;"></h2>
-        <div class="grid-btns">
-            <button class="btn-confirm" style="background:#2980b9;" onclick="alert('در حال توسعه')">✅ تایید کارکرد</button>
-            <button class="btn-manual" style="background:#8e44ad;" onclick="alert('در حال توسعه')">📝 ثبت دستی</button>
-        </div>
-    </div>
-
-    <!-- Operator Dashboard -->
     <div class="container" id="operatorDashboard" style="max-width: 400px;">
         <button class="logout-btn" onclick="doLogout()">خروج</button>
         <h2 id="opWelcomeName" style="color:#2c3e50; text-align:center; font-size:18px; margin-bottom:20px;"></h2>
-        <div id="operatorShiftDisplay" style="text-align: center; margin-bottom:20px;"></div>
-        <div class="grid-btns">
-            <button class="btn-manual" style="background:#8e44ad;" onclick="alert('در حال توسعه')">📝 ثبت کارکرد</button>
-            <button class="btn-view" style="background: #2980b9;" onclick="alert('در حال توسعه')">📋 مشاهده</button>
+        <div id="opNotifAlert" style="display:none; background:#f8d7da; color:#721c24; padding:10px; border-radius:8px; margin-bottom:15px; text-align:center; font-weight:bold; cursor:pointer; border: 1px solid #f5c6cb;" onclick="goToRejectedShifts()"></div>
+        <div id="operatorShiftDisplay" style="text-align: center;"></div>
+        <div class="dashboard-btns">
+            <button class="btn-manual" style="background:#8e44ad;" onclick="showSection('registerSection')">📝<br>ثبت کارکرد</button>
+            <button class="btn-view" style="background: #2980b9;" onclick="openOpShiftList()">📋<br>مشاهده کارکردها</button>
+            <button class="btn-report" style="background: #27ae60; grid-column: span 1;" onclick="showSection('weeklyReportSection'); initWeeklyReport()">📅<br>گزارش هفتگی</button>
+            <button class="btn-report" style="background: #2980b9; grid-column: span 1;" onclick="showSection('monthlyReportSection'); initMonthlyReport()">📅<br>گزارش ماهانه</button>
+        </div>
+    </div>
+
+    <div class="container" id="registerSection" style="max-width: 500px;">
+        <div class="section-header">
+            <h3 id="formTitle">📝 ثبت کارکرد</h3>
+            <button class="back-btn" onclick="showSection('operatorDashboard')">بازگشت</button>
+        </div>
+        <div id="lastShiftDisplay" style="margin-bottom: 15px;"></div>
+        <div id="immediatePrevDisplay" style="margin-bottom: 15px;"></div>
+        <div id="checkShiftAlert" style="display: none; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+            ⚠️ برای این چرخ و تاریخ قبلا ثبت شده! <button id="editExistingBtn" style="background: #c82333; margin-top:10px;">✏️ ویرایش کارکرد قبلی</button>
+        </div>
+        <form id="shiftForm">
+            <label>چرخ</label>
+            <select id="machine" onchange="handleMachineChange()"></select>
+
+            <label>تاریخ (برای تقویم کلیک کنید)</label>
+            <input type="text" id="date" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="checkExistingShift(); loadImmediatePrev();">
+            <button type="button" class="today-btn" onclick="setTodayDate()">📅 درج سریع تاریخ امروز</button>
+            
+            <div class="zero-checkbox">
+                <input type="checkbox" id="isZeroWork" onchange="toggleZeroMode()">
+                <label for="isZeroWork">دستگاه امروز کار نکرده (ثبت کارکرد صفر)</label>
+            </div>
+
+            <div id="normalFields">
+                <img id="editPhotoPreview" src="">
+                <label>شمارنده سوزن</label>
+                <input type="text" id="counter" placeholder="۱,۲۵۰,۰۰۰" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right;">
+                
+                <div class="zero-checkbox" id="chadorCheckboxContainer" style="display:none; background:#e8f4f8; border-color:#3498db; margin-top:10px; margin-bottom:15px;">
+                    <input type="checkbox" id="isChadorWork" onchange="toggleChadorMode()">
+                    <label for="isChadorWork" style="color:#2980b9; cursor:pointer;">دوخت چادر</label>
+                </div>
+
+                <div id="designWrapper">
+                    <label>کد طرح</label>
+                    <input type="text" id="design_code" placeholder="۲۰۶" oninput="formatPersianInput(this)">
+                </div>
+                <div id="setNumberWrapper">
+                    <label>شماره ست</label>
+                    <input type="text" id="set_number" placeholder="۱۱۲" oninput="formatPersianInput(this)">
+                </div>
+                <div id="partsWrapper">
+                    <label>تکه‌های دوخته شده</label>
+                    <div class="parts-container" id="parts-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;"></div>
+                </div>
+                
+                <div id="chadorFields" style="display: none; background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #3498db;">
+                    <label style="color: #2980b9;">تعداد چادر دوخته شده</label>
+                    <input type="text" id="chadorCount" placeholder="۱۲" oninput="formatPersianInput(this)">
+                    <label style="color: #2980b9; margin-top:10px; display:block;">شماره فاکتورها (حداقل یکی الزامی است)</label>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <input type="text" id="chadorInvoice1" placeholder="فاکتور ۱ (اجباری)" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="chadorInvoice2" placeholder="فاکتور ۲" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="chadorInvoice3" placeholder="فاکتور ۳" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="chadorInvoice4" placeholder="فاکتور ۴" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="chadorInvoice5" placeholder="فاکتور ۵" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="chadorInvoice6" placeholder="فاکتور ۶" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                    </div>
+                </div>
+
+                <div id="bonusContainer" class="zero-checkbox" style="background:#e8f8f5; border-color:#1abc9c; margin-top:10px; flex-direction: column; align-items: flex-start; padding: 12px;">
+                    <div style="display:flex; align-items:center; width:100%;">
+                        <input type="checkbox" id="requestBonus" style="margin-left:10px; margin-bottom:0; scale:1.5;">
+                        <label for="requestBonus" style="color:#16a085; font-weight:bold; cursor:pointer; margin:0; font-size:16px;">ست جدید</label>
+                    </div>
+                    <div style="font-size:12px; color:#7f8c8d; margin-top:5px; margin-right: 25px;">(درخواست ۶۰,۰۰۰ سوزن پاداش - پس از تایید مدیر)</div>
+                </div>
+
+                <label>عکس صفحه دستگاه (دوربین یا گالری)</label>
+                <input type="file" id="photo" accept="image/*" style="border:2px dashed #ccc;">
+            </div>
+
+            <div id="zeroFields" style="display: none; background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <label style="color: #856404;">علت توقف کار</label>
+                <select id="zeroReason">
+                    <option value="غیبت">غیبت</option>
+                    <option value="خرابی دستگاه">خرابی دستگاه</option>
+                    <option value="نبود ست">نبود ست برای دوخت</option>
+                    <option value="سایر">سایر</option>
+                </select>
+                <label style="color: #856404;">توضیحات بیشتر (اختیاری)</label>
+                <input type="text" id="zeroNote" placeholder="توضیح دهید...">
+            </div>
+
+            <button type="submit" id="submitBtn">ارسال به مدیر</button>
+        </form>
+    </div>
+
+    <div class="container" id="opShiftListSection">
+        <div class="section-header"><h3>📋 کارکردهای من</h3><button class="back-btn" onclick="showSection('operatorDashboard')">بازگشت</button></div>
+        <div style="margin-bottom:15px; background:#ecf0f1; padding:12px; border-radius:8px; border: 1px solid #bdc3c7;">
+            <label style="font-weight:bold; margin-bottom:8px; display:block; color:#2c3e50; font-size:15px;">🔍 انتخاب چرخ برای مشاهده:</label>
+            <select id="opListMachine" style="margin-bottom:10px; background:white; font-weight:bold; border: 1px solid #95a5a6; padding: 10px; font-size:16px;">
+                <option value="all">همه چرخ‌ها</option>
+            </select>
+            <label style="font-weight:bold; margin-bottom:8px; display:block; color:#2c3e50; font-size:15px;">↕ ترتیب:</label>
+            <select id="opListSortOrder" style="margin-bottom:0; background:white; font-weight:bold; border: 1px solid #95a5a6; padding: 10px; font-size:16px;">
+                <option value="desc">جدید به قدیم</option>
+                <option value="asc">قدیم به جدید</option>
+            </select>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="opListStartDate" placeholder="از تاریخ" style="font-size:14px; text-align:center;">
+            <input type="text" id="opListEndDate" placeholder="تا تاریخ" style="font-size:14px; text-align:center;">
+            <button style="margin:0; width:80px; background:#2980b9; font-size:14px;" onclick="loadOpShiftList()">جستجو</button>
+        </div>
+        <div id="opShiftListData"></div>
+    </div>
+
+    <div class="container" id="monthlyReportSection">
+        <div class="section-header"><h3>📅 گزارش ماهانه</h3><button class="back-btn" onclick="backFromMonthly()">بازگشت</button></div>
+        
+        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
+                <select id="monthlyYear" onchange="loadMonthlyReport()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
+            </div>
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
+                <select id="monthlyMonth" onchange="loadMonthlyReport()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                    <option value="1">فروردین</option>
+                    <option value="2">اردیبهشت</option>
+                    <option value="3">خرداد</option>
+                    <option value="4">تیر</option>
+                    <option value="5">مرداد</option>
+                    <option value="6">شهریور</option>
+                    <option value="7">مهر</option>
+                    <option value="8">آبان</option>
+                    <option value="9">آذر</option>
+                    <option value="10">دی</option>
+                    <option value="11">بهمن</option>
+                    <option value="12">اسفند</option>
+                </select>
+            </div>
+        </div>
+        <div id="monthlyReportContent" style="line-height: 2.2; font-size: 15px;"></div>
+    </div>
+
+    <div class="container" id="weeklyReportSection">
+        <div class="section-header"><h3>📅 گزارش هفتگی</h3><button class="back-btn" onclick="backFromWeekly()">بازگشت</button></div>
+        
+        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
+                <select id="reportYear" onchange="updateWeekDropdown()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
+            </div>
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
+                <select id="reportMonth" onchange="updateWeekDropdown()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                    <option value="1">فروردین</option>
+                    <option value="2">اردیبهشت</option>
+                    <option value="3">خرداد</option>
+                    <option value="4">تیر</option>
+                    <option value="5">مرداد</option>
+                    <option value="6">شهریور</option>
+                    <option value="7">مهر</option>
+                    <option value="8">آبان</option>
+                    <option value="9">آذر</option>
+                    <option value="10">دی</option>
+                    <option value="11">بهمن</option>
+                    <option value="12">اسفند</option>
+                </select>
+            </div>
+            <div style="flex:2;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">هفته:</label>
+                <select id="reportWeek" onchange="loadWeeklyReport()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                    <option value="">در حال بارگذاری...</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="weeklyReportContent" style="line-height: 2; font-size: 15px;"></div>
+    </div>
+
+    <div class="container" id="adminScreen">
+        <button class="logout-btn" onclick="doLogout()">خروج</button>
+        <h2 id="adminWelcomeName" style="color:#2c3e50; text-align:center; font-size:18px; margin-bottom:20px;"></h2>
+        <div id="adminAlertBanner" style="display:none; background:#f8d7da; color:#721c24; padding:10px; border-radius:8px; margin-bottom:15px; text-align:center; font-weight:bold; cursor:pointer; border: 1px solid #f5c6cb;" onclick="showSection('adminConfirmSection'); loadPendingShifts()">
+            ⚠️ توجه: شما <span id="adminAlertCount">۰</span> کارکرد مشکوک برای بررسی دارید!
+        </div>
+        <!-- v16.6 Dashboard -->
+        <div class="admin-grid">
+            <!-- عملیات روزانه -->
+            <button class="btn-confirm" onclick="showSection('adminConfirmSection'); loadPendingShifts()"><span>✅</span> تایید کارکرد</button>
+            <button class="btn-manual" onclick="showSection('adminManualSection')"><span>📝</span> ثبت دستی</button>
+            <button class="btn-view" style="background: #3498db;" onclick="showSection('adminViewShiftsSection'); initAdminViewShifts()"><span>📋</span> مشاهده کارکرد</button>
+            <button class="btn-view" style="background: #9b59b6;" onclick="showSection('adminSearchSection'); initAdminSearch()"><span>🔍</span> جستجوی کارکرد</button>
+            
+            <!-- گزارشات -->
+            <button class="btn-report" style="background: #27ae60;" onclick="showSection('weeklyReportSection'); initWeeklyReport()"><span>📅</span> گزارش هفتگی</button>
+            <button class="btn-report" style="background: #2980b9;" onclick="showSection('monthlyReportSection'); initMonthlyReport()"><span>📅</span> گزارش ماهانه</button>
+            <button class="btn-analysis" style="background: #d35400;" onclick="showSection('adminAnalysisSection'); initAdminAnalysis()"><span>⏱</span> تحلیل زمان دوخت</button>
+            <button class="btn-analysis" style="background: #8e44ad;" onclick="showSection('adminMonthlyFinancialsSection'); initMonthlyFinancials()"><span>💵</span> مالی ماهانه</button>
+            
+            <!-- تنظیمات -->
+            <button class="btn-analysis" style="background: #16a085;" onclick="showSection('adminSalarySection'); initSalarySettings()"><span>💰</span> تنظیمات حقوق</button>
+            <button class="btn-machine" onclick="showSection('adminMachineSection'); loadAdminMachines()"><span>⚙️</span> تنظیمات چرخ</button>
+            <button class="btn-users" onclick="showSection('adminUserSection'); loadUsers()"><span>👥</span> تنظیمات کاربران</button>
+            <button class="btn-delete" onclick="showSection('adminDeleteSection'); initAdminDelete()"><span>🗑</span> حذف کارکرد</button>
+        </div>
+    </div>
+
+    <div class="container" id="adminConfirmSection">
+        <div class="section-header"><h3>✅ تایید کارکرد</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        
+        <div style="margin-bottom:15px; background:#ecf0f1; padding:12px; border-radius:8px; border: 1px solid #bdc3c7;">
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">چرخ:</label>
+                    <select id="admFilterMachine" onchange="loadPendingShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="all">همه چرخ‌ها</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شیفت:</label>
+                    <select id="admFilterShift" onchange="loadPendingShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="all">همه شیفت‌ها</option>
+                        <option value="صبح">صبح</option>
+                        <option value="شب">شب</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">ترتیب:</label>
+                    <select id="admSortOrder" onchange="loadPendingShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="desc">جدید به قدیم</option>
+                        <option value="asc">قدیم به جدید</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="pendingList"></div>
+    </div>
+
+    <div class="container" id="adminManualSection" style="max-width: 500px;">
+        <div class="section-header"><h3 id="manFormTitle">📝 ثبت دستی / ویرایش</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        
+        <div id="manEditingInfo" style="display: none; background: #e8f8f5; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; color: #16a085; font-weight: bold; border: 1px solid #1abc9c;"></div>
+        <div id="manLastShiftDisplay" style="margin-bottom: 15px;"></div>
+        <div id="manImmediatePrevDisplay" style="margin-bottom: 15px;"></div>
+        <div id="manCheckShiftAlert" style="display: none; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+            ⚠️ برای این اپراتور، چرخ و تاریخ قبلا ثبت شده!
+        </div>
+
+        <form id="manualForm">
+            <label>شیفت</label>
+            <select id="manShift" required onchange="triggerManFetch()">
+                <option value="صبح">صبح</option>
+                <option value="شب">شب</option>
+            </select>
+
+            <label>چرخ</label>
+            <select id="manMachine" required onchange="handleManMachineChange()"></select>
+
+            <label>تاریخ (برای تقویم کلیک کنید)</label>
+            <input type="text" id="manDate" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="triggerManFetch()">
+            <button type="button" class="today-btn" onclick="setManTodayDate()">📅 درج سریع تاریخ امروز</button>
+            
+            <div class="zero-checkbox" id="manZeroCheckboxContainer">
+                <input type="checkbox" id="manIsZeroWork" onchange="toggleManZeroMode()">
+                <label for="manIsZeroWork">دستگاه امروز کار نکرده (ثبت کارکرد صفر)</label>
+            </div>
+
+            <div id="manNormalFields">
+                <label>شمارنده سوزن</label>
+                <input type="text" id="manCounter" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right;">
+                
+                <div class="zero-checkbox" id="manChadorCheckboxContainer" style="display:none; background:#e8f4f8; border-color:#3498db; margin-top:10px; margin-bottom:15px;">
+                    <input type="checkbox" id="manIsChadorWork" onchange="toggleManChadorMode()">
+                    <label for="manIsChadorWork" style="color:#2980b9; cursor:pointer;">دوخت چادر</label>
+                </div>
+
+                <div id="manDesignWrapper">
+                    <label>کد طرح</label>
+                    <input type="text" id="manDesign" placeholder="۲۰۶" oninput="formatPersianInput(this)">
+                </div>
+                <div id="manSetNumberWrapper">
+                    <label>شماره ست</label>
+                    <input type="text" id="manSetNum" placeholder="۱۱۲" oninput="formatPersianInput(this)">
+                </div>
+                <div id="manPartsWrapper">
+                    <label>تکه‌های دوخته شده</label>
+                    <div class="parts-container" id="manPartsContainer" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;"></div>
+                </div>
+
+                <div id="manChadorFields" style="display: none; background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #3498db;">
+                    <label style="color: #2980b9;">تعداد چادر دوخته شده</label>
+                    <input type="text" id="manChadorCount" placeholder="۱۲" oninput="formatPersianInput(this)">
+                    <label style="color: #2980b9; margin-top:10px; display:block;">شماره فاکتورها (حداقل یکی الزامی است)</label>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <input type="text" id="manChadorInv1" placeholder="فاکتور ۱ (اجباری)" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="manChadorInv2" placeholder="فاکتور ۲" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="manChadorInv3" placeholder="فاکتور ۳" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="manChadorInv4" placeholder="فاکتور ۴" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="manChadorInv5" placeholder="فاکتور ۵" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                        <input type="text" id="manChadorInv6" placeholder="فاکتور ۶" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+                    </div>
+                </div>
+
+                <div id="manBonusContainer" class="zero-checkbox" style="background:#e8f8f5; border-color:#1abc9c; margin-top:10px; flex-direction: column; align-items: flex-start; padding: 12px;">
+                    <div style="display:flex; align-items:center; width:100%;">
+                        <input type="checkbox" id="manRequestBonus" style="margin-left:10px; margin-bottom:0; scale:1.5;">
+                        <label for="manRequestBonus" style="color:#16a085; font-weight:bold; cursor:pointer; margin:0; font-size:16px;">ست جدید</label>
+                    </div>
+                    <div style="font-size:12px; color:#7f8c8d; margin-top:5px; margin-right: 25px;">(درخواست ۶۰,۰۰۰ سوزن پاداش - پس از تایید مدیر)</div>
+                </div>
+
+                <label>عکس صفحه دستگاه (دوربین یا گالری)</label>
+                <input type="file" id="manPhoto" accept="image/*" style="border:2px dashed #ccc;">
+            </div>
+
+            <div id="manZeroFields" style="display: none; background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                <label style="color: #856404;">علت توقف کار</label>
+                <select id="manZeroReason">
+                    <option value="غیبت">غیبت</option>
+                    <option value="خرابی دستگاه">خرابی دستگاه</option>
+                    <option value="نبود ست">نبود ست برای دوخت</option>
+                    <option value="سایر">سایر</option>
+                </select>
+                <label style="color: #856404;">توضیحات بیشتر (اختیاری)</label>
+                <input type="text" id="manZeroNote" placeholder="توضیح دهید...">
+            </div>
+
+            <button type="submit" id="manSubmitBtn" style="background:#8e44ad;">ثبت</button>
+        </form>
+    </div>
+
+    <div class="container" id="adminSalarySection">
+        <div class="section-header"><h3>💰 تنظیمات حقوق</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        
+        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
+                <select id="salaryYear" onchange="loadSalarySettings()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
+            </div>
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
+                <select id="salaryMonth" onchange="loadSalarySettings()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                    <option value="1">فروردین</option>
+                    <option value="2">اردیبهشت</option>
+                    <option value="3">خرداد</option>
+                    <option value="4">تیر</option>
+                    <option value="5">مرداد</option>
+                    <option value="6">شهریور</option>
+                    <option value="7">مهر</option>
+                    <option value="8">آبان</option>
+                    <option value="9">آذر</option>
+                    <option value="10">دی</option>
+                    <option value="11">بهمن</option>
+                    <option value="12">اسفند</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
+            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">قیمت هر سوزن (تومان):</label>
+            <input type="text" id="pricePerStitch" placeholder="مثلا ۳.۸۴۶" oninput="formatDecimalInput(this)" dir="ltr" style="text-align:right; font-size:18px; margin-bottom:15px;">
+            
+            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">نرخ هر چادر (تومان):</label>
+            <input type="text" id="pricePerChador" placeholder="مثلا ۵۰,۰۰۰" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right; font-size:18px; margin-bottom:15px;">
+            
+            <div class="zero-checkbox" style="background:#f8f9fa; border-color:#ced4da; margin-bottom:10px;">
+                <input type="checkbox" id="showSalaryToOp">
+                <label for="showSalaryToOp" style="color:#495057; cursor:pointer; font-weight:bold;">نمایش حقوق به اپراتورها در گزارشات</label>
+            </div>
+            
+            <div class="zero-checkbox" style="background:#f8f9fa; border-color:#ced4da; margin-bottom:15px;">
+                <input type="checkbox" id="showOppositeSalaryToOp">
+                <label for="showOppositeSalaryToOp" style="color:#495057; cursor:pointer; font-weight:bold;">نمایش حقوق شیفت مخالف به اپراتورها</label>
+            </div>
+            
+            <button style="background:#16a085;" onclick="saveSalarySettings()">💾 ذخیره تنظیمات</button>
+        </div>
+    </div>
+
+    <div class="container" id="adminMonthlyFinancialsSection">
+        <div class="section-header"><h3>💵 مالی ماهانه (پاداش و جریمه)</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        
+        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
+                <select id="finYear" onchange="loadMonthlyFinancials()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
+            </div>
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
+                <select id="finMonth" onchange="loadMonthlyFinancials()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                    <option value="1">فروردین</option>
+                    <option value="2">اردیبهشت</option>
+                    <option value="3">خرداد</option>
+                    <option value="4">تیر</option>
+                    <option value="5">مرداد</option>
+                    <option value="6">شهریور</option>
+                    <option value="7">مهر</option>
+                    <option value="8">آبان</option>
+                    <option value="9">آذر</option>
+                    <option value="10">دی</option>
+                    <option value="11">بهمن</option>
+                    <option value="12">اسفند</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="monthlyFinancialsList"></div>
+    </div>
+
+    <div class="container" id="adminAnalysisSection">
+        <div class="section-header"><h3>⏱ تحلیل زمان دوخت</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        
+        <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">سال:</label>
+                <select id="analysisYear" onchange="loadAnalysis()" style="margin-bottom:0; padding:8px; font-size:14px;"></select>
+            </div>
+            <div style="flex:1;">
+                <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">ماه:</label>
+                <select id="analysisMonth" onchange="loadAnalysis()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                    <option value="1">فروردین</option>
+                    <option value="2">اردیبهشت</option>
+                    <option value="3">خرداد</option>
+                    <option value="4">تیر</option>
+                    <option value="5">مرداد</option>
+                    <option value="6">شهریور</option>
+                    <option value="7">مهر</option>
+                    <option value="8">آبان</option>
+                    <option value="9">آذر</option>
+                    <option value="10">دی</option>
+                    <option value="11">بهمن</option>
+                    <option value="12">اسفند</option>
+                </select>
+            </div>
+        </div>
+        <div id="analysisData"></div>
+    </div>
+
+    <div class="container" id="adminViewShiftsSection">
+        <div class="section-header"><h3>📋 مشاهده کل کارکردها</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        
+        <div style="margin-bottom:15px; background:#ecf0f1; padding:12px; border-radius:8px; border: 1px solid #bdc3c7;">
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">چرخ:</label>
+                    <select id="admViewMachineFilter" onchange="loadAdminViewShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="all">همه چرخ‌ها</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شیفت:</label>
+                    <select id="admViewShiftFilter" onchange="loadAdminViewShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="all">همه شیفت‌ها</option>
+                        <option value="صبح">صبح</option>
+                        <option value="شب">شب</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">ترتیب:</label>
+                    <select id="admViewSortOrder" onchange="loadAdminViewShifts()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="desc">جدید به قدیم</option>
+                        <option value="asc">قدیم به جدید</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="admViewStartDate" placeholder="از تاریخ" style="font-size:14px; text-align:center;">
+            <input type="text" id="admViewEndDate" placeholder="تا تاریخ" style="font-size:14px; text-align:center;">
+            <button style="margin:0; width:80px; background:#2980b9; font-size:14px;" onclick="loadAdminViewShifts()">جستجو</button>
+        </div>
+        <div id="adminViewShiftsList"></div>
+    </div>
+
+    <div class="container" id="adminSearchSection">
+        <div class="section-header"><h3>🔍 جستجوی کارکرد</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        
+        <div style="margin-bottom:15px; background:#ecf0f1; padding:15px; border-radius:8px; border: 1px solid #bdc3c7;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">کد طرح:</label>
+                    <input type="text" id="srchDesign" placeholder="مثلا ۲۰۶" oninput="formatPersianInput(this)" style="margin-bottom:0; padding:8px; font-size:14px;">
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شماره ست:</label>
+                    <input type="text" id="srchSetNum" placeholder="مثلا ۱۱۲" oninput="formatPersianInput(this)" style="margin-bottom:0; padding:8px; font-size:14px;">
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">تکه دوخته شده:</label>
+                    <select id="srchParts" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="">همه</option>
+                        <option value="جیگ">جیگ</option>
+                        <option value="پشت بدن">پشت بدن</option>
+                        <option value="آستین">آستین</option>
+                        <option value="تک">تک</option>
+                        <option value="شلوار">شلوار</option>
+                        <option value="پندول">پندول</option>
+                        <option value="سریگ">سریگ</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">چرخ:</label>
+                    <select id="srchMachine" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="">همه</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شیفت:</label>
+                    <select id="srchShift" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="">همه</option>
+                        <option value="صبح">صبح</option>
+                        <option value="شب">شب</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">ترتیب:</label>
+                    <select id="srchSortOrder" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="desc">جدید به قدیم</option>
+                        <option value="asc">قدیم به جدید</option>
+                    </select>
+                </div>
+            </div>
+            <button style="margin-top:15px; margin-bottom:0; background:#9b59b6;" onclick="loadAdminSearch()">🔍 جستجو</button>
+        </div>
+        
+        <div id="adminSearchResults"></div>
+    </div>
+
+    <div class="container" id="adminMachineSection">
+        <div class="section-header"><h3>⚙️ چرخ‌ها</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="newMachineName" placeholder="نام چرخ" style="margin:0;">
+            <button style="margin:0; width:100px;" onclick="addMachine()">افزودن</button>
+        </div>
+        <div id="machineList"></div>
+    </div>
+
+    <div class="container" id="adminUserSection">
+        <div class="section-header"><h3>👥 کاربران</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        <div class="card" style="background:#e8f8f5;">
+            <input type="text" id="newName" placeholder="نام">
+            <input type="tel" id="newPhone" placeholder="شماره">
+            <input type="password" id="newPassword" placeholder="رمز">
+            <select id="newRole" onchange="toggleCreateShift()"><option value="operator">اپراتور</option><option value="admin">مدیر</option></select>
+            <div id="createShiftDiv"><select id="newShift"><option value="صبح">صبح</option><option value="شب">شب</option></select></div>
+            <button style="background:#2c3e50;" onclick="createUser()">ایجاد</button>
+        </div>
+        <div id="usersList"></div>
+    </div>
+
+    <div class="container" id="adminDeleteSection">
+        <div class="section-header"><h3>🗑 حذف</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
+        
+        <div style="margin-bottom:15px; background:#ecf0f1; padding:12px; border-radius:8px; border: 1px solid #bdc3c7;">
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">چرخ:</label>
+                    <select id="delFilterMachine" onchange="loadDeleteList()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="all">همه چرخ‌ها</option>
+                    </select>
+                </div>
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">شیفت:</label>
+                    <select id="delFilterShift" onchange="loadDeleteList()" style="margin-bottom:0; padding:8px; font-size:14px;">
+                        <option value="all">همه شیفت‌ها</option>
+                        <option value="صبح">صبح</option>
+                        <option value="شب">شب</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div id="deleteList"></div>
+    </div>
+
+    <div class="modal" id="imageZoomModal" style="background: rgba(0,0,0,0.95); z-index: 9999; position: fixed; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center;" onclick="this.style.display='none'">
+        <span style="position:absolute; top:15px; right:20px; color:white; font-size:45px; font-weight:bold; cursor:pointer; z-index:10000;">&times;</span>
+        <img id="zoomedImage" src="" style="width: 100%; max-height: 95vh; object-fit: contain; pointer-events: none;">
+    </div>
+
+    <div class="modal" id="previewModal">
+        <div class="modal-content">
+            <h3 style="text-align:center; color:#2c3e50;">🔍 پیش‌نمایش ثبت کارکرد</h3>
+            <div id="previewContent" style="margin: 20px 0; font-size: 16px; line-height: 2;"></div>
+            <button style="background:#2ecc71;" onclick="confirmSubmitShift()">✅ تایید و ارسال به مدیر</button>
+            <button class="close-modal" onclick="document.getElementById('previewModal').style.display='none'">✏️ ویرایش اطلاعات</button>
+        </div>
+    </div>
+
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <img id="modalPhoto" src="" style="width:100%; border-radius:8px; margin-bottom:15px; cursor:pointer;">
+            <div id="modalDetails" style="font-size:14px; line-height: 1.8;"></div>
+            <button class="close-modal" onclick="document.getElementById('detailModal').style.display='none'">بستن</button>
         </div>
     </div>
 
     <script>
-        const API_BASE = "http://185.222.163.15:8000";
         let authToken = localStorage.getItem('token');
         let userRole = localStorage.getItem('role');
+        let userShift = localStorage.getItem('shift_type');
+        let adminChartInst = null, opChartInst = null;
+        let editingShiftId = null;
+        let editingAdminShiftId = null;
+        let shiftToSubmit = null;
+        let lastRejectedDate = null;
+        let isEditingDateLoading = false;
+
+        function handleMachineChange() {
+            checkExistingShift();
+            loadLastShifts();
+            loadImmediatePrev();
+            fetchAndSetSuggestedDate();
+            
+            const mach = document.getElementById('machine').value;
+            if (mach.includes('چادر')) {
+                document.getElementById('chadorCheckboxContainer').style.display = 'flex';
+            } else {
+                document.getElementById('chadorCheckboxContainer').style.display = 'none';
+                document.getElementById('isChadorWork').checked = false;
+                toggleChadorMode();
+            }
+        }
+
+        function toggleChadorMode() {
+            const isChador = document.getElementById('isChadorWork').checked;
+            if (isChador) {
+                document.getElementById('designWrapper').style.display = 'none';
+                document.getElementById('setNumberWrapper').style.display = 'none';
+                document.getElementById('partsWrapper').style.display = 'none';
+                document.getElementById('bonusContainer').style.display = 'none';
+                document.getElementById('chadorFields').style.display = 'block';
+                document.getElementById('requestBonus').checked = false;
+            } else {
+                document.getElementById('designWrapper').style.display = 'block';
+                document.getElementById('setNumberWrapper').style.display = 'block';
+                document.getElementById('partsWrapper').style.display = 'block';
+                document.getElementById('bonusContainer').style.display = 'flex';
+                document.getElementById('chadorFields').style.display = 'none';
+            }
+        }
 
         function toEnglishDigits(str) {
-            if (!str) return '';
-            const p = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
-            const e = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            if (str === null || str === undefined) return '';
+            const persian = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+            const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
             str = str.toString();
-            for (let i = 0; i < 10; i++) str = str.replace(p[i], e[i]);
+            for (let i = 0; i < 10; i++) { str = str.replace(persian[i], english[i]); }
             return str;
         }
 
-        function hideSplash() {
-            document.getElementById('appSplash').style.display = 'none';
+        function toPersianDigits(str) {
+            if (str === null || str === undefined) return '';
+            const persian = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+            return str.toString().replace(/\d/g, x => persian[x]);
         }
 
+        function formatNum(num) {
+            if (num === null || num === undefined) return 'نامشخص';
+            return toPersianDigits(Number(num).toLocaleString('en-US'));
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            let cleanStr = toEnglishDigits(dateStr.toString()).replace(/\//g, '-');
+            let parts = cleanStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            let months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+            let m = parseInt(parts[1]);
+            let d = parseInt(parts[2]);
+            let y = parts[0];
+            if (isNaN(m) || isNaN(d) || isNaN(parseInt(y))) return dateStr;
+            let dayStr = d < 10 ? '0'+d : d;
+            return toPersianDigits(`${dayStr} ${months[m-1]} ${y}`);
+        }
+
+        function formatCounterInput(input) {
+            let raw = toEnglishDigits(input.value).replace(/[^\d]/g, '');
+            if (raw) { input.value = toPersianDigits(Number(raw).toLocaleString('en-US')); } else { input.value = ''; }
+        }
+
+        function formatDecimalInput(input) {
+            let value = input.value;
+            let englishStr = toEnglishDigits(value);
+            englishStr = englishStr.replace(/٫/g, '.');
+            englishStr = englishStr.replace(/[^\d\.]/g, '');
+            
+            let parts = englishStr.split('.');
+            let integerPart = parts[0];
+            let decimalPart = parts.length > 1 ? parts[1] : null;
+            
+            let formattedInteger = integerPart ? Number(integerPart).toLocaleString('en-US') : '';
+            let finalStr = formattedInteger;
+            if (decimalPart !== null) {
+                finalStr += '.' + decimalPart;
+            }
+            
+            input.value = toPersianDigits(finalStr);
+        }
+
+        function formatPersianInput(input) {
+            let raw = toEnglishDigits(input.value).replace(/[^\d]/g, '');
+            input.value = toPersianDigits(raw);
+        }
+
+        function parseError(detail) {
+            if (!detail) return "مشکلی پیش آمد";
+            if (typeof detail === 'string') return detail;
+            if (Array.isArray(detail)) {
+                return detail.map(e => {
+                    if (typeof e === 'string') return e;
+                    if (e.msg) {
+                        const field = e.loc ? e.loc.filter(x => x !== 'body').join('.') : '';
+                        return field ? `${field}: ${e.msg}` : e.msg;
+                    }
+                    return JSON.stringify(e);
+                }).join(' | ');
+            }
+            return String(detail);
+        }
+
+        $(document).ready(function() {
+            try {
+                $('#date').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true, onSelect: function() { checkExistingShift(); loadImmediatePrev(); } });
+                $('#opListStartDate, #opListEndDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true });
+                $('#manDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true, onSelect: function() { triggerManFetch(); } });
+                $('#admViewStartDate, #admViewEndDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true });
+                $('#date, #opListStartDate, #opListEndDate, #manDate, #admViewStartDate, #admViewEndDate').on('click', function() { $(this).persianDatepicker('show'); });
+            } catch (e) { console.log("Datepicker error", e); }
+
+            const partsList = ["جیگ", "پشت بدن", "آستین", "تک", "شلوار", "پندول", "سریگ"];
+            const partsContainer = document.getElementById('parts-container');
+            const manPartsContainer = document.getElementById('manPartsContainer');
+            partsList.forEach(part => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" value="${part}"> ${part}`;
+                partsContainer.appendChild(label);
+                
+                const manLabel = document.createElement('label');
+                manLabel.innerHTML = `<input type="checkbox" value="${part}"> ${part}`;
+                manPartsContainer.appendChild(manLabel);
+            });
+
+            routeUser();
+        });
+
+        function showSection(id) {
+            document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(id === 'adminScreen') { loadAdminDashboard(); }
+            if(id === 'registerSection') {
+                if (!editingShiftId) {
+                    clearFields();
+                    document.getElementById('formTitle').innerText = "📝 ثبت کارکرد";
+                    document.getElementById('submitBtn').innerText = "ارسال به مدیر";
+                    document.getElementById('checkShiftAlert').style.display = 'none';
+                    document.getElementById('editPhotoPreview').style.display = 'none';
+                }
+                loadLastShifts();
+                if (!editingShiftId) fetchAndSetSuggestedDate();
+            }
+            if(id === 'adminManualSection') {
+                if (!editingAdminShiftId) {
+                    document.getElementById('manualForm').reset();
+                    document.getElementById('manFormTitle').innerText = "📝 ثبت دستی";
+                    document.getElementById('manSubmitBtn').innerText = "ثبت";
+                    window.currentEditingOpId = null;
+                    window.currentEditingOpName = null;
+                    const infoDiv = document.getElementById('manEditingInfo');
+                    if (infoDiv) infoDiv.style.display = 'none';
+                }
+                loadAdminUsersAndMachines();
+            }
+        }
+
+        function doLogout() { localStorage.clear(); location.reload(); }
+
         async function doLogin() {
-            const btn = document.getElementById('loginBtn');
+            const btn = document.querySelector('#loginScreen button');
             const statusEl = document.getElementById('loginStatus');
+            if (!btn || !statusEl) return;
+            
             btn.disabled = true;
             statusEl.innerText = "در حال بررسی...";
             statusEl.style.color = "blue";
 
             try {
-                const res = await fetch(API_BASE + '/api/login', {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
+                const res = await fetch('http://185.222.163.15:8000/api/login', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         phone_number: toEnglishDigits(document.getElementById('phone').value), 
                         password: toEnglishDigits(document.getElementById('password').value)
@@ -140,32 +911,1906 @@
             }
         }
 
-        function doLogout() { 
-            localStorage.removeItem('token'); 
-            localStorage.removeItem('role'); 
-            window.location.reload(); 
-        }
-
         function routeUser() {
-            const token = localStorage.getItem('token');
-            const role = localStorage.getItem('role');
-            
-            document.getElementById('appSplash').style.display = 'none';
             document.querySelectorAll('.container').forEach(c => c.classList.remove('active'));
-
-            if (!token || token === 'undefined' || token === 'null') {
-                document.getElementById('loginScreen').classList.add('active');
-            } else if (role === 'admin') {
-                document.getElementById('adminScreen').classList.add('active');
+            if (!authToken) showSection('loginScreen');
+            else if (userRole === 'admin') {
+                showSection('adminScreen');
                 document.getElementById('adminWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'مدیر'}`;
-            } else {
-                document.getElementById('operatorDashboard').classList.add('active');
+            }
+            else {
+                showSection('operatorDashboard');
                 document.getElementById('opWelcomeName').innerText = `👋 خوش آمدید ${localStorage.getItem('userName') || 'اپراتور'}`;
-                document.getElementById('operatorShiftDisplay').innerHTML = `<div style="background:#d1f2eb; color:#117a65; padding:5px 10px; border-radius:5px; font-weight:bold; display:inline-block;">شیفت شما: ${localStorage.getItem('shift_type') || ''}</div>`;
+                document.getElementById('operatorShiftDisplay').innerHTML = `<div class="shift-badge">شیفت شما: ${userShift}</div>`;
+                loadMachines();
+                checkOperatorNotifications();
             }
         }
 
-        document.addEventListener('DOMContentLoaded', routeUser);
+        function setTodayDate() {
+            fetch('http://185.222.163.15:8000/api/today').then(r => r.json()).then(d => {
+                document.getElementById('date').value = toPersianDigits(d.date);
+                $('#date').persianDatepicker('setDate', d.date);
+                checkExistingShift();
+                loadImmediatePrev();
+            });
+        }
+
+        function clearFields() {
+            document.getElementById('counter').value = '';
+            document.getElementById('design_code').value = '';
+            document.getElementById('set_number').value = '';
+            document.querySelectorAll('#parts-container input').forEach(cb => cb.checked = false);
+            document.getElementById('photo').value = '';
+            document.getElementById('isZeroWork').checked = false;
+            document.getElementById('zeroReason').value = 'غیبت';
+            document.getElementById('zeroNote').value = '';
+            document.getElementById('requestBonus').checked = false;
+            document.getElementById('isChadorWork').checked = false;
+            document.getElementById('chadorCount').value = '';
+            for (let i = 1; i <= 6; i++) document.getElementById('chadorInvoice' + i).value = '';
+            toggleZeroMode();
+            toggleChadorMode();
+        }
+
+        async function fetchAndSetSuggestedDate() {
+            try {
+                const machineVal = document.getElementById('machine') ? document.getElementById('machine').value : '';
+                let url = '/api/operator/suggest_date?t=' + Date.now();
+                if (machineVal) url += `&machine=${encodeURIComponent(machineVal)}`;
+                
+                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                
+                if (data.date) {
+                    const dateInput = document.getElementById('date');
+                    dateInput.value = toPersianDigits(data.date);
+                    setTimeout(() => {
+                        try {
+                            $('#date').persianDatepicker('setDate', data.date);
+                            dateInput.value = toPersianDigits(data.date);
+                        } catch(e) { console.error(e); }
+                    }, 100);
+                    checkExistingShift();
+                    loadImmediatePrev();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadImmediatePrev() {
+            const dateInput = document.getElementById('date').value;
+            const date = toEnglishDigits(dateInput);
+            const machine = document.getElementById('machine').value;
+            const shift = userShift || localStorage.getItem('shift_type');
+            if (!date || !machine || !shift) return;
+
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${encodeURIComponent(shift)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const div = document.getElementById('immediatePrevDisplay');
+                if (!div) return;
+                
+                if (data.exists) {
+                    const s = data.data;
+                    let workHtml = s.zero_reason ? `<span style="color:#e74c3c;">⚠️ کارکرد صفر: ${s.zero_reason}</span>` : `طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_number)} | شمارنده: ${formatNum(s.counter)}`;
+                    
+                    if (s.jig_bonus > 0) {
+                        workHtml += ` | <span style="color:#27ae60; font-weight:bold;">🎁 ست جدید</span>`;
+                    }
+                    
+                    let statusText = s.status === 'pending' ? '<span style="color:#e67e22;"> (در انتظار تایید)</span>' : '';
+                    div.innerHTML = `
+                        <div style="background:#fff8e1; padding:12px; border-radius:8px; border:1px solid #ffe082;">
+                            <div style="font-weight:bold; color:#f57f17; margin-bottom:5px; font-size:15px;">📋 شیفت قبلی (${s.shift_type} ${s.day_name}):</div>
+                            <div style="font-size:13px; line-height:1.6; color:#2c3e50;">
+                                <strong>تاریخ:</strong> ${formatDate(s.date)}${statusText}<br>
+                                <strong>چرخ:</strong> ${toPersianDigits(s.machine)} | <strong>اپراتور:</strong> ${s.operator_name}<br>
+                                ${workHtml}
+                            </div>
+                        </div>`;
+                } else {
+                    let missingText = "شیفت قبلی ثبت نشده است.";
+                    if (data.expected_date && data.expected_shift) {
+                        if (data.rejected) {
+                            missingText = `شیفت ${data.expected_shift} تاریخ ${formatDate(data.expected_date)} رد شده است.`;
+                        } else {
+                            missingText = `شیفت ${data.expected_shift} تاریخ ${formatDate(data.expected_date)} ثبت نشده است.`;
+                        }
+                    }
+                    div.innerHTML = `
+                        <div style="background:#fdf2f2; padding:12px; border-radius:8px; border:1px solid #f5c6cb;">
+                            <div style="font-weight:bold; color:#c0392b; font-size:14px; text-align:center;">
+                                ⚠️ ${missingText}
+                            </div>
+                        </div>`;
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadLastShifts() {
+            const machineVal = document.getElementById('machine') ? document.getElementById('machine').value : '';
+            if (!machineVal) return;
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machineVal)}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const div = document.getElementById('lastShiftDisplay');
+                if (!div) return;
+                
+                let html = '';
+                if (data.same.exists) {
+                    const s = data.same.data;
+                    let workHtml = s.zero_reason ? `<span style="color:#e74c3c;">⚠️ کارکرد صفر: ${s.zero_reason}</span>` : `طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_number)} | شمارنده: ${formatNum(s.counter)}`;
+                    html += `<div style="background:#e8f8f5; padding:12px; border-radius:8px; border:1px solid #1abc9c; margin-bottom:10px;">
+                        <div style="font-weight:bold; color:#16a085; margin-bottom:5px; font-size:15px;">📌 آخرین شیفت (${s.shift_type}) شما:</div>
+                        <div style="font-size:13px; line-height:1.6; color:#2c3e50;">
+                            <strong>تاریخ:</strong> ${formatDate(s.date)} (${s.day_name})<br>
+                            <strong>چرخ:</strong> ${toPersianDigits(s.machine)}<br>
+                            ${workHtml}
+                        </div>
+                    </div>`;
+                } else {
+                    html += `<div style="background:#e8f8f5; padding:10px; border-radius:8px; border:1px solid #1abc9c; text-align:center; color:#16a085; font-size:14px; margin-bottom:10px;">هنوز شیفتی برای این چرخ ثبت نکرده‌اید.</div>`;
+                }
+                
+                if (data.opposite.exists) {
+                    const s = data.opposite.data;
+                    let workHtml = s.zero_reason ? `<span style="color:#e74c3c;">⚠️ کارکرد صفر: ${s.zero_reason}</span>` : `طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_number)} | شمارنده: ${formatNum(s.counter)}`;
+                    html += `<div style="background:#f4f6f7; padding:12px; border-radius:8px; border:1px solid #bdc3c7;">
+                        <div style="font-weight:bold; color:#7f8c8d; margin-bottom:5px; font-size:15px;">🔄 آخرین شیفت مخالف (${s.shift_type}) این چرخ:</div>
+                        <div style="font-size:13px; line-height:1.6; color:#2c3e50;">
+                            <strong>تاریخ:</strong> ${formatDate(s.date)} (${s.day_name})<br>
+                            <strong>چرخ:</strong> ${toPersianDigits(s.machine)}<br>
+                            <strong>اپراتور:</strong> ${s.op_name}<br>
+                            ${workHtml}
+                        </div>
+                    </div>`;
+                } else {
+                    html += `<div style="background:#f4f6f7; padding:10px; border-radius:8px; border:1px solid #bdc3c7; text-align:center; color:#7f8c8d; font-size:14px;">هنوز شیفت مخالفی برای این چرخ ثبت نشده است.</div>`;
+                }
+                div.innerHTML = html;
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadMachines() {
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const select = document.getElementById('machine');
+                if(select) select.innerHTML = data.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
+                
+                const filterSelect = document.getElementById('opListMachine');
+                if (filterSelect) {
+                    filterSelect.innerHTML = '<option value="all">همه چرخ‌ها</option>' + data.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
+                }
+            } catch (e) { console.error(e); }
+            checkExistingShift();
+        }
+
+        async function checkOperatorNotifications() {
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/operator/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                if (data.rejected_count > 0) {
+                    lastRejectedDate = data.last_rejected_date;
+                    document.getElementById('opNotifAlert').style.display = 'block';
+                    document.getElementById('opNotifAlert').innerText = `⚠️ شما ${toPersianDigits(data.rejected_count)} کارکرد رد شده دارید! برای اصلاح کلیک کنید.`;
+                } else {
+                    document.getElementById('opNotifAlert').style.display = 'none';
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function goToRejectedShifts() {
+            showSection('opShiftListSection');
+            await loadMachines();
+            
+            if (lastRejectedDate) {
+                document.getElementById('opListStartDate').value = lastRejectedDate;
+                document.getElementById('opListEndDate').value = lastRejectedDate;
+                $('#opListStartDate').persianDatepicker('setDate', lastRejectedDate);
+                $('#opListEndDate').persianDatepicker('setDate', lastRejectedDate);
+            }
+            $('#opListMachine').off('change').on('change', function() { loadOpShiftList(); });
+            $('#opListSortOrder').off('change').on('change', function() { loadOpShiftList(); });
+            loadOpShiftList();
+        }
+
+        async function openOpShiftList() {
+            showSection('opShiftListSection');
+            let today = new Date();
+            let tenDaysAgo = new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000);
+            let startStr = new persianDate(tenDaysAgo).format('YYYY-MM-DD');
+            let endStr = new persianDate(today).format('YYYY-MM-DD');
+            
+            document.getElementById('opListStartDate').value = startStr;
+            document.getElementById('opListEndDate').value = endStr;
+            $('#opListStartDate').persianDatepicker('setDate', startStr);
+            $('#opListEndDate').persianDatepicker('setDate', endStr);
+            
+            await loadMachines();
+            $('#opListMachine').off('change').on('change', function() { loadOpShiftList(); });
+            $('#opListSortOrder').off('change').on('change', function() { loadOpShiftList(); });
+            loadOpShiftList();
+        }
+
+        async function loadOpShiftList() {
+            let start = toEnglishDigits(document.getElementById('opListStartDate').value);
+            let end = toEnglishDigits(document.getElementById('opListEndDate').value);
+            let mach = document.getElementById('opListMachine').value;
+            let sortOrder = document.getElementById('opListSortOrder') ? document.getElementById('opListSortOrder').value : 'desc';
+            if (!start || !end) return;
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/reports?start_date=${start}&end_date=${end}&machine=${encodeURIComponent(mach)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                if (sortOrder === 'asc') data.details.reverse();
+                const div = document.getElementById('opShiftListData'); div.innerHTML = '';
+                if (data.details.length === 0) {
+                    div.innerHTML = '<p style="text-align:center; color:#7f8c8d;">هیچ کارکردی در این بازه یافت نشد.</p>'; return;
+                }
+                
+                let currentMachine = null;
+                data.details.forEach(d => {
+                    if (mach !== 'all' && currentMachine !== d.machine) {
+                        div.innerHTML += `<h3 style="text-align:right; color:#2c3e50; margin-top:20px; padding-bottom:5px; border-bottom:2px solid #bdc3c7;">🧵 چرخ: ${toPersianDigits(d.machine)}</h3>`;
+                        currentMachine = d.machine;
+                    }
+                    
+                    let statusBadge = d.status === 'pending' ? '<span style="color:#e67e22;">(در انتظار تایید)</span>' : (d.status === 'rejected' ? '<span style="color:#e74c3c;">(رد شده)</span>' : '<span style="color:#2ecc71;">(تایید شده)</span>');
+                    let editBtn = (d.status === 'pending' || d.status === 'rejected') ? `<button style="background:#f39c12; margin-top:10px; padding:8px; font-size:14px;" onclick="editFromList(${d.id})">✏️ ویرایش</button>` : '';
+                    
+                    if(d.zero_reason) {
+                        div.innerHTML += `<div class="card"><div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift_type}</strong> ${statusBadge}</div><div style="color:#e74c3c; font-size:14px; margin-bottom:10px;">⚠️ کارکرد صفر: ${d.zero_reason}</div>${editBtn}</div>`;
+                    } else {
+                        let prevWorkHtml = d.prev_work !== null ? `<br><span style="color:#7f8c8d; font-size:12px;">کارکرد شیفت مخالف: ${formatNum(d.prev_work)}</span>` : '';
+                        div.innerHTML += `
+                        <div class="card">
+                            <div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift_type}</strong> ${statusBadge}</div>
+                            <img class="card-img" src="/${d.photo_path || 'static/placeholder.png'}" onclick="showImageZoom('/${d.photo_path || 'static/placeholder.png'}')">
+                            <div style="font-size:13px; line-height:1.6; margin-top:10px; margin-bottom:5px;">
+                                ${mach === 'all' ? `<strong>چرخ: ${toPersianDigits(d.machine)}</strong><br>` : ''}
+                                شمارنده: ${formatNum(d.counter)}<br>طرح: ${toPersianDigits(d.design_code)} | ست: ${toPersianDigits(d.set_number)}<br>تکه‌ها: ${d.parts || 'ثبت نشده'}<br>
+                                ${d.is_chador ? `<strong style="font-size:14px; color:#2980b9;">🧵 دوخت چادر: ${toPersianDigits(d.chador_count)} عدد ${d.chador_invoice ? '(فاکتور: '+toPersianDigits(d.chador_invoice).replace(/,/g, ' - ')+')' : ''}</strong>` : 
+                                (d.work !== null ? (() => {
+                                    let color = "#2ecc71"; let label = "عادی";
+                                    if (d.work < 270000) { color = "#e74c3c"; label = "کم"; }
+                                    else if (d.work > 300000) { color = "#f39c12"; label = "بالا"; }
+                                    return `<strong style="font-size:14px; color:${color};">کارکرد: ${formatNum(d.work)} (${label})</strong>`;
+                                })() : '<strong style="font-size:14px; color:#e74c3c;">کارکرد: نامشخص</strong>')}
+                                ${d.jig_bonus > 0 ? `<br><span style="color:#27ae60; font-size:12px;">🎁 پاداش ${formatNum(d.jig_bonus)} بابت شروع ست جدید.</span>` : ''}
+                                ${d.work === null ? `<br><span style="color:#e74c3c; font-size:12px;">⚠️ اخطار: شیفت ${d.shift_type === 'صبح' ? 'شب' : 'صبح'} ثبت/تایید نشده است.</span>` : ''}
+                                ${prevWorkHtml}
+                            </div>${editBtn}
+                        </div>`;
+                    }
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        async function checkExistingShift() {
+            loadImmediatePrev();
+            
+            if (editingShiftId || isEditingDateLoading) return;
+
+            const date = toEnglishDigits(document.getElementById('date').value);
+            const machine = document.getElementById('machine').value;
+            if (!date || !machine) return;
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const alertBox = document.getElementById('checkShiftAlert');
+                const btn = document.getElementById('submitBtn');
+                
+                if (data.status === 'exists') {
+                    alertBox.style.display = 'block';
+                    if (data.is_mine) {
+                        alertBox.innerHTML = `⚠️ شما برای این چرخ و تاریخ قبلا ثبت کرده‌اید! <br><button id="editExistingBtn" style="background: #c82333; margin-top:10px;">✏️ ویرایش کارکرد قبلی</button>`;
+                        document.getElementById('editExistingBtn').onclick = () => loadShiftForEdit(data.shift_id);
+                    } else {
+                        alertBox.innerHTML = `⚠️ برای این چرخ و تاریخ، اپراتور <strong>${data.owner_name}</strong> قبلا ثبت کرده است!`;
+                    }
+                    btn.disabled = true; btn.innerText = "این شیفت قبلا ثبت شده است";
+                } else { 
+                    resetForm(); 
+                }
+            } catch(e) {}
+        }
+
+        function resetForm() {
+            document.getElementById('checkShiftAlert').style.display = 'none';
+            document.getElementById('formTitle').innerText = "📝 ثبت کارکرد";
+            editingShiftId = null;
+            document.getElementById('date').disabled = false;
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = false; btn.innerText = "ارسال به مدیر";
+            document.getElementById('photo').required = true;
+            document.getElementById('editPhotoPreview').style.display = 'none';
+            clearFields();
+        }
+
+        function toggleZeroMode() {
+            const isZero = document.getElementById('isZeroWork').checked;
+            if (isZero) {
+                document.getElementById('normalFields').style.display = 'none';
+                document.getElementById('zeroFields').style.display = 'block';
+                document.getElementById('photo').required = false;
+            } else {
+                document.getElementById('normalFields').style.display = 'block';
+                document.getElementById('zeroFields').style.display = 'none';
+                document.getElementById('photo').required = !editingShiftId;
+            }
+        }
+
+        async function loadShiftForEdit(id) {
+            editingShiftId = id;
+            isEditingDateLoading = true;
+            document.getElementById('date').disabled = true;
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/shift/${id}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('formTitle').innerText = "✏️ ویرایش کارکرد";
+                    let enDate = toEnglishDigits(data.data.date);
+                    document.getElementById('date').value = toPersianDigits(enDate);
+                    
+                    setTimeout(() => {
+                        try {
+                            $('#date').persianDatepicker('setDate', enDate);
+                            document.getElementById('date').value = toPersianDigits(enDate);
+                        } catch(e) { console.error(e); }
+                        isEditingDateLoading = false;
+                    }, 100);
+                    
+                    document.getElementById('machine').value = data.data.machine;
+                    
+                    if(data.data.zero_reason) {
+                        document.getElementById('isZeroWork').checked = true;
+                        document.getElementById('zeroReason').value = data.data.zero_reason;
+                        document.getElementById('zeroNote').value = data.data.zero_note || '';
+                        toggleZeroMode();
+                    } else {
+                        document.getElementById('isZeroWork').checked = false;
+                        document.getElementById('requestBonus').checked = (data.data.request_bonus > 0);
+                        
+                        if (document.getElementById('machine').value.includes('چادر')) {
+                            document.getElementById('chadorCheckboxContainer').style.display = 'flex';
+                            document.getElementById('isChadorWork').checked = (data.data.is_chador > 0);
+                            document.getElementById('chadorCount').value = toPersianDigits(data.data.chador_count || '');
+                            
+                            let invoices = (data.data.chador_invoice || '').split(',');
+                            for (let i = 1; i <= 6; i++) {
+                                document.getElementById('chadorInvoice' + i).value = invoices[i-1] ? toPersianDigits(invoices[i-1]) : '';
+                            }
+                        }
+                        toggleChadorMode();
+                        toggleZeroMode();
+                        document.getElementById('counter').value = toPersianDigits(Number(data.data.counter).toLocaleString('en-US'));
+                        document.getElementById('design_code').value = toPersianDigits(data.data.design);
+                        document.getElementById('set_number').value = toPersianDigits(data.data.set_number);
+                        document.querySelectorAll('#parts-container input').forEach(cb => cb.checked = false);
+                        if (data.data.parts) {
+                            const savedParts = data.data.parts.split(',').map(s => s.trim());
+                            document.querySelectorAll('#parts-container input').forEach(cb => {
+                                if (savedParts.includes(cb.value)) cb.checked = true;
+                            });
+                        }
+                    }
+
+                    if(data.data.photo_path) {
+                        document.getElementById('editPhotoPreview').src = '/' + data.data.photo_path;
+                        document.getElementById('editPhotoPreview').style.display = 'block';
+                    } else { document.getElementById('editPhotoPreview').style.display = 'none'; }
+
+                    document.getElementById('checkShiftAlert').style.display = 'none';
+                    const btn = document.getElementById('submitBtn');
+                    btn.disabled = false; btn.innerText = "ذخیره تغییرات";
+                }
+            } catch(e) { isEditingDateLoading = false; }
+        }
+
+        document.getElementById('shiftForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const dateVal = toEnglishDigits(document.getElementById('date').value);
+            const machineVal = document.getElementById('machine').value;
+            const isZero = document.getElementById('isZeroWork').checked;
+            if (!dateVal) { alert("تاریخ را وارد کنید"); return; }
+            btn.disabled = true; btn.innerText = "در حال بررسی...";
+
+            try {
+                if (isZero) {
+                    if (editingShiftId) {
+                        const fd = new FormData();
+                        fd.append("machine", machineVal); fd.append("counter", 0); fd.append("design_code", "000"); fd.append("set_number", 0); fd.append("parts", "");
+                        fd.append("zero_reason", document.getElementById('zeroReason').value);
+                        fd.append("zero_note", document.getElementById('zeroNote').value);
+                        const res = await fetch(`http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                        if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
+                        else { alert("✅ کارکرد صفر ویرایش شد!"); showSection('operatorDashboard'); }
+                    } else {
+                        const zeroPayload = { date: dateVal, machine: machineVal, zero_reason: document.getElementById('zeroReason').value, zero_note: document.getElementById('zeroNote').value };
+                        const res = await fetch('http://185.222.163.15:8000/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
+                        if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
+                        else { alert("✅ کارکرد صفر ثبت شد!"); showSection('operatorDashboard'); }
+                    }
+                } else {
+                    const photoFile = document.getElementById('photo').files[0];
+                    if (!photoFile && !editingShiftId) { alert("لطفا عکس را انتخاب کنید"); btn.disabled = false; btn.innerText = "ارسال به مدیر"; return; }
+
+                    const counterRaw = toEnglishDigits(document.getElementById('counter').value).replace(/,/g, '');
+                    const setNumberRaw = toEnglishDigits(document.getElementById('set_number').value).replace(/,/g, '');
+                    const designCodeRaw = toEnglishDigits(document.getElementById('design_code').value);
+
+                    const isChador = document.getElementById('isChadorWork').checked;
+                    const fd = new FormData();
+                    fd.append("date", dateVal); fd.append("machine", machineVal); fd.append("counter", counterRaw); 
+                    fd.append("design_code", isChador ? "" : designCodeRaw); 
+                    fd.append("set_number", isChador ? 0 : setNumberRaw);
+                    const checkboxes = document.querySelectorAll('#parts-container input:checked');
+                    const partsStr = isChador ? "" : Array.from(checkboxes).map(cb => cb.value).join(",");
+                    fd.append("parts", partsStr);
+                    fd.append("request_bonus", document.getElementById('requestBonus').checked ? 'true' : 'false');
+                    fd.append("is_chador", isChador ? 'true' : 'false');
+                    fd.append("chador_count", isChador ? toEnglishDigits(document.getElementById('chadorCount').value) : 0);
+                    
+                    let invoiceArr = [];
+                    if (isChador) {
+                        for (let i = 1; i <= 6; i++) {
+                            let val = toEnglishDigits(document.getElementById('chadorInvoice' + i).value).trim();
+                            if (val) invoiceArr.push(val);
+                        }
+                        if (invoiceArr.length === 0) {
+                            alert("لطفا حداقل یک شماره فاکتور را وارد کنید.");
+                            btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
+                            return;
+                        }
+                    }
+                    fd.append("chador_invoice", invoiceArr.join(','));
+                    
+                    if (photoFile) fd.append("photo", photoFile);
+
+                    const pvRes = await fetch('http://185.222.163.15:8000/api/operator/preview_work', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                    const pvData = await pvRes.json().catch(()=>({}));
+                    
+                    if (!pvRes.ok) { 
+                        let errMsg = "خطا در بررسی (پاسخ نامعتبر از سرور)";
+                        try { if (pvData && pvData.detail) errMsg = pvData.detail; } catch(e) {}
+                        alert("❌ خطا: " + parseError(errMsg)); 
+                        btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر"; 
+                        return; 
+                    }
+
+                    let work = pvData.work;
+                    let workHtml = "";
+                    if (work === null) {
+                        if (pvData.pending_warning) {
+                            workHtml = `<span style="color:#e74c3c; font-weight:bold;">نامشخص (در انتظار تایید شیفت قبلی)</span>`;
+                        } else {
+                            workHtml = `<span style="color:#e74c3c; font-weight:bold;">نامشخص (شیفت مخالف ثبت نشده)</span>`;
+                        }
+                    } else {
+                        let color = "#2ecc71"; let label = "عادی";
+                        if (work < 270000) { color = "#e74c3c"; label = "کم"; }
+                        else if (work > 300000) { color = "#f39c12"; label = "بالا"; }
+                        workHtml = `<span style="color:${color}; font-size:20px; font-weight:bold;">${formatNum(work)} (${label})</span>`;
+                    }
+
+                    let bonusHtml = document.getElementById('requestBonus').checked ? `<br><span style="color:#856404; background:#fff3cd; padding:5px; border-radius:5px; display:inline-block; margin-top:10px;">🎁 شما درخواست <strong>ست جدید</strong> را ثبت کرده‌اید. (${formatNum(60000)} سوزن پس از تایید مدیر اضافه می‌شود)</span>` : "";
+                    let pendingHtml = pvData.pending_warning ? `<br><span style="color:#e74c3c; background:#f8d7da; padding:5px; border-radius:5px; display:inline-block; margin-top:10px;">⚠️ اخطار: شیفت قبلی شما در انتظار تایید مدیر است. کارکرد شما نامشخص خواهد بود تا زمانی که تایید شود.</span>` : "";
+                    let warningHtml = "";
+                    if (work !== null && work > 400000) {
+                        warningHtml = `<br><div style="color:#e74c3c; background:#f8d7da; padding:10px; border-radius:5px; margin-top:15px; font-weight:bold; border: 1px solid #f5c6cb;">⚠️ هشدار: کارکرد محاسبه شده بسیار غیرعادی است! آیا مطمئن هستید تاریخ انتخاب شده (${formatDate(dateVal)}) و شمارنده درست است؟</div>`;
+                    }
+                    
+                    let detailsHtml = "";
+                    if (isChador) {
+                        detailsHtml = `
+                            <strong>چرخ:</strong> ${toPersianDigits(machineVal)} <br>
+                            <strong>تاریخ:</strong> ${formatDate(dateVal)} <br>
+                            <strong>شمارنده:</strong> ${formatNum(counterRaw)} <br>
+                            <strong>تعداد چادر دوخته شده:</strong> ${toPersianDigits(document.getElementById('chadorCount').value)} <br>
+                            <strong>شماره فاکتورها:</strong> ${invoiceArr.map(i => toPersianDigits(i)).join(' - ') || 'ثبت نشده'} <br>
+                            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                            <strong style="color:#2980b9; font-size:18px;">✅ ثبت کارکرد چادر (بدون محاسبه سوزن)</strong>
+                        `;
+                    } else {
+                        detailsHtml = `
+                            <strong>چرخ:</strong> ${toPersianDigits(machineVal)} <br>
+                            <strong>تاریخ:</strong> ${formatDate(dateVal)} <br>
+                            <strong>شمارنده:</strong> ${formatNum(counterRaw)} <br>
+                            <strong>کد طرح:</strong> ${toPersianDigits(designCodeRaw)} <br>
+                            <strong>شماره ست:</strong> ${toPersianDigits(setNumberRaw)} <br>
+                            <strong>تکه‌های دوخته شده:</strong> ${partsStr || 'ثبت نشده'} <br>
+                            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                            <strong>کارکرد محاسبه شده:</strong> ${workHtml}
+                            ${bonusHtml}
+                            ${pendingHtml}
+                            ${warningHtml}
+                        `;
+                    }
+                    document.getElementById('previewContent').innerHTML = detailsHtml;
+                    
+                    shiftToSubmit = { fd, url: editingShiftId ? `http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}` : '/api/submit_shift', method: editingShiftId ? 'PUT' : 'POST' };
+                    document.getElementById('previewModal').style.display = 'flex';
+                    btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
+                }
+            } catch (err) { alert("❌ خطای شبکه."); btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر"; }
+        });
+
+        async function confirmSubmitShift() {
+            if (!shiftToSubmit) return;
+            document.getElementById('previewModal').style.display = 'none';
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true; btn.innerText = "در حال ارسال...";
+
+            try {
+                const res = await fetch(shiftToSubmit.url, { method: shiftToSubmit.method, headers: { 'Authorization': `Bearer ${authToken}` }, body: shiftToSubmit.fd });
+                if (res.ok) { 
+                    alert("✅ با موفقیت ثبت شد!"); 
+                    editingShiftId = null;
+                    isEditingDateLoading = false;
+                    document.getElementById('formTitle').innerText = "📝 ثبت کارکرد";
+                    document.getElementById('submitBtn').innerText = "ارسال به مدیر";
+                    document.getElementById('editPhotoPreview').style.display = 'none';
+                    document.getElementById('date').disabled = false;
+                    clearFields();
+                    fetchAndSetSuggestedDate();
+                    return; 
+                }
+                let errorDetail = "خطا در ثبت";
+                try { const d = await res.json(); errorDetail = d.detail; } catch (jsonErr) { errorDetail = "خطای سرور " + res.status; }
+                alert("❌ خطا: " + parseError(errorDetail)); 
+            } catch(e) { alert("❌ خطای شبکه."); } finally {
+                btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
+            }
+        }
+
+        async function checkAdminNotifications() {
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/admin/notifications', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                if (data.suspicious_alerts > 0) {
+                    document.getElementById('adminAlertBanner').style.display = 'block';
+                    document.getElementById('adminAlertCount').innerText = toPersianDigits(data.suspicious_alerts);
+                } else { document.getElementById('adminAlertBanner').style.display = 'none'; }
+            } catch(e) {}
+        }
+
+        async function loadAdminDashboard() {
+            checkAdminNotifications();
+        }
+
+        function approveShift(id) {
+            const cb = document.getElementById(`bonus_${id}`);
+            const apply = cb ? cb.checked : false;
+            fetch(`http://185.222.163.15:8000/api/admin/approve_shift/${id}?apply_bonus=${apply}`, {method:'POST', headers:{'Authorization':'Bearer ' + authToken}}).then(() => loadPendingShifts());
+        }
+
+        async function loadPendingShifts() {
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/admin/pending_shifts', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const div = document.getElementById('pendingList'); div.innerHTML = '';
+                
+                const machSelect = document.getElementById('admFilterMachine');
+                const shiftSelect = document.getElementById('admFilterShift');
+                const currentMach = machSelect.value;
+                const currentShift = shiftSelect.value;
+                
+                let machines = new Set();
+                data.shifts.forEach(s => machines.add(s.machine));
+                
+                let opts = '<option value="all">همه چرخ‌ها</option>';
+                machines.forEach(m => opts += `<option value="${m}">${toPersianDigits(m)}</option>`);
+                machSelect.innerHTML = opts;
+                if (machSelect.querySelector(`option[value="${currentMach}"]`)) {
+                    machSelect.value = currentMach;
+                }
+
+                let filteredShifts = data.shifts.filter(s => {
+                    let matchMach = (machSelect.value === 'all' || s.machine === machSelect.value);
+                    let matchShift = (shiftSelect.value === 'all' || s.shift === shiftSelect.value);
+                    return matchMach && matchShift;
+                });
+
+                const sortOrder = document.getElementById('admSortOrder').value;
+                filteredShifts.sort((a, b) => {
+                    let dateA = a.date.replace(/\//g, '-');
+                    let dateB = b.date.replace(/\//g, '-');
+                    if (dateA !== dateB) return sortOrder === 'desc' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
+                    let shiftA = a.shift === 'شب' ? 2 : 1;
+                    let shiftB = b.shift === 'شب' ? 2 : 1;
+                    return sortOrder === 'desc' ? shiftB - shiftA : shiftA - shiftB;
+                });
+
+                if (filteredShifts.length === 0) {
+                    div.innerHTML = '<p style="text-align:center;">هیچ کارکردی با این فیلتر یافت نشد.</p>';
+                    return;
+                }
+
+                let groupedData = {};
+                filteredShifts.forEach(s => {
+                    if (!groupedData[s.machine]) groupedData[s.machine] = [];
+                    groupedData[s.machine].push(s);
+                });
+
+                for (const [machineName, items] of Object.entries(groupedData)) {
+                    div.innerHTML += `<h3 style="text-align:right; color:#2c3e50; margin-top:20px; padding-bottom:5px; border-bottom:2px solid #bdc3c7;">🧵 چرخ: ${toPersianDigits(machineName)}</h3>`;
+                    
+                    items.forEach(s => {
+                        let content = "", bonusHtml = "";
+                        if (s.zero_reason) {
+                            content = `<div style="font-size:14px; line-height: 1.6; color:#c0392b;">چرخ: <strong>${toPersianDigits(s.machine)}</strong><br>⚠️ ثبت کارکرد صفر: <strong>${s.zero_reason}</strong><br>توضیحات: ${s.zero_note || 'ندارد'}</div>`;
+                        } else {
+                            if (s.potential_bonus > 0) {
+                                bonusHtml = `<div style="margin-top:10px; background:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba;"><label style="display:flex; align-items:center; cursor:pointer; margin:0; color:#856404;"><input type="checkbox" id="bonus_${s.id}" checked style="width:20px; height:20px; margin-left:10px; margin-bottom:0;">اعمال پاداش ${formatNum(60000)} (تایید ست جدید)</label></div>`;
+                            }
+                            
+                            let workHtml = "";
+                            if (s.is_chador) {
+                                workHtml = `<br>کارکرد: <strong style="color:#2980b9;">🧵 دوخت چادر: ${toPersianDigits(s.chador_count)} عدد</strong>`;
+                            } else {
+                                if (s.work === null || s.work === undefined) {
+                                    workHtml = `<br>کارکرد: <strong style="color:#7f8c8d;">نامشخص</strong>`;
+                                } else {
+                                    let color = "#2ecc71"; let label = "عادی";
+                                    if (s.work < 270000) { color = "#e74c3c"; label = "کم"; }
+                                    else if (s.work > 300000) { color = "#f39c12"; label = "بالا"; }
+                                    workHtml = `<br>کارکرد: <strong style="color:${color};">${formatNum(s.work)} (${label})</strong>`;
+                                }
+                            }
+
+                            content = `<img class="card-img" src="/${s.photo || 'static/placeholder.png'}" onclick="showImageZoom('/${s.photo || 'static/placeholder.png'}')"><div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | شماره ست: ${toPersianDigits(s.set_num)} <span style="color:#e74c3c; font-weight:bold;">(ست ${toPersianDigits(s.monthly_set_rank)} این ماه)</span><br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${bonusHtml}`;
+                        }
+                        div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} (${s.day_name}) | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('http://185.222.163.15:8000/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
+                    });
+                }
+            } catch(e) {}
+        }
+
+        function showImageZoom(src) {
+            document.getElementById('zoomedImage').src = src;
+            document.getElementById('imageZoomModal').style.display = 'flex';
+        }
+
+        function openModal(d) {
+            if(d.zero_reason) {
+                document.getElementById('modalPhoto').style.display = 'none';
+                document.getElementById('modalDetails').innerHTML = `<strong>تاریخ:</strong> ${formatDate(d.date)} (${d.day_name}) | ${d.shift_type}<br><strong>چرخ:</strong> ${toPersianDigits(d.machine)}<br><strong style="color:red;">⚠️ کارکرد صفر: ${d.zero_reason}</strong><br><strong>توضیحات:</strong> ${d.zero_note || 'ندارد'}`;
+            } else {
+                document.getElementById('modalPhoto').style.display = 'block';
+                document.getElementById('modalPhoto').src = '/' + (d.photo_path || 'static/placeholder.png');
+                document.getElementById('modalPhoto').onclick = function() { showImageZoom(this.src); };
+                const missingShift = d.shift_type === 'صبح' ? 'شب' : 'صبح';
+                const workDisplay = d.work !== null ? formatNum(d.work) : `<span style="color:#e74c3c;">نامشخص (شیفت ${missingShift} ثبت نشده)</span>`;
+                const bonusDisplay = d.jig_bonus > 0 ? `<br><strong style="color:#27ae60;">🎁 پاداش شروع ست جدید:</strong> ${formatNum(d.jig_bonus)}` : '';
+                document.getElementById('modalDetails').innerHTML = `<strong>تاریخ:</strong> ${formatDate(d.date)} (${d.day_name}) | ${d.shift_type}<br><strong>چرخ:</strong> ${toPersianDigits(d.machine)}<br><strong>کارکرد:</strong> ${workDisplay}${bonusDisplay}<br><strong>شمارنده:</strong> ${formatNum(d.counter)}<br><strong>طرح/ست:</strong> ${toPersianDigits(d.design_code)} / ${toPersianDigits(d.set_number)}<br><strong>تکه‌ها:</strong> ${d.parts || 'ثبت نشده'}`;
+            }
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+
+        function editFromList(id) { showSection('registerSection'); loadShiftForEdit(id); }
+
+        async function loadAdminUsersAndMachines() {
+            try {
+                const resMach = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const dataMach = await resMach.json();
+                const manMachineSelect = document.getElementById('manMachine');
+                if(manMachineSelect) manMachineSelect.innerHTML = dataMach.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
+
+                const resUsers = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const dataUsers = await resUsers.json();
+                
+                window.allOperators = dataUsers.users.filter(u => u.role === 'operator');
+                
+                handleManMachineChange();
+                triggerManFetch();
+            } catch(e) { console.error(e); }
+        }
+
+        async function triggerManFetch() {
+            const shift = document.getElementById('manShift').value;
+            const machine = document.getElementById('manMachine').value;
+            let date = toEnglishDigits(document.getElementById('manDate').value);
+            
+            let opId;
+            if (editingAdminShiftId && window.currentEditingOpId) {
+                opId = window.currentEditingOpId;
+            } else {
+                const op = window.allOperators ? window.allOperators.find(u => u.shift_type === shift) : null;
+                opId = op ? op.id : null;
+            }
+            
+            if (!opId || !shift || !machine) return;
+
+            try {
+                const excludeParam = editingAdminShiftId ? `&exclude_shift_id=${editingAdminShiftId}` : '';
+                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}${excludeParam}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const alertBox = document.getElementById('manCheckShiftAlert');
+                const btn = document.getElementById('manSubmitBtn');
+                
+                if (data.status === 'exists') {
+                    alertBox.style.display = 'block';
+                    alertBox.innerHTML = `⚠️ برای این چرخ، تاریخ و شیفت قبلا اپراتور <strong>${data.owner_name}</strong> ثبت کرده است!`;
+                    btn.disabled = true; btn.innerText = "این شیفت قبلا ثبت شده است";
+                } else {
+                    alertBox.style.display = 'none';
+                    btn.disabled = false; btn.innerText = editingAdminShiftId ? "ذخیره تغییرات" : "ثبت";
+                }
+            } catch(e) {}
+
+            try {
+                const resLast = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const dataLast = await resLast.json();
+                const divLast = document.getElementById('manLastShiftDisplay');
+                let htmlLast = '';
+                if (dataLast.same.exists) {
+                    const s = dataLast.same.data;
+                    let workHtml = s.zero_reason ? `<span style="color:#e74c3c;">⚠️ کارکرد صفر: ${s.zero_reason}</span>` : `طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_number)} | شمارنده: ${formatNum(s.counter)}`;
+                    htmlLast += `<div style="background:#e8f8f5; padding:12px; border-radius:8px; border:1px solid #1abc9c; margin-bottom:10px;">
+                        <div style="font-weight:bold; color:#16a085; margin-bottom:5px; font-size:15px;">📌 آخرین شیفت (${s.shift_type}) این اپراتور:</div>
+                        <div style="font-size:13px; line-height:1.6; color:#2c3e50;">
+                            <strong>تاریخ:</strong> ${formatDate(s.date)} (${s.day_name})<br>
+                            <strong>چرخ:</strong> ${toPersianDigits(s.machine)}<br>
+                            ${workHtml}
+                        </div>
+                    </div>`;
+                } else {
+                    htmlLast += `<div style="background:#e8f8f5; padding:10px; border-radius:8px; border:1px solid #1abc9c; text-align:center; color:#16a085; font-size:14px; margin-bottom:10px;">هنوز شیفتی برای این چرخ ثبت نکرده‌اید.</div>`;
+                }
+                
+                if (dataLast.opposite.exists) {
+                    const s = dataLast.opposite.data;
+                    let workHtml = s.zero_reason ? `<span style="color:#e74c3c;">⚠️ کارکرد صفر: ${s.zero_reason}</span>` : `طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_number)} | شمارنده: ${formatNum(s.counter)}`;
+                    htmlLast += `<div style="background:#f4f6f7; padding:12px; border-radius:8px; border:1px solid #bdc3c7;">
+                        <div style="font-weight:bold; color:#7f8c8d; margin-bottom:5px; font-size:15px;">🔄 آخرین شیفت مخالف (${s.shift_type}) این چرخ:</div>
+                        <div style="font-size:13px; line-height:1.6; color:#2c3e50;">
+                            <strong>تاریخ:</strong> ${formatDate(s.date)} (${s.day_name})<br>
+                            <strong>چرخ:</strong> ${toPersianDigits(s.machine)}<br>
+                            <strong>اپراتور:</strong> ${s.op_name}<br>
+                            ${workHtml}
+                        </div>
+                    </div>`;
+                } else {
+                    htmlLast += `<div style="background:#f4f6f7; padding:10px; border-radius:8px; border:1px solid #bdc3c7; text-align:center; color:#7f8c8d; font-size:14px;">هنوز شیفت مخالفی برای این چرخ ثبت نشده است.</div>`;
+                }
+                divLast.innerHTML = htmlLast;
+
+                const resPrev = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const dataPrev = await resPrev.json();
+                const divPrev = document.getElementById('manImmediatePrevDisplay');
+                if (dataPrev.exists) {
+                    const s = dataPrev.data;
+                    let workHtml = s.zero_reason ? `<span style="color:#e74c3c;">⚠️ کارکرد صفر: ${s.zero_reason}</span>` : `طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_number)} | شمارنده: ${formatNum(s.counter)}`;
+                    if (s.jig_bonus > 0) workHtml += ` | <span style="color:#27ae60; font-weight:bold;">🎁 ست جدید</span>`;
+                    
+                    divPrev.innerHTML = `
+                        <div style="background:#fff8e1; padding:12px; border-radius:8px; border:1px solid #ffe082;">
+                            <div style="font-weight:bold; color:#f57f17; margin-bottom:5px; font-size:15px;">📋 شیفت قبلی (${s.shift_type} ${s.day_name}):</div>
+                            <div style="font-size:13px; line-height:1.6; color:#2c3e50;">
+                                <strong>تاریخ:</strong> ${formatDate(s.date)}<br>
+                                <strong>چرخ:</strong> ${toPersianDigits(s.machine)}<br>
+                                ${workHtml}
+                            </div>
+                        </div>`;
+                } else {
+                    let missingText = "شیفت قبلی ثبت نشده است.";
+                    if (dataPrev.expected_date && dataPrev.expected_shift) {
+                        missingText = `شیفت ${dataPrev.expected_shift} تاریخ ${formatDate(dataPrev.expected_date)} ثبت نشده است.`;
+                    }
+                    divPrev.innerHTML = `
+                        <div style="background:#fdf2f2; padding:12px; border-radius:8px; border:1px solid #f5c6cb;">
+                            <div style="font-weight:bold; color:#c0392b; font-size:14px; text-align:center;">⚠️ ${missingText}</div>
+                        </div>`;
+                }
+                
+                if (!date) {
+                    const resSug = await fetch(`http://185.222.163.15:8000/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                    const dataSug = await resSug.json();
+                    if (dataSug.date) {
+                        document.getElementById('manDate').value = toPersianDigits(dataSug.date);
+                        $('#manDate').persianDatepicker('setDate', dataSug.date);
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function handleManMachineChange() {
+            const mach = document.getElementById('manMachine').value;
+            if (mach.includes('چادر')) {
+                document.getElementById('manChadorCheckboxContainer').style.display = 'flex';
+            } else {
+                document.getElementById('manChadorCheckboxContainer').style.display = 'none';
+                document.getElementById('manIsChadorWork').checked = false;
+                toggleManChadorMode();
+            }
+            triggerManFetch();
+        }
+
+        function toggleManChadorMode() {
+            const isChador = document.getElementById('manIsChadorWork').checked;
+            if (isChador) {
+                document.getElementById('manDesignWrapper').style.display = 'none';
+                document.getElementById('manSetNumberWrapper').style.display = 'none';
+                document.getElementById('manPartsWrapper').style.display = 'none';
+                document.getElementById('manBonusContainer').style.display = 'none';
+                document.getElementById('manChadorFields').style.display = 'block';
+                document.getElementById('manRequestBonus').checked = false;
+            } else {
+                document.getElementById('manDesignWrapper').style.display = 'block';
+                document.getElementById('manSetNumberWrapper').style.display = 'block';
+                document.getElementById('manPartsWrapper').style.display = 'block';
+                document.getElementById('manBonusContainer').style.display = 'flex';
+                document.getElementById('manChadorFields').style.display = 'none';
+            }
+        }
+
+        function toggleManZeroMode() {
+            const isZero = document.getElementById('manIsZeroWork').checked;
+            if (isZero) {
+                document.getElementById('manNormalFields').style.display = 'none';
+                document.getElementById('manZeroFields').style.display = 'block';
+            } else {
+                document.getElementById('manNormalFields').style.display = 'block';
+                document.getElementById('manZeroFields').style.display = 'none';
+            }
+        }
+
+        function setManTodayDate() {
+            fetch('http://185.222.163.15:8000/api/today').then(r => r.json()).then(d => {
+                document.getElementById('manDate').value = toPersianDigits(d.date);
+                $('#manDate').persianDatepicker('setDate', d.date);
+                triggerManFetch();
+            });
+        }
+
+        document.getElementById('manualForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const shift = document.getElementById('manShift').value;
+            let opId;
+            
+            if (editingAdminShiftId && window.currentEditingOpId) {
+                opId = window.currentEditingOpId;
+            } else {
+                const op = window.allOperators ? window.allOperators.find(u => u.shift_type === shift) : null;
+                if (!op) { alert("اپراتوری برای این شیفت یافت نشد."); return; }
+                opId = op.id;
+            }
+            
+            const dateVal = toEnglishDigits(document.getElementById('manDate').value);
+            const machine = document.getElementById('manMachine').value;
+            const isZero = document.getElementById('manIsZeroWork').checked;
+            
+            const isChador = document.getElementById('manIsChadorWork').checked;
+            const counter = isZero ? 0 : toEnglishDigits(document.getElementById('manCounter').value).replace(/,/g, '');
+            const design = (isChador || isZero) ? "" : toEnglishDigits(document.getElementById('manDesign').value);
+            const setNum = (isChador || isZero) ? 0 : toEnglishDigits(document.getElementById('manSetNum').value);
+            const parts = (isChador || isZero) ? "" : Array.from(document.querySelectorAll('#manPartsContainer input:checked')).map(cb => cb.value).join(",");
+            const chadorCount = isChador ? toEnglishDigits(document.getElementById('manChadorCount').value) : 0;
+            
+            let invoiceArr = [];
+            if (isChador) {
+                for (let i=1; i<=6; i++) {
+                    let val = toEnglishDigits(document.getElementById('manChadorInv'+i).value).trim();
+                    if (val) invoiceArr.push(val);
+                }
+                if (invoiceArr.length === 0) { alert("لطفا حداقل یک شماره فاکتور را وارد کنید."); return; }
+            }
+            const chadorInvoices = invoiceArr.join(',');
+            const zeroReason = isZero ? document.getElementById('manZeroReason').value : null;
+            const zeroNote = isZero ? document.getElementById('manZeroNote').value : null;
+
+            const fd = new FormData();
+            fd.append("operator_id", opId);
+            fd.append("date", dateVal);
+            fd.append("shift_type", shift);
+            fd.append("machine", machine);
+            fd.append("counter", counter);
+            fd.append("design_code", design);
+            fd.append("set_number", setNum);
+            fd.append("parts", parts);
+            fd.append("is_chador", isChador ? 'true' : 'false');
+            fd.append("chador_count", chadorCount);
+            fd.append("chador_invoice", chadorInvoices);
+            fd.append("zero_reason", zeroReason || "");
+            fd.append("zero_note", zeroNote || "");
+            fd.append("request_bonus", document.getElementById('manRequestBonus').checked ? 'true' : 'false');
+            
+            const photoFile = document.getElementById('manPhoto').files[0];
+            if (photoFile) fd.append("photo", photoFile);
+            
+            const url = editingAdminShiftId ? `http://185.222.163.15:8000/api/admin/edit_shift/${editingAdminShiftId}` : '/api/admin/manual_shift';
+            const method = editingAdminShiftId ? 'PUT' : 'POST';
+            
+            try {
+                const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+                if(res.ok) { alert("✅ ثبت شد"); editingAdminShiftId = null; window.currentEditingOpId = null; window.currentEditingOpName = null; showSection('adminScreen'); }
+                else { const d = await res.json(); alert("❌ خطا: " + parseError(d.detail)); }
+            } catch(e) { alert("❌ خطای شبکه."); }
+        });
+
+        function toggleCreateShift() { document.getElementById('createShiftDiv').style.display = document.getElementById('newRole').value === 'operator' ? 'block' : 'none'; }
+        
+        async function loadUsers() {
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const div = document.getElementById('usersList'); div.innerHTML = '';
+                data.users.forEach(u => {
+                    div.innerHTML += `<div class="machine-row"><div><strong>${u.name}</strong><br>${toPersianDigits(u.phone)} | ${u.role} ${u.shift_type ? '| '+u.shift_type : ''}</div><button style="background:#f39c12; width:60px;" onclick="editUser(${u.id},'${u.name}','${u.shift_type}','${u.role}')">ویرایش</button></div>`;
+                });
+            } catch(e) {}
+        }
+
+        function editUser(id, name, shift, role) {
+            const newName = prompt("نام جدید را وارد کنید:", name);
+            if (newName) {
+                const newShift = role === 'operator' ? prompt("شیفت جدید (صبح یا شب):", shift) : null;
+                if (role !== 'operator' || (newShift === 'صبح' || newShift === 'شب')) {
+                    fetch(`http://185.222.163.15:8000/api/admin/users/${id}`, {method:'PUT', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify({name: newName, shift_type: newShift})}).then(()=>loadUsers());
+                }
+            }
+        }
+
+        async function createUser() {
+            const body = {
+                name: document.getElementById('newName').value,
+                phone_number: toEnglishDigits(document.getElementById('newPhone').value),
+                password: toEnglishDigits(document.getElementById('newPassword').value),
+                role: document.getElementById('newRole').value,
+                shift_type: document.getElementById('createShiftDiv').style.display !== 'none' ? document.getElementById('newShift').value : null
+            };
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/admin/create_user', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify(body)});
+                if(res.ok) loadUsers(); else alert("خطا در ساخت");
+            } catch(e) {}
+        }
+
+        function backFromWeekly() {
+            if (userRole === 'admin') showSection('adminScreen');
+            else showSection('operatorDashboard');
+        }
+
+        function initWeeklyReport() {
+            let today = new persianDate();
+            let currentYear = today.year();
+            let currentMonth = today.month();
+            
+            const yearSelect = document.getElementById('reportYear');
+            let yearsHtml = '';
+            for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+                yearsHtml += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${toPersianDigits(y)}</option>`;
+            }
+            yearSelect.innerHTML = yearsHtml;
+            document.getElementById('reportMonth').value = currentMonth;
+            
+            updateWeekDropdown();
+        }
+
+        async function updateWeekDropdown() {
+            const year = document.getElementById('reportYear').value;
+            const month = document.getElementById('reportMonth').value;
+            const weekSelect = document.getElementById('reportWeek');
+            
+            weekSelect.innerHTML = '<option value="">در حال دریافت...</option>';
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/get_weeks?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                
+                weekSelect.innerHTML = '';
+                if (data.weeks && data.weeks.length > 0) {
+                    data.weeks.forEach(w => {
+                        weekSelect.innerHTML += `<option value="${w.value}">${w.label}</option>`;
+                    });
+                    loadWeeklyReport();
+                } else {
+                    weekSelect.innerHTML = '<option value="">هفته‌ای یافت نشد</option>';
+                    document.getElementById('weeklyReportContent').innerHTML = '<p style="text-align:center;">هفته‌ای یافت نشد.</p>';
+                }
+            } catch(e) { 
+                console.error(e);
+                weekSelect.innerHTML = '<option value="">خطا</option>';
+            }
+        }
+
+        async function loadWeeklyReport() {
+            const year = document.getElementById('reportYear').value;
+            const month = document.getElementById('reportMonth').value;
+            const week = document.getElementById('reportWeek').value;
+            
+            if (!week) return;
+            
+            const div = document.getElementById('weeklyReportContent');
+            div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
+            
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(errText.substring(0, 200));
+                }
+                const data = await res.json();
+                
+                if (data.status === 'empty') {
+                    div.innerHTML = `<div style="text-align:center; padding:20px;">
+                        <h3>${data.week_title || ''}</h3>
+                        <p>هیچ کارکردی در این هفته ثبت نشده است.</p>
+                    </div>`;
+                    return;
+                }
+                
+                let html = `<h3 style="text-align:center; color:#2980b9; margin-bottom:20px;">${data.week_title}</h3>`;
+                html += `<p style="text-align:center; font-size:13px; color:#7f8c8d; margin-bottom:20px;">(${formatDate(data.start_date)} تا ${formatDate(data.end_date)})</p>`;
+                
+                const sortedWeeklyOps = Object.entries(data.operator_shifts).sort((a, b) => {
+                    if (a[0].includes('صبح') && !b[0].includes('صبح')) return -1;
+                    if (!a[0].includes('صبح') && b[0].includes('صبح')) return 1;
+                    return 0;
+                });
+
+                for (const [op_key, machines] of sortedWeeklyOps) {
+                    let opAvg = data.operator_averages && data.operator_averages[op_key] ? data.operator_averages[op_key] : 0;
+                    const isOpposite = userShift && !op_key.includes(userShift);
+                    const canSee = userRole === 'admin' || (data.show_salary && (!isOpposite || data.show_opposite_salary));
+                    
+                    html += `<div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">`;
+                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>`;
+                    
+                    for (const [mach, work] of Object.entries(machines)) {
+                        let chadorText = "";
+                        if (mach.includes('چادر') && data.chador_counts && data.chador_counts[op_key]) {
+                            chadorText = ` + ${toPersianDigits(data.chador_counts[op_key])} چادر`;
+                        }
+                        
+                        let machAvg = 0;
+                        if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
+                            machAvg = data.op_machine_averages[op_key][mach];
+                        }
+                        let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
+                        
+                        let salaryHtml = "";
+                        if (canSee && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
+                            let sal = data.op_machine_salaries[op_key][mach];
+                            salaryHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(sal)} تومان</small>`;
+                        }
+
+                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
+                            <span>${toPersianDigits(mach)}</span>
+                            <div style="text-align:left;">
+                                <strong>${formatNum(work)} سوزن${chadorText}</strong>
+                                ${avgText}
+                                ${salaryHtml}
+                            </div>
+                        </div>`;
+                    }
+                    if (canSee && data.op_salaries && data.op_salaries[op_key]) {
+                        html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
+                    }
+                    html += `</div>`;
+                }
+                
+                html += `<div style="background:#e8f8f5; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #1abc9c;">`;
+                html += `<h4 style="margin-top:0; color:#16a085; border-bottom:2px solid #1abc9c; padding-bottom:5px;">🧵 کل ست دوخته شده هفته</h4>`;
+                
+                if (data.sets_summary && data.sets_summary.length > 0) {
+                    data.sets_summary.forEach(info => {
+                        let rankText = "";
+                        if (info.rank === 1) rankText = "اولین ست ماه";
+                        else if (info.rank === 2) rankText = "دومین ست ماه";
+                        else if (info.rank === 3) rankText = "سومین ست ماه";
+                        else rankText = `${toPersianDigits(info.rank)}مین ست ماه`;
+                        
+                        let setsListHtml = "";
+                        if (info.sets_list) {
+                            setsListHtml = info.sets_list.map(s => `${toPersianDigits(s[0])} = ${toPersianDigits(s[1])}`).join('<br>');
+                        }
+                        
+                        html += `<div style="margin-bottom:12px; font-size:14px; text-align:right; border-bottom:1px dashed #ccc; padding-bottom:5px;">
+                            <div><strong>${toPersianDigits(info.count)} ست ${toPersianDigits(info.machine)}</strong> <span style="color:#e74c3c; font-size:12px;">(${rankText})</span></div>
+                            <div style="color:#7f8c8d; font-size:12px; margin-top:3px;">${setsListHtml}</div>
+                        </div>`;
+                    });
+                }
+                html += `</div>`;
+                
+                html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb;">`;
+                html += `<h4 style="margin-top:0; color:#c0392b; border-bottom:2px solid #f5c6cb; padding-bottom:5px;">📊 جمع کل سوزن دو شیفت</h4>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;">
+                    <span>جمع کل:</span>
+                    <span>${formatNum(data.total_all)} سوزن</span>
+                </div>`;
+                if (data.total_salary && data.show_salary) {
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;">
+                        <span>💰 مجموع حقوق کل:</span>
+                        <span>${formatNum(data.total_salary)} تومان</span>
+                    </div>`;
+                }
+                for (const [mach, dataObj] of Object.entries(data.machine_totals)) {
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-top:1px dashed #eee; padding-top:5px;">
+                        <span>${toPersianDigits(mach)}</span>
+                        <div style="text-align:left;">
+                            <strong>${formatNum(dataObj.total)} سوزن</strong><br>
+                            <small style="color:#7f8c8d;">(میانگین روزانه: ${formatNum(dataObj.avg)})</small>
+                        </div>
+                    </div>`;
+                }
+                html += `</div>`;
+                
+                div.innerHTML = html;
+            } catch(e) {
+                console.error(e);
+                div.innerHTML = `<p style="text-align:center; color:red;">خطا در دریافت گزارش: ${e.message || e}</p>`;
+            }
+        }
+
+        function backFromMonthly() {
+            if (userRole === 'admin') showSection('adminScreen');
+            else showSection('operatorDashboard');
+        }
+
+        function initMonthlyReport() {
+            let today = new persianDate();
+            let currentYear = today.year();
+            let currentMonth = today.month();
+            
+            const yearSelect = document.getElementById('monthlyYear');
+            let yearsHtml = '';
+            for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+                yearsHtml += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${toPersianDigits(y)}</option>`;
+            }
+            yearSelect.innerHTML = yearsHtml;
+            document.getElementById('monthlyMonth').value = currentMonth;
+            
+            loadMonthlyReport();
+        }
+
+        async function loadMonthlyReport() {
+            const year = document.getElementById('monthlyYear').value;
+            const month = document.getElementById('monthlyMonth').value;
+            const div = document.getElementById('monthlyReportContent');
+            div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
+            
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(errText.substring(0, 200));
+                }
+                const data = await res.json();
+                
+                if (data.status === 'empty') {
+                    div.innerHTML = `<div style="text-align:center; padding:20px;">
+                        <h3>${data.month_title}</h3>
+                        <p>هیچ کارکردی در این ماه ثبت نشده است.</p>
+                    </div>`;
+                    return;
+                }
+                
+                let html = `<h3 style="text-align:center; color:#2980b9; margin-bottom:20px;">${data.month_title}</h3>`;
+                
+                const sortedOps = Object.entries(data.operator_shifts).sort((a, b) => {
+                    if (a[0].includes('صبح') && !b[0].includes('صبح')) return -1;
+                    if (!a[0].includes('صبح') && b[0].includes('صبح')) return 1;
+                    return 0;
+                });
+
+                for (const [op_key, machines] of sortedOps) {
+                    let opAvg = data.operator_averages && data.operator_averages[op_key] ? data.operator_averages[op_key] : 0;
+                    const isOpposite = userShift && !op_key.includes(userShift);
+                    const canSee = userRole === 'admin' || (data.show_salary && (!isOpposite || data.show_opposite_salary));
+                    
+                    html += `<div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">`;
+                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>`;
+                    
+                    for (const [mach, work] of Object.entries(machines)) {
+                        let chadorText = "";
+                        if (mach.includes('چادر') && data.chador_counts && data.chador_counts[op_key]) {
+                            chadorText = ` + ${toPersianDigits(data.chador_counts[op_key])} چادر`;
+                        }
+                        
+                        let machAvg = 0;
+                        if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
+                            machAvg = data.op_machine_averages[op_key][mach];
+                        }
+                        let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
+                        
+                        let salaryHtml = "";
+                        if (canSee && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
+                            let sal = data.op_machine_salaries[op_key][mach];
+                            salaryHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(sal)} تومان</small>`;
+                            
+                            if (data.machine_financials && data.machine_financials[op_key] && data.machine_financials[op_key][mach]) {
+                                let mf = data.machine_financials[op_key][mach];
+                                if (mf.reward > 0) salaryHtml += `<br><small style="color:#27ae60;">🎁 پاداش: ${formatNum(mf.reward)} ${mf.reward_title ? '('+mf.reward_title+')' : ''}</small>`;
+                                if (mf.penalty > 0) salaryHtml += `<br><small style="color:#e74c3c;">⚠️ جریمه: ${formatNum(mf.penalty)} ${mf.penalty_title ? '('+mf.penalty_title+')' : ''}</small>`;
+                            }
+                        }
+
+                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
+                            <span>${toPersianDigits(mach)}</span>
+                            <div style="text-align:left;">
+                                <strong>${formatNum(work)} سوزن${chadorText}</strong>
+                                ${avgText}
+                                ${salaryHtml}
+                            </div>
+                        </div>`;
+                    }
+                    if (canSee && data.op_salaries && data.op_salaries[op_key]) {
+                        let finHtml = "";
+                        if (data.shift_financials && data.shift_financials[op_key]) {
+                            let sf = data.shift_financials[op_key];
+                            if (sf.reward > 0) finHtml += `<br><small style="color:#27ae60;">+ پاداش شیفت: ${formatNum(sf.reward)} ${sf.reward_title ? '('+sf.reward_title+')' : ''}</small>`;
+                            if (sf.penalty > 0) finHtml += `<br><small style="color:#e74c3c;">- جریمه شیفت: ${formatNum(sf.penalty)} ${sf.penalty_title ? '('+sf.penalty_title+')' : ''}</small>`;
+                        }
+                        
+                        html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان ${finHtml}</div>`;
+                    }
+                    html += `</div>`;
+                }
+                
+                html += `<div style="background:#e8f8f5; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #1abc9c;">`;
+                html += `<h4 style="margin-top:0; color:#16a085; border-bottom:2px solid #1abc9c; padding-bottom:5px;">🧵 کل ست دوخته شده ماه</h4>`;
+                
+                if (data.sets_summary && data.sets_summary.length > 0) {
+                    data.sets_summary.forEach(info => {
+                        let rankText = "";
+                        if (info.rank === 1) rankText = "اولین ست ماه";
+                        else if (info.rank === 2) rankText = "دومین ست ماه";
+                        else if (info.rank === 3) rankText = "سومین ست ماه";
+                        else rankText = `${toPersianDigits(info.rank)}مین ست ماه`;
+                        
+                        let setsListHtml = "";
+                        if (info.sets_list) {
+                            setsListHtml = info.sets_list.map(s => `${toPersianDigits(s[0])} = ${toPersianDigits(s[1])}`).join('<br>');
+                        }
+                        
+                        html += `<div style="margin-bottom:12px; font-size:14px; text-align:right; border-bottom:1px dashed #ccc; padding-bottom:5px;">
+                            <div><strong>${toPersianDigits(info.count)} ست ${toPersianDigits(info.machine)}</strong> <span style="color:#e74c3c; font-size:12px;">(${rankText})</span></div>
+                            <div style="color:#7f8c8d; font-size:12px; margin-top:3px;">${setsListHtml}</div>
+                        </div>`;
+                    });
+                }
+                html += `</div>`;
+                
+                html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb;">`;
+                html += `<h4 style="margin-top:0; color:#c0392b; border-bottom:2px solid #f5c6cb; padding-bottom:5px;">📊 جمع کل سوزن دو شیفت</h4>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;">
+                    <span>جمع کل:</span>
+                    <span>${formatNum(data.total_all)} سوزن</span>
+                </div>`;
+                if (data.total_salary && data.show_salary) {
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;">
+                        <span>💰 مجموع حقوق کل:</span>
+                        <span>${formatNum(data.total_salary)} تومان</span>
+                    </div>`;
+                }
+                for (const [mach, dataObj] of Object.entries(data.machine_totals)) {
+                    let noChadorText = mach.includes('چادر') ? " (بدون احتساب چادر)" : "";
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-top:1px dashed #eee; padding-top:5px;">
+                        <span>${toPersianDigits(mach)}</span>
+                        <div style="text-align:left;">
+                            <strong>${formatNum(dataObj.total)} سوزن${noChadorText}</strong><br>
+                            <small style="color:#7f8c8d;">(میانگین روزانه: ${formatNum(dataObj.avg)})</small>
+                        </div>
+                    </div>`;
+                }
+                html += `</div>`;
+                
+                div.innerHTML = html;
+            } catch(e) {
+                console.error(e);
+                div.innerHTML = `<p style="text-align:center; color:red;">خطا در دریافت گزارش: ${e.message || e}</p>`;
+            }
+        }
+
+        function initSalarySettings() {
+            let today = new persianDate();
+            let currentYear = today.year();
+            let currentMonth = today.month();
+            
+            const yearSelect = document.getElementById('salaryYear');
+            let yearsHtml = '';
+            for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+                yearsHtml += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${toPersianDigits(y)}</option>`;
+            }
+            yearSelect.innerHTML = yearsHtml;
+            document.getElementById('salaryMonth').value = currentMonth;
+            
+            loadSalarySettings();
+        }
+
+        async function loadSalarySettings() {
+            const year = document.getElementById('salaryYear').value;
+            const month = document.getElementById('salaryMonth').value;
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                if (data.price) {
+                    let parts = data.price.toString().split('.');
+                    let formatted = Number(parts[0]).toLocaleString('en-US');
+                    if (parts.length > 1) formatted += '.' + parts[1];
+                    document.getElementById('pricePerStitch').value = toPersianDigits(formatted);
+                } else {
+                    document.getElementById('pricePerStitch').value = '';
+                }
+                
+                document.getElementById('pricePerChador').value = data.chador_price ? formatNum(data.chador_price) : '';
+                document.getElementById('showSalaryToOp').checked = data.show_salary;
+                document.getElementById('showOppositeSalaryToOp').checked = data.show_opposite_salary;
+            } catch(e) { console.error(e); }
+        }
+
+        async function saveSalarySettings() {
+            const year = document.getElementById('salaryYear').value;
+            const month = document.getElementById('salaryMonth').value;
+            const priceRaw = toEnglishDigits(document.getElementById('pricePerStitch').value).replace(/,/g, '').replace(/٫/g, '.');
+            const price = parseFloat(priceRaw) || 0;
+            
+            const chadorPriceRaw = toEnglishDigits(document.getElementById('pricePerChador').value).replace(/,/g, '').replace(/٫/g, '.');
+            const chadorPrice = parseFloat(chadorPriceRaw) || 0;
+            
+            const show = document.getElementById('showSalaryToOp').checked;
+            const showOpposite = document.getElementById('showOppositeSalaryToOp').checked;
+            
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}&price=${price}&chador_price=${chadorPrice}&show_salary=${show}&show_opposite_salary=${showOpposite}`, {
+                    method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) alert("✅ تنظیمات حقوق با موفقیت ذخیره شد.");
+                else alert("❌ خطا در ذخیره تنظیمات.");
+            } catch(e) { alert("خطای شبکه."); }
+        }
+
+        function initMonthlyFinancials() {
+            let today = new persianDate();
+            let currentYear = today.year();
+            let currentMonth = today.month();
+            
+            const yearSelect = document.getElementById('finYear');
+            let yearsHtml = '';
+            for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+                yearsHtml += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${toPersianDigits(y)}</option>`;
+            }
+            yearSelect.innerHTML = yearsHtml;
+            document.getElementById('finMonth').value = currentMonth;
+            
+            loadMonthlyFinancials();
+        }
+
+        async function loadMonthlyFinancials() {
+            const year = document.getElementById('finYear').value;
+            const month = document.getElementById('finMonth').value;
+            const div = document.getElementById('monthlyFinancialsList');
+            div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
+            
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/monthly_financials?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                div.innerHTML = '';
+                
+                if (data.details.length === 0) {
+                    div.innerHTML = '<p style="text-align:center;">هیچ اپراتوری یافت نشد.</p>';
+                    return;
+                }
+                
+                data.details.forEach((d, index) => {
+                    let machinesHtml = "";
+                    if (d.machines && d.machines.length > 0) {
+                        d.machines.forEach((m, mIndex) => {
+                            machinesHtml += `
+                            <div style="background:#f1f2f6; padding:10px; border-radius:8px; margin-bottom:10px;">
+                                <strong style="color:#2c3e50; display:block; margin-bottom:10px;">چرخ: ${toPersianDigits(m.machine)}</strong>
+                                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                                    <div style="flex:1;">
+                                        <label style="font-size:12px; color:#27ae60; font-weight:bold;">پاداش چرخ (تومان):</label>
+                                        <input type="text" id="mReward_${index}_${mIndex}" value="${m.reward ? formatNum(m.reward) : ''}" oninput="formatCounterInput(this)" placeholder="۰" dir="ltr" style="text-align:right; padding:8px; margin-bottom:5px;">
+                                        <input type="text" id="mRewardTitle_${index}_${mIndex}" value="${m.reward_title || ''}" placeholder="بابت چی؟" style="padding:8px;">
+                                    </div>
+                                    <div style="flex:1;">
+                                        <label style="font-size:12px; color:#e74c3c; font-weight:bold;">جریمه چرخ (تومان):</label>
+                                        <input type="text" id="mPenalty_${index}_${mIndex}" value="${m.penalty ? formatNum(m.penalty) : ''}" oninput="formatCounterInput(this)" placeholder="۰" dir="ltr" style="text-align:right; padding:8px; margin-bottom:5px;">
+                                        <input type="text" id="mPenaltyTitle_${index}_${mIndex}" value="${m.penalty_title || ''}" placeholder="بابت چی؟" style="padding:8px;">
+                                    </div>
+                                </div>
+                                <input type="hidden" id="mMachineName_${index}_${mIndex}" value="${m.machine}">
+                            </div>`;
+                        });
+                    }
+
+                    div.innerHTML += `
+                    <div class="card" style="border: 2px solid #8e44ad;">
+                        <div class="card-header" style="background:#f5eef8; padding:10px; border-radius:5px; margin-bottom:15px;">
+                            <strong style="color:#8e44ad; font-size:16px;">👤 ${d.op_name}</strong>
+                            <span style="background:#8e44ad; color:white; padding:2px 8px; border-radius:5px; font-size:12px;">شیفت ${d.shift_type}</span>
+                        </div>
+                        
+                        <div style="background:#e8f8f5; padding:10px; border-radius:8px; margin-bottom:15px;">
+                            <strong style="color:#16a085; display:block; margin-bottom:10px;">💵 مالی کل شیفت (مستقل از چرخ‌ها)</strong>
+                            <div style="display:flex; gap:10px;">
+                                <div style="flex:1;">
+                                    <label style="font-size:12px; color:#27ae60; font-weight:bold;">پاداش شیفت (تومان):</label>
+                                    <input type="text" id="sReward_${index}" value="${d.reward ? formatNum(d.reward) : ''}" oninput="formatCounterInput(this)" placeholder="۰" dir="ltr" style="text-align:right; padding:8px; margin-bottom:5px;">
+                                    <input type="text" id="sRewardTitle_${index}" value="${d.reward_title || ''}" placeholder="بابت چی؟" style="padding:8px;">
+                                </div>
+                                <div style="flex:1;">
+                                    <label style="font-size:12px; color:#e74c3c; font-weight:bold;">جریمه شیفت (تومان):</label>
+                                    <input type="text" id="sPenalty_${index}" value="${d.penalty ? formatNum(d.penalty) : ''}" oninput="formatCounterInput(this)" placeholder="۰" dir="ltr" style="text-align:right; padding:8px; margin-bottom:5px;">
+                                    <input type="text" id="sPenaltyTitle_${index}" value="${d.penalty_title || ''}" placeholder="بابت چی؟" style="padding:8px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <strong style="color:#2c3e50; display:block; margin-bottom:10px;">⚙️ مالی هر چرخ:</strong>
+                        ${machinesHtml}
+                        
+                        <input type="hidden" id="sOpName_${index}" value="${d.op_name}">
+                        <input type="hidden" id="sShift_${index}" value="${d.shift_type}">
+                        <input type="hidden" id="mMachineCount_${index}" value="${d.machines ? d.machines.length : 0}">
+                    </div>`;
+                });
+                
+                div.innerHTML += `<button style="background:#8e44ad; margin-top:15px; padding:15px; font-size:18px;" onclick="saveMonthlyFinancials()">💾 ذخیره همه تغییرات</button>`;
+            } catch(e) {
+                div.innerHTML = '<p style="text-align:center; color:red;">خطا در دریافت اطلاعات.</p>';
+            }
+        }
+
+        async function saveMonthlyFinancials() {
+            const year = document.getElementById('finYear').value;
+            const month = document.getElementById('finMonth').value;
+            
+            const shift_financials = [];
+            const machine_financials = [];
+            
+            let index = 0;
+            while (document.getElementById('sOpName_' + index)) {
+                const op_name = document.getElementById('sOpName_' + index).value;
+                const shift_type = document.getElementById('sShift_' + index).value;
+                
+                const sReward = parseInt(toEnglishDigits(document.getElementById('sReward_' + index).value).replace(/,/g, '')) || 0;
+                const sRewardTitle = document.getElementById('sRewardTitle_' + index).value;
+                const sPenalty = parseInt(toEnglishDigits(document.getElementById('sPenalty_' + index).value).replace(/,/g, '')) || 0;
+                const sPenaltyTitle = document.getElementById('sPenaltyTitle_' + index).value;
+                
+                shift_financials.push({ op_name, shift_type, reward: sReward, reward_title: sRewardTitle, penalty: sPenalty, penalty_title: sPenaltyTitle });
+                
+                const mCount = parseInt(document.getElementById('mMachineCount_' + index).value) || 0;
+                for (let mIndex = 0; mIndex < mCount; mIndex++) {
+                    const machine = document.getElementById('mMachineName_' + index + '_' + mIndex).value;
+                    const mReward = parseInt(toEnglishDigits(document.getElementById('mReward_' + index + '_' + mIndex).value).replace(/,/g, '')) || 0;
+                    const mRewardTitle = document.getElementById('mRewardTitle_' + index + '_' + mIndex).value;
+                    const mPenalty = parseInt(toEnglishDigits(document.getElementById('mPenalty_' + index + '_' + mIndex).value).replace(/,/g, '')) || 0;
+                    const mPenaltyTitle = document.getElementById('mPenaltyTitle_' + index + '_' + mIndex).value;
+                    
+                    machine_financials.push({ op_name, shift_type, machine, reward: mReward, reward_title: mRewardTitle, penalty: mPenalty, penalty_title: mPenaltyTitle });
+                }
+                
+                index++;
+            }
+            
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/monthly_financials?year=${year}&month=${month}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ shift_financials, machine_financials })
+                });
+                if (res.ok) alert("✅ تغییرات مالی ذخیره شد.");
+                else alert("❌ خطا در ذخیره.");
+            } catch(e) { alert("خطای شبکه."); }
+        }
+
+        function initAdminAnalysis() {
+            let today = new persianDate();
+            let currentYear = today.year();
+            let currentMonth = today.month();
+            
+            const yearSelect = document.getElementById('analysisYear');
+            let yearsHtml = '';
+            for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+                yearsHtml += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${toPersianDigits(y)}</option>`;
+            }
+            yearSelect.innerHTML = yearsHtml;
+            document.getElementById('analysisMonth').value = currentMonth;
+            
+            loadAnalysis();
+        }
+
+        async function loadAnalysis() {
+            const year = document.getElementById('analysisYear').value;
+            const month = document.getElementById('analysisMonth').value;
+            const div = document.getElementById('analysisData');
+            div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
+            
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/duration_analysis?year=${year}&month=${month}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                div.innerHTML = '';
+                
+                if (!data.data || Object.keys(data.data).length === 0) {
+                    div.innerHTML = '<p style="text-align:center;">داده‌ای برای این ماه یافت نشد.</p>';
+                    return;
+                }
+                
+                for (const [mach, designs] of Object.entries(data.data)) {
+                    let html = `<div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">`;
+                    html += `<h3 style="color:#2c3e50; margin-top:0; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">🧵 چرخ: ${toPersianDigits(mach)}</h3>`;
+                    
+                    let designKeys = Object.keys(designs);
+                    if (designKeys.length === 0) {
+                        html += `<p style="color:#7f8c8d;">هیچ ست دوخته‌شده‌ای یافت نشد.</p>`;
+                    }
+                    
+                    for (const [design, stats] of Object.entries(designs)) {
+                        let designText = design && design !== 'None' ? `طرح ${toPersianDigits(design)}` : 'طرح نامشخص';
+                        html += `<div class="card" style="margin-bottom:10px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                                <strong style="color:#2c3e50; font-size:15px;">${designText}</strong>
+                                <span style="background:#3498db; color:white; padding:4px 10px; border-radius:15px; font-size:13px;">${toPersianDigits(stats.total_sets)} ست</span>
+                            </div>
+                            <div style="margin-top:10px; font-size:13px; color:#555;">
+                                ⏱ میانگین زمان هر ست: <strong>${toPersianDigits(stats.avg_shifts)} شیفت</strong> (${toPersianDigits(stats.avg_days)} روز)
+                                <br>
+                                📊 مجموع شیفت‌های صرف شده: ${toPersianDigits(stats.total_shifts)} شیفت
+                            </div>
+                        </div>`;
+                    }
+                    html += `</div>`;
+                    div.innerHTML += html;
+                }
+            } catch(e) {
+                div.innerHTML = '<p style="text-align:center; color:red;">خطا در دریافت اطلاعات.</p>';
+            }
+        }
+
+        function initAdminViewShifts() {
+            let today = new persianDate();
+            let currentYear = today.year();
+            let currentMonth = today.month();
+            let startStr = new persianDate([currentYear, currentMonth, 1]).format('YYYY-MM-DD');
+            let endStr = new persianDate().format('YYYY-MM-DD');
+            
+            document.getElementById('admViewStartDate').value = startStr;
+            document.getElementById('admViewEndDate').value = endStr;
+            $('#admViewStartDate').persianDatepicker('setDate', startStr);
+            $('#admViewEndDate').persianDatepicker('setDate', endStr);
+            
+            loadAdminViewMachines();
+        }
+
+        async function loadAdminViewMachines() {
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const filterSelect = document.getElementById('admViewMachineFilter');
+                if (filterSelect) {
+                    filterSelect.innerHTML = '<option value="all">همه چرخ‌ها</option>' + data.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
+                }
+            } catch(e) { console.error(e); }
+            loadAdminViewShifts();
+        }
+
+        async function loadAdminViewShifts() {
+            let start = toEnglishDigits(document.getElementById('admViewStartDate').value);
+            let end = toEnglishDigits(document.getElementById('admViewEndDate').value);
+            let mach = document.getElementById('admViewMachineFilter').value;
+            let shiftFilter = document.getElementById('admViewShiftFilter') ? document.getElementById('admViewShiftFilter').value : 'all';
+            let sortOrder = document.getElementById('admViewSortOrder') ? document.getElementById('admViewSortOrder').value : 'desc';
+            if (!start || !end) return;
+            
+            const div = document.getElementById('adminViewShiftsList');
+            div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
+            
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=${start}&end_date=${end}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                div.innerHTML = '';
+                
+                let filteredShifts = data.shifts.filter(d => 
+                    (mach === 'all' || d.machine === mach) && 
+                    (shiftFilter === 'all' || d.shift === shiftFilter)
+                );
+                if (sortOrder === 'asc') filteredShifts.reverse();
+                if (filteredShifts.length === 0) {
+                    div.innerHTML = '<p style="text-align:center; color:#7f8c8d;">هیچ کارکردی در این بازه یافت نشد.</p>'; return;
+                }
+                
+                let currentMachine = null;
+                filteredShifts.forEach(d => {
+                    if (mach !== 'all' && currentMachine !== d.machine) {
+                        div.innerHTML += `<h3 style="text-align:right; color:#2c3e50; margin-top:20px; padding-bottom:5px; border-bottom:2px solid #bdc3c7;">🧵 چرخ: ${toPersianDigits(d.machine)}</h3>`;
+                        currentMachine = d.machine;
+                    }
+                    
+                    let statusBadge = d.status === 'pending' ? '<span style="color:#e67e22;">(در انتظار تایید)</span>' : (d.status === 'rejected' ? '<span style="color:#e74c3c;">(رد شده)</span>' : '<span style="color:#2ecc71;">(تایید شده)</span>');
+                    
+                    if(d.zero_reason) {
+                        div.innerHTML += `<div class="card">
+                            <div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift} | ${d.op_name}</strong> ${statusBadge}</div>
+                            <div style="color:#e74c3c; font-size:14px; margin-bottom:10px;">⚠️ کارکرد صفر: ${d.zero_reason}</div>
+                            <div class="card-actions">
+                                <button style="background:#f39c12;" onclick="editAdminShift(${d.id})">✏️ ویرایش</button>
+                                <button style="background:#e74c3c;" onclick="deleteAdminShift(${d.id})">🗑 حذف</button>
+                            </div>
+                        </div>`;
+                    } else {
+                        div.innerHTML += `
+                        <div class="card">
+                            <div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift} | ${d.op_name}</strong> ${statusBadge}</div>
+                            <img class="card-img" src="/${d.photo || 'static/placeholder.png'}" onclick="showImageZoom('/${d.photo || 'static/placeholder.png'}')">
+                            <div style="font-size:13px; line-height:1.6; margin-top:10px; margin-bottom:5px;">
+                                ${mach === 'all' ? `<strong>چرخ: ${toPersianDigits(d.machine)}</strong><br>` : ''}
+                                شمارنده: ${formatNum(d.counter)}<br>طرح: ${toPersianDigits(d.design)} | ست: ${toPersianDigits(d.set_num)}<br>تکه‌ها: ${d.parts || 'ثبت نشده'}<br>
+                                ${d.is_chador ? `<strong style="font-size:14px; color:#2980b9;">🧵 دوخت چادر: ${toPersianDigits(d.chador_count)} عدد</strong>` : 
+                                (d.work !== null ? `<strong style="font-size:14px; color:#2ecc71;">کارکرد: ${formatNum(d.work)}</strong>` : '<strong style="font-size:14px; color:#e74c3c;">کارکرد: نامشخص</strong>')}
+                            </div>
+                            <div class="card-actions">
+                                <button style="background:#f39c12;" onclick="editAdminShift(${d.id})">✏️ ویرایش</button>
+                                <button style="background:#e74c3c;" onclick="deleteAdminShift(${d.id})">🗑 حذف</button>
+                            </div>
+                        </div>`;
+                    }
+                });
+            } catch(e) {
+                div.innerHTML = '<p style="text-align:center; color:red;">خطا در دریافت اطلاعات.</p>';
+            }
+        }
+
+        async function editAdminShift(id) {
+            editingAdminShiftId = id;
+            window.currentEditingOpId = null;
+            window.currentEditingOpName = null;
+            showSection('adminManualSection');
+            document.getElementById('manFormTitle').innerText = "✏️ ویرایش کارکرد";
+            document.getElementById('manSubmitBtn').innerText = "ذخیره تغییرات";
+            
+            setTimeout(() => {
+                fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } })
+                .then(r => r.json()).then(data => {
+                    const shift = data.shifts.find(s => s.id === id);
+                    if (!shift) { alert("خطا در بارگذاری اطلاعات."); return; }
+                    
+                    window.currentEditingOpId = shift.op_id;
+                    window.currentEditingOpName = shift.op_name;
+                    
+                    const infoDiv = document.getElementById('manEditingInfo');
+                    if (infoDiv) {
+                        infoDiv.innerHTML = `👤 این کارکرد متعلق به <strong>${shift.op_name}</strong> است<br><small style="font-weight:normal; font-size:12px;">توجه: صاحب کارکرد با تغییر شیفت عوض نمی‌شود.</small>`;
+                        infoDiv.style.display = 'block';
+                    }
+                    
+                    document.getElementById('manDate').value = toPersianDigits(shift.date);
+                    $('#manDate').persianDatepicker('setDate', shift.date);
+                    document.getElementById('manShift').value = shift.shift;
+                    document.getElementById('manMachine').value = shift.machine;
+                    document.getElementById('manCounter').value = formatNum(shift.counter);
+                    
+                    if (shift.is_chador) {
+                        document.getElementById('manChadorCheckboxContainer').style.display = 'flex';
+                        document.getElementById('manIsChadorWork').checked = true;
+                        document.getElementById('manChadorCount').value = toPersianDigits(shift.chador_count || '');
+                        let invs = (shift.chador_invoice || '').split(',');
+                        for(let i=1; i<=6; i++) document.getElementById('manChadorInv'+i).value = invs[i-1] ? toPersianDigits(invs[i-1]) : '';
+                        toggleManChadorMode();
+                    } else {
+                        document.getElementById('manChadorCheckboxContainer').style.display = shift.machine.includes('چادر') ? 'flex' : 'none';
+                        document.getElementById('manIsChadorWork').checked = false;
+                        toggleManChadorMode();
+                        document.getElementById('manDesign').value = toPersianDigits(shift.design);
+                        document.getElementById('manSetNum').value = toPersianDigits(shift.set_num);
+                        document.querySelectorAll('#manPartsContainer input').forEach(cb => cb.checked = false);
+                        if (shift.parts) {
+                            let savedParts = shift.parts.split(',').map(s => s.trim());
+                            document.querySelectorAll('#manPartsContainer input').forEach(cb => {
+                                if (savedParts.includes(cb.value)) cb.checked = true;
+                            });
+                        }
+                    }
+                    
+                    if (shift.zero_reason) {
+                        document.getElementById('manIsZeroWork').checked = true;
+                        document.getElementById('manZeroReason').value = shift.zero_reason;
+                        document.getElementById('manZeroNote').value = shift.zero_note || '';
+                        toggleManZeroMode();
+                    } else {
+                        document.getElementById('manIsZeroWork').checked = false;
+                        toggleManZeroMode();
+                    }
+                    
+                    setTimeout(() => triggerManFetch(), 100);
+                });
+            }, 300);
+        }
+
+        async function deleteAdminShift(id) {
+            if (!confirm('آیا از حذف این کارکرد مطمئن هستید؟')) return;
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (res.ok) { alert('✅ حذف شد.'); loadAdminViewShifts(); }
+                else alert('❌ خطا در حذف.');
+            } catch(e) { alert("خطای شبکه."); }
+        }
+
+        function initAdminDelete() {
+            loadDeleteMachines();
+        }
+
+        async function loadDeleteMachines() {
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const filterSelect = document.getElementById('delFilterMachine');
+                if (filterSelect) {
+                    filterSelect.innerHTML = '<option value="all">همه چرخ‌ها</option>' + data.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
+                }
+            } catch(e) { console.error(e); }
+            loadDeleteList();
+        }
+
+        async function loadDeleteList() {
+            let mach = document.getElementById('delFilterMachine').value;
+            let shift = document.getElementById('delFilterShift').value;
+            
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const div = document.getElementById('deleteList'); div.innerHTML = '';
+                
+                let filtered = data.shifts.filter(d => (mach === 'all' || d.machine === mach) && (shift === 'all' || d.shift === shift));
+                if (filtered.length === 0) {
+                    div.innerHTML = '<p style="text-align:center;">لیست خالی است.</p>';
+                    return;
+                }
+                
+                let grouped = {};
+                filtered.forEach(d => {
+                    if (!grouped[d.machine]) grouped[d.machine] = [];
+                    grouped[d.machine].push(d);
+                });
+                
+                for (const [machineName, items] of Object.entries(grouped)) {
+                    div.innerHTML += `<h3 style="text-align:right; color:#2c3e50; margin-top:20px; padding-bottom:5px; border-bottom:2px solid #bdc3c7;">🧵 چرخ: ${toPersianDigits(machineName)}</h3>`;
+                    items.forEach(d => {
+                        div.innerHTML += `<div class="machine-row"><div>${formatDate(d.date)} (${d.day_name}) | ${d.op_name} | ${d.shift}</div><button style="background:#e74c3c; width:60px;" onclick="deleteAdminShiftFromList(${d.id})">حذف</button></div>`;
+                    });
+                }
+            } catch(e) {
+                document.getElementById('deleteList').innerHTML = '<p style="text-align:center; color:#e74c3c; font-weight:bold;">خطا در دریافت اطلاعات!</p>';
+            }
+        }
+
+        async function deleteAdminShiftFromList(id) {
+            if (!confirm('حذف شود؟')) return;
+            try {
+                const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (res.ok) { alert('حذف شد'); loadDeleteList(); }
+            } catch(e) {}
+        }
+
+        async function initAdminSearch() {
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                const sel = document.getElementById('srchMachine');
+                if (sel) {
+                    sel.innerHTML = '<option value="">همه</option>' + data.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
+                }
+            } catch(e) { console.error(e); }
+            document.getElementById('adminSearchResults').innerHTML = '<p style="text-align:center; color:#7f8c8d;">فیلترها را انتخاب کنید و دکمه جستجو را بزنید.</p>';
+        }
+
+        async function loadAdminSearch() {
+            const design = toEnglishDigits(document.getElementById('srchDesign').value.trim());
+            const setNum = toEnglishDigits(document.getElementById('srchSetNum').value.trim());
+            const parts = document.getElementById('srchParts').value;
+            const machine = document.getElementById('srchMachine').value;
+            const shift = document.getElementById('srchShift').value;
+            const sortOrder = document.getElementById('srchSortOrder').value;
+            
+            const div = document.getElementById('adminSearchResults');
+            div.innerHTML = '<p style="text-align:center;">در حال جستجو...</p>';
+            
+            let url = `http://185.222.163.15:8000/api/admin/search_shifts?sort_order=${sortOrder}`;
+            if (design) url += `&design_code=${encodeURIComponent(design)}`;
+            if (setNum) url += `&set_number=${encodeURIComponent(setNum)}`;
+            if (parts) url += `&parts=${encodeURIComponent(parts)}`;
+            if (machine) url += `&machine=${encodeURIComponent(machine)}`;
+            if (shift) url += `&shift=${encodeURIComponent(shift)}`;
+            
+            try {
+                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const data = await res.json();
+                div.innerHTML = '';
+                
+                if (!data.shifts || data.shifts.length === 0) {
+                    div.innerHTML = '<p style="text-align:center; color:#7f8c8d;">هیچ نتیجه‌ای یافت نشد.</p>';
+                    return;
+                }
+                
+                div.innerHTML += `<div style="background:#9b59b6; color:white; padding:10px; border-radius:8px; text-align:center; margin-bottom:15px; font-weight:bold;">🔍 ${toPersianDigits(data.total)} نتیجه یافت شد</div>`;
+                
+                data.shifts.forEach(d => {
+                    let statusBadge = d.status === 'pending' ? '<span style="color:#e67e22;">(در انتظار تایید)</span>' : (d.status === 'rejected' ? '<span style="color:#e74c3c;">(رد شده)</span>' : '<span style="color:#2ecc71;">(تایید شده)</span>');
+                    
+                    if (d.zero_reason) {
+                        div.innerHTML += `<div class="card">
+                            <div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift} | ${d.op_name}</strong> ${statusBadge}</div>
+                            <div style="color:#e74c3c; font-size:14px; margin-bottom:10px;">⚠️ کارکرد صفر: ${d.zero_reason}</div>
+                            <div style="font-size:13px;">چرخ: ${toPersianDigits(d.machine)}</div>
+                        </div>`;
+                    } else {
+                        let workHtml = d.is_chador ? `<strong style="color:#2980b9;">🧵 چادر: ${toPersianDigits(d.chador_count)} عدد</strong>` :
+                            (d.work !== null ? `<strong style="color:#2ecc71;">کارکرد: ${formatNum(d.work)}</strong>` : '<strong style="color:#e74c3c;">نامشخص</strong>');
+                        div.innerHTML += `<div class="card">
+                            <div class="card-header"><strong>${formatDate(d.date)} (${d.day_name}) | ${d.shift} | ${d.op_name}</strong> ${statusBadge}</div>
+                            ${d.photo ? `<img class="card-img" src="/${d.photo}" onclick="showImageZoom('/${d.photo}')">` : ''}
+                            <div style="font-size:13px; line-height:1.6;">
+                                <strong>چرخ:</strong> ${toPersianDigits(d.machine)} | <strong>شمارنده:</strong> ${formatNum(d.counter)}<br>
+                                <strong>طرح:</strong> ${toPersianDigits(d.design)} | <strong>ست:</strong> ${toPersianDigits(d.set_num)} | <strong>تکه‌ها:</strong> ${d.parts || 'ثبت نشده'}<br>
+                                ${workHtml}
+                            </div>
+                        </div>`;
+                    }
+                });
+            } catch(e) {
+                div.innerHTML = '<p style="text-align:center; color:red;">خطا در جستجو.</p>';
+            }
+        }
+
+        // ── v16.6: Machine Management (Force Injected) ──
+        async function loadAdminMachines() {
+            const div = document.getElementById('machineList');
+            if (!div) return;
+            div.innerHTML = '<p style="text-align:center;">در حال دریافت...</p>';
+            try {
+                const res = await fetch('http://185.222.163.15:8000/api/admin/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const data = await res.json();
+                div.innerHTML = '';
+                if (!data.machines || data.machines.length === 0) {
+                    div.innerHTML = '<p style="text-align:center; color:#7f8c8d;">هیچ چرخی ثبت نشده است.</p>';
+                    return;
+                }
+                data.machines.forEach(m => {
+                    div.innerHTML += `<div class="machine-row">
+                        <div>
+                            <strong style="font-size:16px; color:#2c3e50;">${toPersianDigits(m.name)}</strong><br>
+                            <small style="color:#7f8c8d;">ریست: ${formatNum(m.reset_period)} | شروع: ${formatNum(m.start_counter)}</small>
+                        </div>
+                        <button style="background:#f39c12; width:70px; margin:0;" onclick="editMachine('${m.name}', ${m.reset_period}, ${m.start_counter})">ویرایش</button>
+                    </div>`;
+                });
+            } catch(e) {
+                div.innerHTML = '<p style="text-align:center; color:#e74c3c;">خطا در دریافت اطلاعات چرخ‌ها.</p>';
+                console.error(e);
+            }
+        }
+
+        async function addMachine() {
+            const input = document.getElementById('newMachineName');
+            const name = input.value.trim();
+            if (!name) { alert('نام چرخ را وارد کنید'); return; }
+            const res = await fetch('http://185.222.163.15:8000/api/admin/machines', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ name: name, reset_period: 5000000, start_counter: 0 })
+            });
+            if (res.ok) { input.value = ''; loadAdminMachines(); }
+            else { alert('خطا (شاید نام تکراری است)'); }
+        }
+
+        async function editMachine(name, reset, start) {
+            const newReset = prompt(`ریست پریود (فعلی ${reset}):`, reset);
+            if (newReset === null) return;
+            const newStart = prompt(`شمارنده شروع (فعلی ${start}):`, start);
+            if (newStart === null) return;
+            const res = await fetch(`http://185.222.163.15:8000/api/admin/machines/${encodeURIComponent(name)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ reset_period: parseInt(newReset) || 5000000, start_counter: parseInt(newStart) || 0 })
+            });
+            if (res.ok) loadAdminMachines(); else alert('خطا در ذخیره');
+        }
     </script>
 </body>
 </html>
+
+<!-- Restore Full UI: 1795025426 -->
