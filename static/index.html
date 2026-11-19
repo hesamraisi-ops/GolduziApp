@@ -1445,7 +1445,7 @@
             try {
                 const res = await fetch(shiftToSubmit.url, { method: shiftToSubmit.method, headers: { 'Authorization': `Bearer ${authToken}` }, body: shiftToSubmit.fd });
                 if (res.ok) { 
-                    alert("✅ با موفقیت ثبت شد!"); 
+                    alert("✅ با موفقیت ثبت شد! در انتظار تایید مدیر."); 
                     editingShiftId = null;
                     isEditingDateLoading = false;
                     document.getElementById('formTitle').innerText = "📝 ثبت کارکرد";
@@ -1458,8 +1458,8 @@
                 }
                 let errorDetail = "خطا در ثبت";
                 try { const d = await res.json(); errorDetail = d.detail; } catch (jsonErr) { errorDetail = "خطای سرور " + res.status; }
-                alert("❌ خطا: " + parseError(errorDetail)); 
-            } catch(e) { alert("❌ خطای شبکه."); } finally {
+                alert("❌ خطا از سمت سرور: " + parseError(errorDetail)); 
+            } catch(e) { alert("❌ خطای شبکه: " + e.message); } finally {
                 btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
             }
         }
@@ -2830,6 +2830,8 @@
 <!-- Fix Images: 1795026719 -->
 
 <!-- Fix Images: 1795026765 -->
+
+<!-- Fix Submit: 1795108815 -->
 </body>
 </html>
 
