@@ -69,8 +69,34 @@
         };
     </script>
 
+
+    <style>
+        #toastBanner {
+            position: fixed;
+            top: -100px; /* مخفی در بالا */
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            font-family: 'Vazirmatn', sans-serif;
+            z-index: 9999999;
+            transition: top 0.3s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+
 </head>
 <body>
+
+    <div id="toastBanner"></div>
+
 
     <div id="appSplash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999; background-image: url('main.png'); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
         <button onclick="document.getElementById('appSplash').style.display='none';" style="background: linear-gradient(90deg, #7b2cbf, #5a189a); color: white; border: none; border-radius: 12px; padding: 15px 50px; font-size: 18px; font-weight: bold; width: 80%; max-width: 300px; box-shadow: 0 5px 15px rgba(103, 58, 183, 0.4); cursor: pointer; font-family: 'Vazirmatn', sans-serif; margin-bottom: 22%; z-index: 100000;">شروع کنید</button>
@@ -1333,7 +1359,7 @@
             const dateVal = toEnglishDigits(document.getElementById('date').value);
             const machineVal = document.getElementById('machine').value;
             const isZero = document.getElementById('isZeroWork').checked;
-            if (!dateVal) { alert("تاریخ را وارد کنید"); return; }
+            if (!dateVal) { showToast("تاریخ را وارد کنید", 'info'); return; }
             btn.disabled = true; btn.innerText = "در حال بررسی...";
 
             try {
@@ -1345,16 +1371,16 @@
                         fd.append("zero_note", document.getElementById('zeroNote').value);
                         const res = await fetch(`http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
                         if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
-                        else { alert("✅ کارکرد صفر ویرایش شد!"); showSection('operatorDashboard'); }
+                        else { showToast("✅ کارکرد صفر ویرایش شد!", 'success'); showSection('operatorDashboard'); }
                     } else {
                         const zeroPayload = { date: dateVal, machine: machineVal, zero_reason: document.getElementById('zeroReason').value, zero_note: document.getElementById('zeroNote').value };
                         const res = await fetch('http://185.222.163.15:8000/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
                         if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
-                        else { alert("✅ کارکرد صفر ثبت شد!"); showSection('operatorDashboard'); }
+                        else { showToast("✅ کارکرد صفر ثبت شد!", 'success'); showSection('operatorDashboard'); }
                     }
                 } else {
                     const photoFile = document.getElementById('photo').files[0];
-                    if (!photoFile && !editingShiftId) { alert("لطفا عکس را انتخاب کنید"); btn.disabled = false; btn.innerText = "ارسال به مدیر"; return; }
+                    if (!photoFile && !editingShiftId) { showToast("لطفا عکس را انتخاب کنید", 'info'); btn.disabled = false; btn.innerText = "ارسال به مدیر"; return; }
 
                     const counterRaw = toEnglishDigits(document.getElementById('counter').value).replace(/,/g, '');
                     const setNumberRaw = toEnglishDigits(document.getElementById('set_number').value).replace(/,/g, '');
@@ -1379,7 +1405,7 @@
                             if (val) invoiceArr.push(val);
                         }
                         if (invoiceArr.length === 0) {
-                            alert("لطفا حداقل یک شماره فاکتور را وارد کنید.");
+                            showToast("لطفا حداقل یک شماره فاکتور را وارد کنید.", 'info');
                             btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
                             return;
                         }
@@ -1453,7 +1479,7 @@
                     document.getElementById('previewModal').style.display = 'flex';
                     btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
                 }
-            } catch (err) { alert("❌ خطای شبکه."); btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر"; }
+            } catch (err) { showToast("❌ خطای شبکه.", 'error'); btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر"; }
         });
 
         async function confirmSubmitShift() {
@@ -1465,7 +1491,7 @@
             try {
                 const res = await fetch(shiftToSubmit.url, { method: shiftToSubmit.method, headers: { 'Authorization': `Bearer ${authToken}` }, body: shiftToSubmit.fd });
                 if (res.ok) { 
-                    alert("✅ با موفقیت ثبت شد! در انتظار تایید مدیر."); 
+                    showToast("✅ با موفقیت ثبت شد! در انتظار تایید مدیر.", 'success'); 
                     editingShiftId = null;
                     isEditingDateLoading = false;
                     document.getElementById('formTitle').innerText = "📝 ثبت کارکرد";
@@ -1748,7 +1774,7 @@
                 opId = window.currentEditingOpId;
             } else {
                 const op = window.allOperators ? window.allOperators.find(u => u.shift_type === shift) : null;
-                if (!op) { alert("اپراتوری برای این شیفت یافت نشد."); return; }
+                if (!op) { showToast("اپراتوری برای این شیفت یافت نشد.", 'info'); return; }
                 opId = op.id;
             }
             
@@ -1769,7 +1795,7 @@
                     let val = toEnglishDigits(document.getElementById('manChadorInv'+i).value).trim();
                     if (val) invoiceArr.push(val);
                 }
-                if (invoiceArr.length === 0) { alert("لطفا حداقل یک شماره فاکتور را وارد کنید."); return; }
+                if (invoiceArr.length === 0) { showToast("لطفا حداقل یک شماره فاکتور را وارد کنید.", 'info'); return; }
             }
             const chadorInvoices = invoiceArr.join(',');
             const zeroReason = isZero ? document.getElementById('manZeroReason').value : null;
@@ -1799,9 +1825,9 @@
             
             try {
                 const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
-                if(res.ok) { alert("✅ ثبت شد"); editingAdminShiftId = null; window.currentEditingOpId = null; window.currentEditingOpName = null; showSection('adminScreen'); }
+                if(res.ok) { showToast("✅ ثبت شد", 'success'); editingAdminShiftId = null; window.currentEditingOpId = null; window.currentEditingOpName = null; showSection('adminScreen'); }
                 else { const d = await res.json(); alert("❌ خطا: " + parseError(d.detail)); }
-            } catch(e) { alert("❌ خطای شبکه."); }
+            } catch(e) { showToast("❌ خطای شبکه.", 'error'); }
         });
 
         function toggleCreateShift() { document.getElementById('createShiftDiv').style.display = document.getElementById('newRole').value === 'operator' ? 'block' : 'none'; }
@@ -1837,7 +1863,7 @@
             };
             try {
                 const res = await fetch('http://185.222.163.15:8000/api/admin/create_user', {method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + authToken}, body: JSON.stringify(body)});
-                if(res.ok) loadUsers(); else alert("خطا در ساخت");
+                if(res.ok) loadUsers(); else showToast("خطا در ساخت", 'error');
             } catch(e) {}
         }
 
@@ -2231,9 +2257,9 @@
                 const res = await fetch(`http://185.222.163.15:8000/api/admin/salary_settings?year=${year}&month=${month}&price=${price}&chador_price=${chadorPrice}&show_salary=${show}&show_opposite_salary=${showOpposite}`, {
                     method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }
                 });
-                if (res.ok) alert("✅ تنظیمات حقوق با موفقیت ذخیره شد.");
-                else alert("❌ خطا در ذخیره تنظیمات.");
-            } catch(e) { alert("خطای شبکه."); }
+                if (res.ok) showToast("✅ تنظیمات حقوق با موفقیت ذخیره شد.", 'success');
+                else showToast("❌ خطا در ذخیره تنظیمات.", 'error');
+            } catch(e) { showToast("خطای شبکه.", 'error'); }
         }
 
         function initMonthlyFinancials() {
@@ -2368,9 +2394,9 @@
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                     body: JSON.stringify({ shift_financials, machine_financials })
                 });
-                if (res.ok) alert("✅ تغییرات مالی ذخیره شد.");
-                else alert("❌ خطا در ذخیره.");
-            } catch(e) { alert("خطای شبکه."); }
+                if (res.ok) showToast("✅ تغییرات مالی ذخیره شد.", 'success');
+                else showToast("❌ خطا در ذخیره.", 'error');
+            } catch(e) { showToast("خطای شبکه.", 'error'); }
         }
 
         function initAdminAnalysis() {
@@ -2541,7 +2567,7 @@
                 fetch(`http://185.222.163.15:8000/api/admin/all_shifts?start_date=1300-01-01&end_date=1500-12-31`, { headers: { 'Authorization': `Bearer ${authToken}` } })
                 .then(r => r.json()).then(data => {
                     const shift = data.shifts.find(s => s.id === id);
-                    if (!shift) { alert("خطا در بارگذاری اطلاعات."); return; }
+                    if (!shift) { showToast("خطا در بارگذاری اطلاعات.", 'error'); return; }
                     
                     window.currentEditingOpId = shift.op_id;
                     window.currentEditingOpName = shift.op_name;
@@ -2599,9 +2625,9 @@
             if (!confirm('آیا از حذف این کارکرد مطمئن هستید؟')) return;
             try {
                 const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
-                if (res.ok) { alert('✅ حذف شد.'); loadAdminViewShifts(); }
-                else alert('❌ خطا در حذف.');
-            } catch(e) { alert("خطای شبکه."); }
+                if (res.ok) { showToast('✅ حذف شد.', 'success'); loadAdminViewShifts(); }
+                else showToast('❌ خطا در حذف.', 'error');
+            } catch(e) { showToast("خطای شبکه.", 'error'); }
         }
 
         function initAdminDelete() {
@@ -2656,7 +2682,7 @@
             if (!confirm('حذف شود؟')) return;
             try {
                 const res = await fetch(`http://185.222.163.15:8000/api/admin/delete_shift/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } });
-                if (res.ok) { alert('حذف شد'); loadDeleteList(); }
+                if (res.ok) { showToast('حذف شد', 'info'); loadDeleteList(); }
             } catch(e) {}
         }
 
@@ -2762,14 +2788,14 @@
         async function addMachine() {
             const input = document.getElementById('newMachineName');
             const name = input.value.trim();
-            if (!name) { alert('نام چرخ را وارد کنید'); return; }
+            if (!name) { showToast('نام چرخ را وارد کنید', 'info'); return; }
             const res = await fetch('http://185.222.163.15:8000/api/admin/machines', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ name: name, reset_period: 5000000, start_counter: 0 })
             });
             if (res.ok) { input.value = ''; loadAdminMachines(); }
-            else { alert('خطا (شاید نام تکراری است)'); }
+            else { showToast('خطا (شاید نام تکراری است)', 'error'); }
         }
 
         async function editMachine(name, reset, start) {
@@ -2782,7 +2808,7 @@
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ reset_period: parseInt(newReset) || 5000000, start_counter: parseInt(newStart) || 0 })
             });
-            if (res.ok) loadAdminMachines(); else alert('خطا در ذخیره');
+            if (res.ok) loadAdminMachines(); else showToast('خطا در ذخیره', 'error');
         }
     </script>
 
@@ -2810,39 +2836,48 @@
 
 <!-- Fix Lists and Date: 1795197392 -->
 
+    
+
+
+<!-- Remove Fake Offline & Fix Date: 1795200635 -->
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // تنظیم تاریخ برای فرم اپراتور
-            setTimeout(() => {
-                const dateInput = document.getElementById('date');
-                if (dateInput && !dateInput.value) {
-                    const today = new Date();
-                    const y = today.getFullYear();
-                    const m = String(today.getMonth() + 1).padStart(2, '0');
-                    const d = String(today.getDate()).padStart(2, '0');
-                    dateInput.value = toPersianDigits(`${y}-${m}-${d}`);
-                }
-                // تنظیم تاریخ برای فرم ثبت دستی مدیر
-                const manDateInput = document.getElementById('manDate');
-                if (manDateInput && !manDateInput.value) {
-                    const today = new Date();
-                    const y = today.getFullYear();
-                    const m = String(today.getMonth() + 1).padStart(2, '0');
-                    const d = String(today.getDate()).padStart(2, '0');
-                    manDateInput.value = toPersianDigits(`${y}-${m}-${d}`);
-                }
-            }, 1000); // ۱ ثانیه بعد از لود
-        });
+        let toastTimeout;
+        function showToast(message, type = 'info') {
+            const banner = document.getElementById('toastBanner');
+            if (!banner) return;
+            
+            // پاک کردن تایمر قبلی
+            clearTimeout(toastTimeout);
+            
+            // تنظیم متن و رنگ
+            banner.innerHTML = message;
+            if (type === 'success') {
+                banner.style.background = 'linear-gradient(90deg, #2ecc71, #27ae60)';
+            } else if (type === 'error') {
+                banner.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+            } else {
+                banner.style.background = 'linear-gradient(90deg, #3498db, #2980b9)';
+            }
+            
+            // نمایش نوار (با انیمیشن)
+            setTimeout(() => { banner.style.top = '0px'; }, 10);
+            
+            // مخفی کردن خودکار بعد از ۴ ثانیه
+            toastTimeout = setTimeout(() => {
+                banner.style.top = '-100px';
+            }, 4000);
+        }
     </script>
 
 
-<!-- Ultimate Frontend Fix: 1795197412 -->
-
-<!-- Fix Submit URL: 1795199699 -->
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
+            let attempts = 0;
+            const interval = setInterval(() => {
+                attempts++;
+                let filled = false;
+                
                 if (typeof persianDate !== 'undefined') {
                     const today = new persianDate();
                     const y = today.year();
@@ -2851,23 +2886,29 @@
                     const persianToday = `${y}-${m}-${d}`;
 
                     const dateInput = document.getElementById('date');
-                    if (dateInput && !dateInput.value) {
+                    if (dateInput && !dateInput.value && dateInput.offsetParent !== null) {
                         dateInput.value = toPersianDigits(persianToday);
                         try { $('#date').persianDatepicker('setDate', persianToday); } catch(e){}
+                        filled = true;
                     }
                     
                     const manDateInput = document.getElementById('manDate');
-                    if (manDateInput && !manDateInput.value) {
+                    if (manDateInput && !manDateInput.value && manDateInput.offsetParent !== null) {
                         manDateInput.value = toPersianDigits(persianToday);
                         try { $('#manDate').persianDatepicker('setDate', persianToday); } catch(e){}
+                        filled = true;
                     }
                 }
-            }, 1000);
+                
+                if (filled || attempts > 10) {
+                    clearInterval(interval); // وقتی پر شد یا ۱۰ بار تلاش کرد، متوقف شو
+                }
+            }, 500);
         });
     </script>
 
 
-<!-- Remove Fake Offline & Fix Date: 1795200635 -->
+<!-- Toast Notifications & Auto Date: 1795200714 -->
 </body>
 </html>
 
