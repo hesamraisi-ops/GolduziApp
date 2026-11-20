@@ -58,6 +58,17 @@
         .zero-checkbox input { width: auto; margin: 0; margin-left: 10px; scale: 1.5; }
         .zero-checkbox label { margin: 0; color: #721c24; cursor: pointer; }
     </style>
+
+    <script>
+        const realFetch = window.fetch.bind(window);
+        window.fetch = function(url, options) {
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                url = 'http://185.222.163.15:8000' + url;
+            }
+            return realFetch(url, options);
+        };
+    </script>
+
 </head>
 <body>
 
@@ -2828,6 +2839,35 @@
 <!-- Ultimate Frontend Fix: 1795197412 -->
 
 <!-- Fix Submit URL: 1795199699 -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (typeof persianDate !== 'undefined') {
+                    const today = new persianDate();
+                    const y = today.year();
+                    const m = String(today.month()).padStart(2, '0');
+                    const d = String(today.date()).padStart(2, '0');
+                    const persianToday = `${y}-${m}-${d}`;
+
+                    const dateInput = document.getElementById('date');
+                    if (dateInput && !dateInput.value) {
+                        dateInput.value = toPersianDigits(persianToday);
+                        try { $('#date').persianDatepicker('setDate', persianToday); } catch(e){}
+                    }
+                    
+                    const manDateInput = document.getElementById('manDate');
+                    if (manDateInput && !manDateInput.value) {
+                        manDateInput.value = toPersianDigits(persianToday);
+                        try { $('#manDate').persianDatepicker('setDate', persianToday); } catch(e){}
+                    }
+                }
+            }, 1000);
+        });
+    </script>
+
+
+<!-- Remove Fake Offline & Fix Date: 1795200635 -->
 </body>
 </html>
 
