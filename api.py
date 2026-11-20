@@ -1377,6 +1377,62 @@ async def search_shifts(
     return {"status": "ok", "shifts": shifts, "total": len(shifts)}
 
 
+
+@app.get("/api/admin/pending_shifts")
+async def get_pending_shifts(payload: dict = Depends(verify_admin)):
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT * FROM shifts WHERE status='pending' ORDER BY date DESC") as cursor:
+            rows = await cursor.fetchall()
+    result = []
+    for r in rows:
+        work_val = None
+        if not r[12]:
+            try:
+                w, _ = await calculate_work_logic(r[5], r[3], r[4], r[6], r[8], r[9], r[15] if len(r)>15 else 0, r[16] if len(r)>16 else 0)
+                work_val = w
+            except: pass
+        
+        # گرفتن اطلاعات شیفت قبلی
+        prev_info = None
+        try:
+            immediate_prev = await get_immediate_previous_shift(r[5], r[3], r[4])
+            if immediate_prev:
+                prev_work = None
+                if not immediate_prev[12]:
+                    try:
+                        pw, _ = await calculate_work_logic(immediate_prev[5], immediate_prev[3], immediate_prev[4], immediate_prev[6], immediate_prev[8], immediate_prev[9], immediate_prev[15] if len(immediate_prev)>15 else 0, immediate_prev[16] if len(immediate_prev)>16 else 0)
+                        prev_work = pw
+                    except: pass
+                prev_info = {
+                    "date": immediate_prev[3],
+                    "shift_type": immediate_prev[4],
+                    "counter": immediate_prev[6],
+                    "design": immediate_prev[7],
+                    "set_num": immediate_prev[8],
+                    "parts": immediate_prev[9],
+                    "status": immediate_prev[11],
+                    "work": prev_work,
+                    "zero_reason": immediate_prev[12]
+                }
+        except Exception as e:
+            print("Error getting prev info:", e)
+
+        try: rank = await get_set_monthly_rank(r[5], r[3])
+        except: rank = 1
+        try: day_n = get_day_name(r[3])
+        except: day_n = ""
+        
+        result.append({
+            "id": r[0], "op_name": r[2], "date": r[3], "day_name": day_n,
+            "shift": r[4], "machine": r[5], "counter": r[6], "design": r[7],
+            "set_num": r[8], "parts": r[9], "photo": r[10], "status": r[11],
+            "zero_reason": r[12], "zero_note": r[14] if len(r)>14 else "",
+            "work": work_val, "potential_bonus": r[15] if len(r)>15 else 0,
+            "is_chador": r[16] if len(r)>16 else 0, "chador_count": r[17] if len(r)>17 else 0,
+            "monthly_set_rank": rank, "prev_info": prev_info
+        })
+    return {"status": "ok", "shifts": result}
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     response = FileResponse("static/index.html")
