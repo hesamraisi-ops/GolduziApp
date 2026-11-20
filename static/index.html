@@ -387,7 +387,7 @@
             </select>
 
             <label>چرخ</label>
-            <select id="manMachine" required onchange="handleManMachineChange()"></select>
+            <select id="manMachine" required onchange="handleManMachineChange(true)"></select>
 
             <label>تاریخ (برای تقویم کلیک کنید)</label>
             <input type="text" id="manDate" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="triggerManFetch(false)">
@@ -1623,18 +1623,19 @@
 
         async function loadAdminUsersAndMachines() {
             try {
-                const resMach = await fetch('http://185.222.163.15:8000/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resMach = await fetch('/api/machines', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataMach = await resMach.json();
                 const manMachineSelect = document.getElementById('manMachine');
                 if(manMachineSelect) manMachineSelect.innerHTML = dataMach.machines.map(m => `<option value="${m}">${toPersianDigits(m)}</option>`).join('');
 
-                const resUsers = await fetch('http://185.222.163.15:8000/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resUsers = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataUsers = await resUsers.json();
                 
                 window.allOperators = dataUsers.users.filter(u => u.role === 'operator');
                 
-                handleManMachineChange();
-                triggerManFetch();
+                // با true صدا می‌زنیم تا حتماً تاریخ پیشنهادی از سرور گرفته شود
+                handleManMachineChange(true); 
+                triggerManFetch(true); 
             } catch(e) { console.error(e); }
         }
 
@@ -2900,41 +2901,7 @@
     </script>
 
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let attempts = 0;
-            const interval = setInterval(() => {
-                attempts++;
-                let filled = false;
-                
-                if (typeof persianDate !== 'undefined') {
-                    const today = new persianDate();
-                    const y = today.year();
-                    const m = String(today.month()).padStart(2, '0');
-                    const d = String(today.date()).padStart(2, '0');
-                    const persianToday = `${y}-${m}-${d}`;
-
-                    const dateInput = document.getElementById('date');
-                    if (dateInput && !dateInput.value && dateInput.offsetParent !== null) {
-                        dateInput.value = toPersianDigits(persianToday);
-                        try { $('#date').persianDatepicker('setDate', persianToday); } catch(e){}
-                        filled = true;
-                    }
-                    
-                    const manDateInput = document.getElementById('manDate');
-                    if (manDateInput && !manDateInput.value && manDateInput.offsetParent !== null) {
-                        manDateInput.value = toPersianDigits(persianToday);
-                        try { $('#manDate').persianDatepicker('setDate', persianToday); } catch(e){}
-                        filled = true;
-                    }
-                }
-                
-                if (filled || attempts > 10) {
-                    clearInterval(interval); // وقتی پر شد یا ۱۰ بار تلاش کرد، متوقف شو
-                }
-            }, 500);
-        });
-    </script>
+    
 
 
 <!-- Toast Notifications & Auto Date: 1795200714 -->
@@ -2942,6 +2909,8 @@
 <!-- Prev Shift Display: 1795201320 -->
 
 <!-- Fix Admin Date: 1795201853 -->
+
+<!-- Fix Manual Date Logic: 1795202504 -->
 </body>
 </html>
 
