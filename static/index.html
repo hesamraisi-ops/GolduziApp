@@ -1501,25 +1501,33 @@
             
             try {
                 const res = await fetch('http://185.222.163.15:8000/api/admin/pending_shifts', { headers: { 'Authorization': `Bearer ${authToken}` } });
-                if (!res.ok) throw new Error("HTTP Error " + res.status);
+                if (!res.ok) throw new Error("خطای سرور: " + res.status);
                 const data = await res.json();
                 
-                // اگر API لیست را برگرداند، ادامه بده
+                div.innerHTML = '';
                 if (!data.shifts || data.shifts.length === 0) {
                     div.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding: 20px;">هیچ کارکردی در انتظار تایید نیست.</p>';
                     return;
                 }
-                // (بقیه کدهای رندر کردن در کد اصلی وجود دارد که در نسخه بعدی با آن کار می‌کنیم)
-                // برای جلوگیری از تداخل، فقط کدهای اصلی را صدا می‌زنیم اگر وجود داشتند.
-                if (typeof renderPendingShifts === 'function') {
-                     renderPendingShifts(data.shifts);
-                } else {
-                     // رندر ساده به عنوان فال‌بک
-                     div.innerHTML = `<p style="text-align:center; color:green;">${data.shifts.length} کارکرد دریافت شد (رندر در نسخه بعدی).</p>`;
-                }
+                
+                data.shifts.forEach(s => {
+                    let content = "", bonusHtml = "";
+                    if (s.zero_reason) {
+                        content = `<div style="font-size:14px; line-height: 1.6; color:#c0392b;">چرخ: <strong>${toPersianDigits(s.machine)}</strong><br>⚠️ ثبت کارکرد صفر: <strong>${s.zero_reason}</strong><br>توضیحات: ${s.zero_note || 'ندارد'}</div>`;
+                    } else {
+                        if (s.potential_bonus > 0) {
+                            bonusHtml = `<div style="margin-top:10px; background:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba;"><label style="display:flex; align-items:center; cursor:pointer; margin:0; color:#856404;"><input type="checkbox" id="bonus_${s.id}" checked style="width:20px; height:20px; margin-left:10px; margin-bottom:0;">اعمال پاداش (تایید ست جدید)</label></div>`;
+                        }
+                        let workHtml = s.is_chador ? `<br>کارکرد: <strong style="color:#2980b9;">🧵 دوخت چادر: ${toPersianDigits(s.chador_count)} عدد</strong>` : 
+                            (s.work !== null ? `<br>کارکرد: <strong style="color:#2ecc71;">${formatNum(s.work)}</strong>` : '<br>کارکرد: <strong style="color:#e74c3c;">نامشخص</strong>');
+                        
+                        content = `<div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_num)}<br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${bonusHtml}`;
+                    }
+                    div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('http://185.222.163.15:8000/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
+                });
             } catch(e) {
                 console.error(e);
-                if(div) div.innerHTML = `<p style="text-align:center; color:#e74c3c; padding: 20px;">خطا در دریافت لیست تایید: ${e.message}</p>`;
+                if(div) div.innerHTML = `<p style="text-align:center; color:#e74c3c; padding: 20px;">خطا در دریافت لیست: ${e.message}</p>`;
             }
         }
 
@@ -2790,6 +2798,34 @@
 <!-- Fix Submit: 1795108815 -->
 
 <!-- Fix Lists and Date: 1795197392 -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // تنظیم تاریخ برای فرم اپراتور
+            setTimeout(() => {
+                const dateInput = document.getElementById('date');
+                if (dateInput && !dateInput.value) {
+                    const today = new Date();
+                    const y = today.getFullYear();
+                    const m = String(today.getMonth() + 1).padStart(2, '0');
+                    const d = String(today.getDate()).padStart(2, '0');
+                    dateInput.value = toPersianDigits(`${y}-${m}-${d}`);
+                }
+                // تنظیم تاریخ برای فرم ثبت دستی مدیر
+                const manDateInput = document.getElementById('manDate');
+                if (manDateInput && !manDateInput.value) {
+                    const today = new Date();
+                    const y = today.getFullYear();
+                    const m = String(today.getMonth() + 1).padStart(2, '0');
+                    const d = String(today.getDate()).padStart(2, '0');
+                    manDateInput.value = toPersianDigits(`${y}-${m}-${d}`);
+                }
+            }, 1000); // ۱ ثانیه بعد از لود
+        });
+    </script>
+
+
+<!-- Ultimate Frontend Fix: 1795197412 -->
 </body>
 </html>
 
