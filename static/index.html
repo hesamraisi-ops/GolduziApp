@@ -381,7 +381,7 @@
 
         <form id="manualForm">
             <label>شیفت</label>
-            <select id="manShift" required onchange="triggerManFetch()">
+            <select id="manShift" required onchange="triggerManFetch(true)">
                 <option value="صبح">صبح</option>
                 <option value="شب">شب</option>
             </select>
@@ -390,7 +390,7 @@
             <select id="manMachine" required onchange="handleManMachineChange()"></select>
 
             <label>تاریخ (برای تقویم کلیک کنید)</label>
-            <input type="text" id="manDate" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="triggerManFetch()">
+            <input type="text" id="manDate" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="triggerManFetch(false)">
             <button type="button" class="today-btn" onclick="setManTodayDate()">📅 درج سریع تاریخ امروز</button>
             
             <div class="zero-checkbox" id="manZeroCheckboxContainer">
@@ -1638,24 +1638,32 @@
             } catch(e) { console.error(e); }
         }
 
-        async function triggerManFetch() {
+        async function triggerManFetch(forceDateUpdate = false) {
             const shift = document.getElementById('manShift').value;
             const machine = document.getElementById('manMachine').value;
             let date = toEnglishDigits(document.getElementById('manDate').value);
             
-            let opId;
-            if (editingAdminShiftId && window.currentEditingOpId) {
-                opId = window.currentEditingOpId;
-            } else {
-                const op = window.allOperators ? window.allOperators.find(u => u.shift_type === shift) : null;
-                opId = op ? op.id : null;
-            }
+            // پیدا کردن اپراتور بر اساس شیفت انتخاب شده
+            const op = window.allOperators ? window.allOperators.find(u => u.shift_type === shift) : null;
+            const opId = op ? op.id : null;
             
             if (!opId || !shift || !machine) return;
 
+            // اگر چرخ یا شیفت عوض شد (forceDateUpdate=true) یا تاریخ خالی بود، تاریخ پیشنهادی را بگیر
+            if (forceDateUpdate || !date) {
+                try {
+                    const resSug = await fetch(`/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                    const dataSug = await resSug.json();
+                    if (dataSug.date) {
+                        date = dataSug.date;
+                        document.getElementById('manDate').value = toPersianDigits(date);
+                        $('#manDate').persianDatepicker('setDate', date);
+                    }
+                } catch(e) { console.error("Error fetching suggested date:", e); }
+            }
+
             try {
-                const excludeParam = editingAdminShiftId ? `&exclude_shift_id=${editingAdminShiftId}` : '';
-                const res = await fetch(`http://185.222.163.15:8000/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}${excludeParam}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const res = await fetch(`/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
                 const alertBox = document.getElementById('manCheckShiftAlert');
                 const btn = document.getElementById('manSubmitBtn');
@@ -1671,7 +1679,7 @@
             } catch(e) {}
 
             try {
-                const resLast = await fetch(`http://185.222.163.15:8000/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resLast = await fetch(`/api/operator/last_shifts?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataLast = await resLast.json();
                 const divLast = document.getElementById('manLastShiftDisplay');
                 let htmlLast = '';
@@ -1707,7 +1715,7 @@
                 }
                 divLast.innerHTML = htmlLast;
 
-                const resPrev = await fetch(`http://185.222.163.15:8000/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                const resPrev = await fetch(`/api/operator/immediate_prev_info?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const dataPrev = await resPrev.json();
                 const divPrev = document.getElementById('manImmediatePrevDisplay');
                 if (dataPrev.exists) {
@@ -1734,19 +1742,10 @@
                             <div style="font-weight:bold; color:#c0392b; font-size:14px; text-align:center;">⚠️ ${missingText}</div>
                         </div>`;
                 }
-                
-                if (!date) {
-                    const resSug = await fetch(`http://185.222.163.15:8000/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
-                    const dataSug = await resSug.json();
-                    if (dataSug.date) {
-                        document.getElementById('manDate').value = toPersianDigits(dataSug.date);
-                        $('#manDate').persianDatepicker('setDate', dataSug.date);
-                    }
-                }
             } catch(e) { console.error(e); }
         }
 
-        function handleManMachineChange() {
+        function handleManMachineChange(forceUpdate = false) {
             const mach = document.getElementById('manMachine').value;
             if (mach.includes('چادر')) {
                 document.getElementById('manChadorCheckboxContainer').style.display = 'flex';
@@ -1755,7 +1754,7 @@
                 document.getElementById('manIsChadorWork').checked = false;
                 toggleManChadorMode();
             }
-            triggerManFetch();
+            triggerManFetch(forceUpdate);
         }
 
         function toggleManChadorMode() {
@@ -2941,6 +2940,8 @@
 <!-- Toast Notifications & Auto Date: 1795200714 -->
 
 <!-- Prev Shift Display: 1795201320 -->
+
+<!-- Fix Admin Date: 1795201853 -->
 </body>
 </html>
 
