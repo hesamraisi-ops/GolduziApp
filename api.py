@@ -724,8 +724,9 @@ async def get_immediate_prev_info(date: str, machine: str, shift_type: str, targ
     return {"exists": False, "expected_date": expected_date, "expected_shift": expected_shift}
 
 @app.get("/api/operator/suggest_date")
-async def suggest_date(machine: Optional[str] = None, target_operator_id: Optional[int] = None, target_shift_type: Optional[str] = None, payload: dict = Depends(verify_token)):
-    op_id = target_operator_id if target_operator_id else int(payload["sub"])
+async def suggest_date(machine: Optional[str] = None, target_operator_id: Optional[str] = None, target_shift_type: Optional[str] = None, payload: dict = Depends(verify_token)):
+    # تبدیل آیدی به عدد برای جلوگیری از خطا در دیتابیس
+    op_id = int(target_operator_id) if target_operator_id else int(payload["sub"])
     shift = target_shift_type if target_shift_type else payload.get("shift_type")
     
     async with aiosqlite.connect(DB_NAME) as db:

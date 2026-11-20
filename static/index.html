@@ -387,7 +387,7 @@
             </select>
 
             <label>چرخ</label>
-            <select id="manMachine" required onchange="handleManMachineChange(true)"></select>
+            <select id="manMachine" required onchange="triggerManFetch(true)"></select>
 
             <label>تاریخ (برای تقویم کلیک کنید)</label>
             <input type="text" id="manDate" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="triggerManFetch(false)">
@@ -1633,8 +1633,7 @@
                 
                 window.allOperators = dataUsers.users.filter(u => u.role === 'operator');
                 
-                // با true صدا می‌زنیم تا حتماً تاریخ پیشنهادی از سرور گرفته شود
-                handleManMachineChange(true); 
+                // صدا زدن با true برای گرفتن تاریخ درست
                 triggerManFetch(true); 
             } catch(e) { console.error(e); }
         }
@@ -1644,13 +1643,12 @@
             const machine = document.getElementById('manMachine').value;
             let date = toEnglishDigits(document.getElementById('manDate').value);
             
-            // پیدا کردن اپراتور بر اساس شیفت انتخاب شده
             const op = window.allOperators ? window.allOperators.find(u => u.shift_type === shift) : null;
             const opId = op ? op.id : null;
             
             if (!opId || !shift || !machine) return;
 
-            // اگر چرخ یا شیفت عوض شد (forceDateUpdate=true) یا تاریخ خالی بود، تاریخ پیشنهادی را بگیر
+            // اگر چرخ یا شیفت عوض شد یا تاریخ خالی بود، تاریخ را از سرور بگیر
             if (forceDateUpdate || !date) {
                 try {
                     const resSug = await fetch(`/api/operator/suggest_date?machine=${encodeURIComponent(machine)}&target_operator_id=${opId}&target_shift_type=${shift}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
@@ -1658,11 +1656,12 @@
                     if (dataSug.date) {
                         date = dataSug.date;
                         document.getElementById('manDate').value = toPersianDigits(date);
-                        $('#manDate').persianDatepicker('setDate', date);
+                        try { $('#manDate').persianDatepicker('setDate', date); } catch(e){}
                     }
                 } catch(e) { console.error("Error fetching suggested date:", e); }
             }
 
+            // بقیه کدها برای آپدیت باکس‌های اطلاعاتی
             try {
                 const res = await fetch(`/api/operator/check_shift?date=${date}&machine=${encodeURIComponent(machine)}&shift_type=${shift}&target_operator_id=${opId}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await res.json();
@@ -2911,6 +2910,8 @@
 <!-- Fix Admin Date: 1795201853 -->
 
 <!-- Fix Manual Date Logic: 1795202504 -->
+
+<!-- Ultimate Date Fix: 1795203364 -->
 </body>
 </html>
 
