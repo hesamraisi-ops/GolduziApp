@@ -490,7 +490,22 @@
         </div>
 
         <div class="card">
-            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">قیمت هر سوزن (تومان):</label>
+            
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:12px; margin-bottom:5px; display:block;">حداقل کارکرد روزانه (سوزن):</label>
+                    <input type="text" id="minDailyInput" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right;">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-weight:bold; font-size:12px; margin-bottom:5px; display:block;">حداقل کارکرد هفتگی (سوزن):</label>
+                    <input type="text" id="minWeeklyInput" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right;">
+                </div>
+            </div>
+            <div style="margin-bottom:15px;">
+                <label style="font-weight:bold; font-size:12px; margin-bottom:5px; display:block;">حداقل کارکرد ماهانه (سوزن):</label>
+                <input type="text" id="minMonthlyInput" oninput="formatCounterInput(this)" dir="ltr" style="text-align:right;">
+            </div>
+    <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">قیمت هر سوزن (تومان):</label>
             <input type="text" id="pricePerStitch" placeholder="مثلا ۳.۸۴۶" oninput="formatDecimalInput(this)" dir="ltr" style="text-align:right; font-size:18px; margin-bottom:15px;">
             
             <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">نرخ هر چادر (تومان):</label>
@@ -1556,54 +1571,72 @@
                     div.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding: 20px;">هیچ کارکردی در انتظار تایید نیست.</p>';
                     return;
                 }
+
+                const machSelect = document.getElementById('admFilterMachine');
+                const shiftSelect = document.getElementById('admFilterShift');
                 
-                data.shifts.forEach(s => {
+                // پر کردن لیست چرخ‌ها
+                let machines = new Set();
+                data.shifts.forEach(s => machines.add(s.machine));
+                let currentMach = machSelect.value;
+                let opts = '<option value="all">همه چرخ‌ها</option>';
+                machines.forEach(m => opts += `<option value="${m}">${toPersianDigits(m)}</option>`);
+                machSelect.innerHTML = opts;
+                if (machSelect.querySelector(`option[value="${currentMach}"]`)) machSelect.value = currentMach;
+
+                // فیلتر کردن
+                let filteredShifts = data.shifts.filter(s => {
+                    let matchMach = (machSelect.value === 'all' || s.machine === machSelect.value);
+                    let matchShift = (shiftSelect.value === 'all' || s.shift === shiftSelect.value);
+                    return matchMach && matchShift;
+                });
+
+                // مرتب‌سازی
+                const sortOrder = document.getElementById('admSortOrder').value;
+                const cleanD = (d) => d.toString().replace(/[۰-۹]/g, x => '۰۱۲۳۴۵۶۷۸۹'.indexOf(x)).replace(/\//g, '-');
+                filteredShifts.sort((a, b) => {
+                    let dateA = cleanD(a.date); let dateB = cleanD(b.date);
+                    if (dateA !== dateB) return sortOrder === 'desc' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
+                    let shiftA = a.shift === 'شب' ? 2 : 1; let shiftB = b.shift === 'شب' ? 2 : 1;
+                    return sortOrder === 'desc' ? shiftB - shiftA : shiftA - shiftB;
+                });
+
+                if (filteredShifts.length === 0) {
+                    div.innerHTML = '<p style="text-align:center;">هیچ کارکردی با این فیلتر یافت نشد.</p>';
+                    return;
+                }
+                
+                filteredShifts.forEach(s => {
                     let content = "", bonusHtml = "";
-                    
-                    // نمایش اطلاعات شیفت قبلی
                     let prevHtml = "";
                     if (s.prev_info) {
                         let prevWorkText = s.prev_info.work !== null ? formatNum(s.prev_info.work) : 'نامشخص';
                         let statusText = s.prev_info.status !== 'approved' ? '<span style="color:#e74c3c; font-weight:bold;">(تایید نشده)</span>' : '';
-                        
                         if (s.prev_info.zero_reason) {
-                            prevHtml = `<div style="margin-top:10px; padding:10px; background:#fff3cd; border-radius:5px; font-size:12px; color:#856404;">
-                                <strong>شیفت قبلی (${s.prev_info.shift_type}):</strong> ${statusText}<br>
-                                ⚠️ کارکرد صفر: ${s.prev_info.zero_reason}
-                            </div>`;
+                            prevHtml = `<div style="margin-top:10px; padding:10px; background:#fff3cd; border-radius:5px; font-size:12px; color:#856404;"><strong>شیفت قبلی (${s.prev_info.shift_type}):</strong> ${statusText}<br>⚠️ کارکرد صفر: ${s.prev_info.zero_reason}</div>`;
                         } else {
-                            prevHtml = `<div style="margin-top:10px; padding:10px; background:#f4f6f7; border-radius:5px; font-size:12px; color:#2c3e50; border:1px solid #bdc3c7;">
-                                <strong>شیفت قبلی (${s.prev_info.shift_type}):</strong> ${statusText}<br>
-                                شمارنده: ${formatNum(s.prev_info.counter)} | طرح: ${toPersianDigits(s.prev_info.design)} | ست: ${toPersianDigits(s.prev_info.set_num)}<br>
-                                تکه‌ها: ${s.prev_info.parts || 'ثبت نشده'}<br>
-                                کارکرد محاسبه شده: <strong style="color:#2980b9;">${prevWorkText}</strong>
-                            </div>`;
+                            prevHtml = `<div style="margin-top:10px; padding:10px; background:#f4f6f7; border-radius:5px; font-size:12px; color:#2c3e50; border:1px solid #bdc3c7;"><strong>شیفت قبلی (${s.prev_info.shift_type}):</strong> ${statusText}<br>شمارنده: ${formatNum(s.prev_info.counter)} | طرح: ${toPersianDigits(s.prev_info.design)} | ست: ${toPersianDigits(s.prev_info.set_num)}<br>تکه‌ها: ${s.prev_info.parts || 'ثبت نشده'}<br>کارکرد محاسبه شده: <strong style="color:#2980b9;">${prevWorkText}</strong></div>`;
                         }
                     }
 
                     if (s.zero_reason) {
-                        content = `<div style="font-size:14px; line-height: 1.6; color:#c0392b;">چرخ: <strong style="color:#2980b9; font-size:16px;">${toPersianDigits(s.machine)}</strong><br>⚠️ ثبت کارکرد صفر: <strong>${s.zero_reason}</strong><br>توضیحات: ${s.zero_note || 'ندارد'}</div>`;
+                        content = `<div style="font-size:14px; line-height: 1.6; color:#c0392b;">چرخ: <strong>${toPersianDigits(s.machine)}</strong><br>⚠️ ثبت کارکرد صفر: <strong>${s.zero_reason}</strong><br>توضیحات: ${s.zero_note || 'ندارد'}</div>`;
                     } else {
                         if (s.potential_bonus > 0) {
                             bonusHtml = `<div style="margin-top:10px; background:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba;"><label style="display:flex; align-items:center; cursor:pointer; margin:0; color:#856404;"><input type="checkbox" id="bonus_${s.id}" checked style="width:20px; height:20px; margin-left:10px; margin-bottom:0;">اعمال پاداش (تایید ست جدید)</label></div>`;
                         }
                         let workHtml = s.is_chador ? `<br>کارکرد: <strong style="color:#2980b9;">🧵 دوخت چادر: ${toPersianDigits(s.chador_count)} عدد</strong>` : 
                             (s.work !== null ? `<br>کارکرد: <strong style="color:#2ecc71;">${formatNum(s.work)}</strong>` : '<br>کارکرد: <strong style="color:#e74c3c;">نامشخص</strong>');
-                        
-                        // نمایش عکس
                         let imgHtml = "";
                         if (s.photo) {
                             const photoSrc = s.photo.startsWith('http') ? s.photo : 'http://185.222.163.15:8000/' + s.photo;
                             imgHtml = `<img class="card-img" src="${photoSrc}" onclick="showImageZoom('${photoSrc}')" style="cursor:pointer; max-height:200px; object-fit:contain; width:100%; border-radius:8px; margin-bottom:10px; background:#000;">`;
                         }
-
-                        content = `${imgHtml}<div style="font-size:14px; line-height: 1.6;">چرخ: <strong style="color:#2980b9; font-size:16px;">${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_num)}<br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${prevHtml}${bonusHtml}`;
+                        content = `${imgHtml}<div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_num)}<br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${prevHtml}${bonusHtml}`;
                     }
-                    
                     div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
                 });
             } catch(e) {
-                console.error(e);
                 if(div) div.innerHTML = `<p style="text-align:center; color:#e74c3c; padding: 20px;">خطا در دریافت لیست: ${e.message}</p>`;
             }
         }
@@ -1994,7 +2027,13 @@
                     const canSee = userRole === 'admin' || (data.show_salary && (!isOpposite || data.show_opposite_salary));
                     
                     html += `<div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">`;
-                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>`;
+                    let minDailyStr = data.min_daily ? formatNum(data.min_daily) : 'نامشخص';
+                    let minWeeklyStr = data.min_weekly ? formatNum(data.min_weekly) : 'نامشخص';
+                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>
+                    <div style="font-size:12px; color:#d35400; margin-bottom:10px; background:#fff3cd; padding:5px; border-radius:5px;">
+                        <div>⚠️ حداقل کارکرد روزانه: <strong>${minDailyStr} سوزن</strong></div>
+                        <div>⚠️ حداقل کارکرد هفتگی: <strong>${minWeeklyStr} سوزن</strong></div>
+                    </div>`;
                     
                     for (const [mach, work] of Object.entries(machines)) {
                         let chadorText = "";
@@ -2058,6 +2097,22 @@
                 html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;">
                     <span>جمع کل:</span>
                     <span>${formatNum(data.total_all)} سوزن</span>
+                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:14px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;">
+                    <span>حداقل کارکرد روزانه (دو شیفت):</span>
+                    <span>${formatNum((data.min_daily || 300000) * 2)} سوزن</span>
+                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:14px; color:#d35400;">
+                    <span>حداقل کارکرد هفتگی (دو شیفت):</span>
+                    <span>${formatNum((data.min_weekly || 1800000) * 2)} سوزن</span>
+                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:14px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;">
+                    <span>حداقل کارکرد روزانه (دو شیفت):</span>
+                    <span>${formatNum((data.min_daily || 300000) * 2)} سوزن</span>
+                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:14px; color:#d35400;">
+                    <span>حداقل کارکرد ماهانه (دو شیفت):</span>
+                    <span>${formatNum((data.min_monthly || 7800000) * 2)} سوزن</span>
                 </div>`;
                 if (data.total_salary && data.show_salary) {
                     html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;">
@@ -2140,7 +2195,13 @@
                     const canSee = userRole === 'admin' || (data.show_salary && (!isOpposite || data.show_opposite_salary));
                     
                     html += `<div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">`;
-                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>`;
+                    let minDailyStr = data.min_daily ? formatNum(data.min_daily) : 'نامشخص';
+                    let minWeeklyStr = data.min_weekly ? formatNum(data.min_weekly) : 'نامشخص';
+                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>
+                    <div style="font-size:12px; color:#d35400; margin-bottom:10px; background:#fff3cd; padding:5px; border-radius:5px;">
+                        <div>⚠️ حداقل کارکرد روزانه: <strong>${minDailyStr} سوزن</strong></div>
+                        <div>⚠️ حداقل کارکرد هفتگی: <strong>${minWeeklyStr} سوزن</strong></div>
+                    </div>`;
                     
                     for (const [mach, work] of Object.entries(machines)) {
                         let chadorText = "";
@@ -2218,6 +2279,22 @@
                     <span>جمع کل:</span>
                     <span>${formatNum(data.total_all)} سوزن</span>
                 </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:14px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;">
+                    <span>حداقل کارکرد روزانه (دو شیفت):</span>
+                    <span>${formatNum((data.min_daily || 300000) * 2)} سوزن</span>
+                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:14px; color:#d35400;">
+                    <span>حداقل کارکرد هفتگی (دو شیفت):</span>
+                    <span>${formatNum((data.min_weekly || 1800000) * 2)} سوزن</span>
+                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:14px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;">
+                    <span>حداقل کارکرد روزانه (دو شیفت):</span>
+                    <span>${formatNum((data.min_daily || 300000) * 2)} سوزن</span>
+                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:14px; color:#d35400;">
+                    <span>حداقل کارکرد ماهانه (دو شیفت):</span>
+                    <span>${formatNum((data.min_monthly || 7800000) * 2)} سوزن</span>
+                </div>`;
                 if (data.total_salary && data.show_salary) {
                     html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;">
                         <span>💰 مجموع حقوق کل:</span>
@@ -2277,6 +2354,9 @@
                 document.getElementById('pricePerChador').value = data.chador_price ? formatNum(data.chador_price) : '';
                 document.getElementById('showSalaryToOp').checked = data.show_salary;
                 document.getElementById('showOppositeSalaryToOp').checked = data.show_opposite_salary;
+                if(document.getElementById('minDailyInput')) document.getElementById('minDailyInput').value = data.min_daily ? formatNum(data.min_daily) : '300,000';
+                if(document.getElementById('minWeeklyInput')) document.getElementById('minWeeklyInput').value = data.min_weekly ? formatNum(data.min_weekly) : '1,800,000';
+                if(document.getElementById('minMonthlyInput')) document.getElementById('minMonthlyInput').value = data.min_monthly ? formatNum(data.min_monthly) : '7,800,000';
             } catch(e) { console.error(e); }
         }
 
@@ -2924,6 +3004,8 @@
 <!-- Ultimate Date Fix: 1795203364 -->
 
 <!-- UI Fixes: 1795286121 -->
+
+<!-- Limits and Filters Fix: 1795287839 -->
 </body>
 </html>
 

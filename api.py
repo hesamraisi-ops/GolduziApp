@@ -79,6 +79,12 @@ async def init_db():
         try: await db.execute("ALTER TABLE monthly_prices ADD COLUMN chador_price REAL DEFAULT 0;")
         except: pass
         try: await db.execute("ALTER TABLE monthly_prices ADD COLUMN show_opposite_salary INTEGER DEFAULT 0;")
+        try: await db.execute("ALTER TABLE monthly_prices ADD COLUMN min_daily INTEGER DEFAULT 300000;")
+        except: pass
+        try: await db.execute("ALTER TABLE monthly_prices ADD COLUMN min_weekly INTEGER DEFAULT 1800000;")
+        except: pass
+        try: await db.execute("ALTER TABLE monthly_prices ADD COLUMN min_monthly INTEGER DEFAULT 7800000;")
+        except: pass
         except: pass
         
         await db.execute("INSERT OR IGNORE INTO machines (name, reset_period, start_counter) VALUES ('10 کله', 5000000, 0)")
@@ -498,7 +504,7 @@ async def get_duration_analysis(year: int, month: int, payload: dict = Depends(v
     end_str = jdatetime.date(year, month, days_in_month).strftime("%Y-%m-%d")
     
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT machine, design_code, set_number, COUNT(id) FROM shifts WHERE status='approved' AND zero_reason IS NULL AND is_chador=0 AND machine NOT LIKE '%چادر%' AND date >= ? AND date <= ? GROUP BY machine, design_code, set_number", (start_str, end_str)) as cursor:
+        async with db.execute("SELECT machine, design_code, set_number, COUNT(id) FROM shifts WHERE status='approved' AND zero_reason IS NULL AND date >= ? AND date <= ? GROUP BY machine, design_code, set_number", (start_str, end_str)) as cursor:
             rows = await cursor.fetchall()
             
     stats = {}
@@ -947,15 +953,15 @@ async def get_weeks(year: int, month: int, payload: dict = Depends(verify_token)
 @app.get("/api/admin/salary_settings")
 async def get_salary_settings(year: int, month: int, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary FROM monthly_prices WHERE year=? AND month=?", (year, month)) as cursor:
+        async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary, min_daily, min_weekly, min_monthly FROM monthly_prices WHERE year=? AND month=?", (year, month)) as cursor:
             row = await cursor.fetchone()
-            if row: return {"price": row[0], "chador_price": row[1], "show_salary": bool(row[2]), "show_opposite_salary": bool(row[3])}
-    return {"price": 0, "chador_price": 0, "show_salary": False, "show_opposite_salary": False}
+            if row: return {"price": row[0], "chador_price": row[1], "show_salary": bool(row[2]), "show_opposite_salary": bool(row[3]), "min_daily": row[4], "min_weekly": row[5], "min_monthly": row[6]}
+    return {"price": 0, "chador_price": 0, "show_salary": False, "show_opposite_salary": False, "min_daily": 300000, "min_weekly": 1800000, "min_monthly": 7800000}
 
 @app.post("/api/admin/salary_settings")
-async def save_salary_settings(year: int, month: int, price: float, chador_price: float, show_salary: bool, show_opposite_salary: bool, payload: dict = Depends(verify_admin)):
+async def save_salary_settings(year: int, month: int, price: float, chador_price: float, show_salary: bool, show_opposite_salary: bool, min_daily: int = 300000, min_weekly: int = 1800000, min_monthly: int = 7800000, payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("INSERT OR REPLACE INTO monthly_prices (year, month, price, chador_price, show_salary, show_opposite_salary) VALUES (?, ?, ?, ?, ?, ?)", (year, month, price, chador_price, 1 if show_salary else 0, 1 if show_opposite_salary else 0))
+        await db.execute("INSERT OR REPLACE INTO monthly_prices (year, month, price, chador_price, show_salary, show_opposite_salary, min_daily, min_weekly, min_monthly) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (year, month, price, chador_price, 1 if show_salary else 0, 1 if show_opposite_salary else 0, min_daily, min_weekly, min_monthly))
         await db.commit()
     return {"status": "ok"}
 
@@ -1048,7 +1054,7 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
     
     is_admin = payload.get("role") == "admin"
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary FROM monthly_prices WHERE year=? AND month=?", (year, month)) as c:
+        async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary, min_daily, min_weekly FROM monthly_prices WHERE year=? AND month=?", (year, month)) as c:
             price_row = await c.fetchone()
         price = price_row[0] if price_row else 0
         chador_price = price_row[1] if price_row else 0
@@ -1156,7 +1162,7 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         for mach, total in machines.items():
             op_machine_averages[op_key][mach] = total // 6
         
-    return {"status": "ok", "week_title": week_title, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "chador_counts": chador_counts, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries}
+    return {"status": "ok", "week_title": week_title, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "min_daily": min_daily, "min_weekly": min_weekly, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "chador_counts": chador_counts, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries}
 
 @app.get("/api/reports/monthly")
 async def get_monthly_report(year: int, month: int, payload: dict = Depends(verify_token)):
@@ -1169,7 +1175,7 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
     
     is_admin = payload.get("role") == "admin"
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary FROM monthly_prices WHERE year=? AND month=?", (year, month)) as c:
+        async with db.execute("SELECT price, chador_price, show_salary, show_opposite_salary, min_daily, min_monthly FROM monthly_prices WHERE year=? AND month=?", (year, month)) as c:
             price_row = await c.fetchone()
         price = price_row[0] if price_row else 0
         chador_price = price_row[1] if price_row else 0
@@ -1319,7 +1325,7 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         for mach, total in machines.items():
             op_machine_averages[op_key][mach] = total // 26
         
-    return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "chador_counts": chador_counts, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials}
+    return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "min_daily": min_daily, "min_monthly": min_monthly, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "chador_counts": chador_counts, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials}
 
 @app.get("/api/admin/search_shifts")
 async def search_shifts(
