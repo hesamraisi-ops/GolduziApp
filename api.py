@@ -1100,6 +1100,7 @@ async def save_salary_settings(year: int, month: int, price: float, chador_price
         await db.commit()
     return {"status": "ok"}
 
+
 @app.get("/api/reports/weekly")
 async def get_weekly_report(year: int, month: int, week_num: int, payload: dict = Depends(verify_token)):
     month_names = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند']
@@ -1138,65 +1139,79 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         async with db.execute(query) as cursor: all_rows = await cursor.fetchall()
         
     rows = [r for r in all_rows if start_str <= clean_date(r[6]) <= end_str]
-    if not rows: return {"status": "empty", "week_title": week_title, "start_date": start_str, "end_date": end_str}
+    if not rows: return {"status": "empty", "week_title": week_title, "start_date": start_str, "end_date": end_str, "min_daily": min_daily, "min_weekly": min_weekly}
     
-    total_all = 0; total_salary = 0; machine_totals = {}; machine_days = {}; operator_shifts = {}; sets_by_machine = {}; chador_counts = {}
-    op_totals = {}; op_days = {}; op_machine_totals = {}; op_machine_days = {}; op_salaries = {}; op_machine_salaries = {}; chador_counts = {}; chador_salaries = {}; clothes_salaries = {}; chador_counts = {}; chador_salaries = {}; clothes_salaries = {}
+    total_all = 0; total_salary = 0; machine_totals = {}; machine_days = {}; operator_shifts = {}; sets_by_machine = {}
+    op_totals = {}; op_days = {}; op_machine_totals = {}; op_machine_days = {}; op_salaries = {}; op_machine_salaries = {}
+    chador_counts = {}; chador_salaries = {}; clothes_salaries = {}
     user_shift = payload.get("shift_type")
 
     for r in rows:
         op_name, shift, machine, counter, design, set_num, date, bonus, sid, parts, is_chador, chador_count, zero_reason = r
+        machine = machine or ""
         chador_count = chador_count or 0
+        is_chador = is_chador or 0
+        
         if zero_reason:
             work_val = 0
         else:
-            work_val, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
-            if work_val is None: work_val = 0
+            try:
+                w, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
+                work_val = w if w is not None else 0
+            except: work_val = 0
+            
         is_opposite = (shift != user_shift)
         can_see_salary = True
         if not is_admin:
             if not show_salary: can_see_salary = False
             if is_opposite and not show_opposite_salary: can_see_salary = False
-        is_chador_shift = ("چادر" in machine or is_chador)
+            
+        op_key = f"{shift} {op_name}"
+        is_chador_shift = ("چادر" in machine) or is_chador
+        
+        sal_val = 0
         if can_see_salary:
             if is_chador_shift:
-                sal_val = int(round(chador_count * chador_price))
+                sal_val = int(round(chador_count * (chador_price or 0)))
                 chador_salaries[op_key] = chador_salaries.get(op_key, 0) + sal_val
                 chador_counts[op_key] = chador_counts.get(op_key, 0) + chador_count
             else:
-                sal_val = int(round(work_val * price))
+                sal_val = int(round(work_val * (price or 0)))
                 clothes_salaries[op_key] = clothes_salaries.get(op_key, 0) + sal_val
-        else:
-            sal_val = 0
+
         total_all += work_val
         total_salary += sal_val
+        
         if machine not in machine_totals: machine_totals[machine] = 0
         machine_totals[machine] += work_val
         if work_val > 0:
             if machine not in machine_days: machine_days[machine] = set()
             machine_days[machine].add(clean_date(date))
-        op_key = f"{shift} {op_name}"
+            
         if op_key not in operator_shifts: operator_shifts[op_key] = {}
         if machine not in operator_shifts[op_key]: operator_shifts[op_key][machine] = 0
         operator_shifts[op_key][machine] += work_val
+        
         op_totals[op_key] = op_totals.get(op_key, 0) + work_val
         op_salaries[op_key] = op_salaries.get(op_key, 0) + sal_val
+        
         if work_val > 0:
             if op_key not in op_days: op_days[op_key] = set()
             op_days[op_key].add(clean_date(date))
+            
         if op_key not in op_machine_totals: op_machine_totals[op_key] = {}
         if machine not in op_machine_totals[op_key]: op_machine_totals[op_key][machine] = 0
         op_machine_totals[op_key][machine] += work_val
+        
         if op_key not in op_machine_salaries: op_machine_salaries[op_key] = {}
         if machine not in op_machine_salaries[op_key]: op_machine_salaries[op_key][machine] = 0
         op_machine_salaries[op_key][machine] += sal_val
+        
         if work_val > 0:
             if op_key not in op_machine_days: op_machine_days[op_key] = {}
             if machine not in op_machine_days[op_key]: op_machine_days[op_key][machine] = set()
             op_machine_days[op_key][machine].add(clean_date(date))
-        if "چادر" in machine or is_chador:
-            if op_key not in chador_counts: chador_counts[op_key] = 0
-            chador_counts[op_key] += chador_count
+            
         if machine not in sets_by_machine: sets_by_machine[machine] = {"list": [], "bonus_count": 0}
         if design and set_num: sets_by_machine[machine]["list"].append((str(design), str(set_num)))
         b_val = 0
@@ -1224,7 +1239,7 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         for mach, total in machines.items():
             op_machine_averages[op_key][mach] = total // 6
         
-    return {"status": "ok", "week_title": week_title, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "chador_counts": chador_counts, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "min_daily": min_daily, "min_weekly": min_weekly}
+    return {"status": "ok", "week_title": week_title, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "min_daily": min_daily, "min_weekly": min_weekly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries}
 
 @app.get("/api/reports/monthly")
 async def get_monthly_report(year: int, month: int, payload: dict = Depends(verify_token)):
@@ -1254,11 +1269,13 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
             machine_fin_rows = await c.fetchall()
             
     rows = [r for r in all_rows if start_str <= clean_date(r[6]) <= end_str]
-    if not rows: return {"status": "empty", "month_title": m_name}
+    if not rows: return {"status": "empty", "month_title": m_name, "min_daily": min_daily, "min_monthly": min_monthly}
     
-    total_all = 0; total_salary = 0; machine_totals = {}; machine_days = {}; operator_shifts = {}; sets_by_machine = {}; chador_counts = {}
-    op_totals = {}; op_days = {}; op_machine_totals = {}; op_machine_days = {}; op_salaries = {}; op_machine_salaries = {}; chador_counts = {}; chador_salaries = {}; clothes_salaries = {}; chador_counts = {}; chador_salaries = {}; clothes_salaries = {}
+    total_all = 0; total_salary = 0; machine_totals = {}; machine_days = {}; operator_shifts = {}; sets_by_machine = {}
+    op_totals = {}; op_days = {}; op_machine_totals = {}; op_machine_days = {}; op_salaries = {}; op_machine_salaries = {}
+    chador_counts = {}; chador_salaries = {}; clothes_salaries = {}
     user_shift = payload.get("shift_type")
+    
     shift_financials = {}
     for fr in shift_fin_rows:
         shift_financials[f"{fr[1]} {fr[0]}"] = {"reward": fr[2] or 0, "reward_title": fr[3], "penalty": fr[4] or 0, "penalty_title": fr[5]}
@@ -1270,57 +1287,70 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
 
     for r in rows:
         op_name, shift, machine, counter, design, set_num, date, bonus, sid, parts, is_chador, chador_count, zero_reason = r
+        machine = machine or ""
         chador_count = chador_count or 0
+        is_chador = is_chador or 0
+        
         if zero_reason:
             work_val = 0
         else:
-            work_val, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
-            if work_val is None: work_val = 0
+            try:
+                w, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
+                work_val = w if w is not None else 0
+            except: work_val = 0
+            
         is_opposite = (shift != user_shift)
         can_see_salary = True
         if not is_admin:
             if not show_salary: can_see_salary = False
             if is_opposite and not show_opposite_salary: can_see_salary = False
-        is_chador_shift = ("چادر" in machine or is_chador)
+            
+        op_key = f"{shift} {op_name}"
+        is_chador_shift = ("چادر" in machine) or is_chador
+        
+        sal_val = 0
         if can_see_salary:
             if is_chador_shift:
-                sal_val = int(round(chador_count * chador_price))
+                sal_val = int(round(chador_count * (chador_price or 0)))
                 chador_salaries[op_key] = chador_salaries.get(op_key, 0) + sal_val
                 chador_counts[op_key] = chador_counts.get(op_key, 0) + chador_count
             else:
-                sal_val = int(round(work_val * price))
+                sal_val = int(round(work_val * (price or 0)))
                 clothes_salaries[op_key] = clothes_salaries.get(op_key, 0) + sal_val
-        else:
-            sal_val = 0
+
         total_all += work_val
         total_salary += sal_val
+        
         if machine not in machine_totals: machine_totals[machine] = 0
         machine_totals[machine] += work_val
         if work_val > 0:
             if machine not in machine_days: machine_days[machine] = set()
             machine_days[machine].add(clean_date(date))
-        op_key = f"{shift} {op_name}"
+            
         if op_key not in operator_shifts: operator_shifts[op_key] = {}
         if machine not in operator_shifts[op_key]: operator_shifts[op_key][machine] = 0
         operator_shifts[op_key][machine] += work_val
+        
         op_totals[op_key] = op_totals.get(op_key, 0) + work_val
         op_salaries[op_key] = op_salaries.get(op_key, 0) + sal_val
+        
         if work_val > 0:
             if op_key not in op_days: op_days[op_key] = set()
             op_days[op_key].add(clean_date(date))
+            
         if op_key not in op_machine_totals: op_machine_totals[op_key] = {}
         if machine not in op_machine_totals[op_key]: op_machine_totals[op_key][machine] = 0
         op_machine_totals[op_key][machine] += work_val
+        
         if op_key not in op_machine_salaries: op_machine_salaries[op_key] = {}
         if machine not in op_machine_salaries[op_key]: op_machine_salaries[op_key][machine] = 0
         op_machine_salaries[op_key][machine] += sal_val
+        
         if work_val > 0:
             if op_key not in op_machine_days: op_machine_days[op_key] = {}
             if machine not in op_machine_days[op_key]: op_machine_days[op_key][machine] = set()
             op_machine_days[op_key][machine].add(clean_date(date))
-        if "چادر" in machine or is_chador:
-            if op_key not in chador_counts: chador_counts[op_key] = 0
-            chador_counts[op_key] += chador_count
+            
         if machine not in sets_by_machine: sets_by_machine[machine] = {"list": [], "bonus_count": 0}
         if design and set_num: sets_by_machine[machine]["list"].append((str(design), str(set_num)))
         b_val = 0
@@ -1377,7 +1407,7 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         for mach, total in machines.items():
             op_machine_averages[op_key][mach] = total // 26
         
-    return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "chador_counts": chador_counts, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials, "min_daily": min_daily, "min_monthly": min_monthly}
+    return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials, "min_daily": min_daily, "min_monthly": min_monthly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries}
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():

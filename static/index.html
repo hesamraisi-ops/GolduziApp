@@ -1787,7 +1787,7 @@
 
         function handleManMachineChange(forceUpdate = false) {
             const mach = document.getElementById('manMachine').value;
-            if (mach.includes('چادر')) {
+            if (mach && mach.includes('چادر')) {
                 document.getElementById('manChadorCheckboxContainer').style.display = 'flex';
             } else {
                 document.getElementById('manChadorCheckboxContainer').style.display = 'none';
@@ -3087,3 +3087,5 @@
 <!-- Chador Logic Fix: 1795290136 -->
 
 <!-- Chador Logic Fix: 1795290230 -->
+
+<!-- Fix 500 and Man Chador: 1795290743.1405842 -->
