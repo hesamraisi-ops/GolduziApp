@@ -493,23 +493,18 @@ async def update_machine(machine_name: str, data: UpdateMachineData, payload: di
 
 @app.get("/api/admin/duration_analysis")
 async def get_duration_analysis(year: int, month: int, payload: dict = Depends(verify_admin)):
-    # v16.6: duration analysis without shift separation
     start_str = f"{year}-{month:02d}-01"
     days_in_month = 31 if month <= 6 else (30 if month <= 11 else (29 if not jdatetime.date(year, 12, 1).isleap() else 30))
     end_str = jdatetime.date(year, month, days_in_month).strftime("%Y-%m-%d")
     
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT machine, design_code, set_number, COUNT(id), MIN(date), MAX(date) FROM shifts WHERE status='approved' AND zero_reason IS NULL AND is_chador=0 AND date >= ? AND date <= ? GROUP BY machine, design_code, set_number", (start_str, end_str)) as cursor:
+        async with db.execute("SELECT machine, design_code, set_number, COUNT(id) FROM shifts WHERE status='approved' AND zero_reason IS NULL AND is_chador=0 AND machine NOT LIKE '%چادر%' AND date >= ? AND date <= ? GROUP BY machine, design_code, set_number", (start_str, end_str)) as cursor:
             rows = await cursor.fetchall()
             
     stats = {}
     for r in rows:
-        mach, design, set_num, shifts, min_d, max_d = r
-        try:
-            y1, m1, d1 = map(int, min_d.split('-'))
-            y2, m2, d2 = map(int, max_d.split('-'))
-            days_taken = (jdatetime.date(y2, m2, d2) - jdatetime.date(y1, m1, d1)).days + 1
-        except: days_taken = 1
+        mach, design, set_num, shifts = r
+        days_taken = shifts / 2.0  # هر ۲ شیفت معادل ۱ روز است
         
         if mach not in stats: stats[mach] = {}
         if design not in stats[mach]: stats[mach][design] = {'shifts': 0, 'days': 0, 'sets': 0}
@@ -725,7 +720,6 @@ async def get_immediate_prev_info(date: str, machine: str, shift_type: str, targ
 
 @app.get("/api/operator/suggest_date")
 async def suggest_date(machine: Optional[str] = None, target_operator_id: Optional[str] = None, target_shift_type: Optional[str] = None, payload: dict = Depends(verify_token)):
-    # تبدیل آیدی به عدد برای جلوگیری از خطا در دیتابیس
     op_id = int(target_operator_id) if target_operator_id else int(payload["sub"])
     shift = target_shift_type if target_shift_type else payload.get("shift_type")
     
@@ -748,9 +742,19 @@ async def suggest_date(machine: Optional[str] = None, target_operator_id: Option
     if not valid_dates:
         return {"date": jdatetime.date.today().strftime("%Y-%m-%d")}
         
-    max_date = max(valid_dates)
-    next_date = max_date + jdatetime.timedelta(days=1)
+    valid_dates.sort()
+    today = jdatetime.date.today()
     
+    # پیدا کردن اولین روزی که در لیست نیست (جای خالی)
+    check_date = valid_dates[0]
+    while check_date <= today:
+        if check_date not in valid_dates:
+            if check_date.weekday() != 6: # اگر جمعه نبود
+                return {"date": check_date.strftime("%Y-%m-%d")}
+        check_date += jdatetime.timedelta(days=1)
+        
+    # اگر هیچ جای خالی تا امروز نبود، فردا را بده
+    next_date = max(valid_dates) + jdatetime.timedelta(days=1)
     while next_date.weekday() == 6:
         next_date += jdatetime.timedelta(days=1)
         
@@ -1051,7 +1055,8 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         show_salary = True if is_admin else (bool(price_row[2]) if price_row else False)
         show_opposite_salary = True if is_admin else (bool(price_row[3]) if price_row else False)
 
-        query = "SELECT operator_name, shift_type, machine, counter, design_code, set_number, date, jig_bonus, id, parts, is_chador, chador_count FROM shifts WHERE status='approved'"
+        # اضافه کردن zero_reason به کوئری
+        query = "SELECT operator_name, shift_type, machine, counter, design_code, set_number, date, jig_bonus, id, parts, is_chador, chador_count, zero_reason FROM shifts WHERE status='approved'"
         async with db.execute(query) as cursor: all_rows = await cursor.fetchall()
         
     rows = [r for r in all_rows if start_str <= clean_date(r[6]) <= end_str]
@@ -1062,9 +1067,15 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
     user_shift = payload.get("shift_type")
 
     for r in rows:
-        op_name, shift, machine, counter, design, set_num, date, bonus, sid, parts, is_chador, chador_count = r
-        work_val, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
-        if work_val is None: work_val = 0
+        op_name, shift, machine, counter, design, set_num, date, bonus, sid, parts, is_chador, chador_count, zero_reason = r
+        chador_count = chador_count or 0
+        
+        # اگر غیبت بود یا چرخ چادری بود، کارکرد صفر است
+        if zero_reason or is_chador or "چادر" in machine:
+            work_val = 0
+        else:
+            work_val, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
+            if work_val is None: work_val = 0
         
         is_opposite = (shift != user_shift)
         can_see_salary = True
@@ -1073,7 +1084,7 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
             if is_opposite and not show_opposite_salary: can_see_salary = False
             
         if can_see_salary:
-            base_sal = int(round(work_val * price)) if not is_chador else int(round(chador_count * chador_price))
+            base_sal = int(round(chador_count * chador_price)) if ("چادر" in machine or is_chador) else int(round(work_val * price))
             sal_val = base_sal
         else:
             sal_val = 0
@@ -1112,7 +1123,7 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
             if machine not in op_machine_days[op_key]: op_machine_days[op_key][machine] = set()
             op_machine_days[op_key][machine].add(clean_date(date))
             
-        if is_chador:
+        if "چادر" in machine or is_chador:
             if op_key not in chador_counts: chador_counts[op_key] = 0
             chador_counts[op_key] += chador_count
         if machine not in sets_by_machine: sets_by_machine[machine] = {"list": [], "bonus_count": 0}
@@ -1130,25 +1141,20 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         rank = await get_set_monthly_rank(machine, end_str)
         sets_summary.append({"machine": machine, "count": data["bonus_count"], "sets_list": unique_sets, "rank": rank})
         
+    # میانگین‌گیری بر مبنای ۶ روز (طبق درخواست شما)
     final_machine_totals = {}
     for mach, work in machine_totals.items():
-        d_cnt = len(machine_days.get(mach, []))
-        if d_cnt == 0: d_cnt = 1
-        final_machine_totals[mach] = {"total": work, "avg": work // d_cnt}
+        final_machine_totals[mach] = {"total": work, "avg": work // 6}
         
     operator_averages = {}
     for op_key, total in op_totals.items():
-        d_cnt = len(op_days.get(op_key, []))
-        if d_cnt == 0: d_cnt = 1
-        operator_averages[op_key] = total // d_cnt
+        operator_averages[op_key] = total // 6
         
     op_machine_averages = {}
     for op_key, machines in op_machine_totals.items():
         op_machine_averages[op_key] = {}
         for mach, total in machines.items():
-            d_cnt = len(op_machine_days.get(op_key, {}).get(mach, []))
-            if d_cnt == 0: d_cnt = 1
-            op_machine_averages[op_key][mach] = total // d_cnt
+            op_machine_averages[op_key][mach] = total // 6
         
     return {"status": "ok", "week_title": week_title, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "chador_counts": chador_counts, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries}
 
@@ -1170,12 +1176,11 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         show_salary = True if is_admin else (bool(price_row[2]) if price_row else False)
         show_opposite_salary = True if is_admin else (bool(price_row[3]) if price_row else False)
 
-        query = "SELECT operator_name, shift_type, machine, counter, design_code, set_number, date, jig_bonus, id, parts, is_chador, chador_count FROM shifts WHERE status='approved'"
+        query = "SELECT operator_name, shift_type, machine, counter, design_code, set_number, date, jig_bonus, id, parts, is_chador, chador_count, zero_reason FROM shifts WHERE status='approved'"
         async with db.execute(query) as cursor: all_rows = await cursor.fetchall()
         
         async with db.execute("SELECT operator_name, shift_type, reward, reward_title, penalty, penalty_title FROM monthly_shift_financials WHERE year=? AND month=?", (year, month)) as c:
             shift_fin_rows = await c.fetchall()
-            
         async with db.execute("SELECT operator_name, shift_type, machine, reward, reward_title, penalty, penalty_title FROM monthly_machine_financials WHERE year=? AND month=?", (year, month)) as c:
             machine_fin_rows = await c.fetchall()
             
@@ -1189,7 +1194,6 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
     shift_financials = {}
     for fr in shift_fin_rows:
         shift_financials[f"{fr[1]} {fr[0]}"] = {"reward": fr[2] or 0, "reward_title": fr[3], "penalty": fr[4] or 0, "penalty_title": fr[5]}
-        
     machine_financials = {}
     for mf in machine_fin_rows:
         key = f"{mf[1]} {mf[0]}"
@@ -1197,11 +1201,14 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         machine_financials[key][mf[2]] = {"reward": mf[3] or 0, "reward_title": mf[4], "penalty": mf[5] or 0, "penalty_title": mf[6]}
 
     for r in rows:
-        op_name, shift, machine, counter, design, set_num, date, bonus, sid, parts, is_chador, chador_count = r
+        op_name, shift, machine, counter, design, set_num, date, bonus, sid, parts, is_chador, chador_count, zero_reason = r
         chador_count = chador_count or 0
-        is_chador = is_chador or 0
-        work_val, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
-        if work_val is None: work_val = 0
+        
+        if zero_reason or is_chador or "چادر" in machine:
+            work_val = 0
+        else:
+            work_val, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
+            if work_val is None: work_val = 0
         
         is_opposite = (shift != user_shift)
         can_see_salary = True
@@ -1210,7 +1217,7 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
             if is_opposite and not show_opposite_salary: can_see_salary = False
             
         if can_see_salary:
-            base_sal = int(round(work_val * (price or 0))) if not is_chador else int(round(chador_count * (chador_price or 0)))
+            base_sal = int(round(chador_count * chador_price)) if ("چادر" in machine or is_chador) else int(round(work_val * price))
             sal_val = base_sal
         else:
             sal_val = 0
@@ -1249,7 +1256,7 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
             if machine not in op_machine_days[op_key]: op_machine_days[op_key][machine] = set()
             op_machine_days[op_key][machine].add(clean_date(date))
             
-        if is_chador:
+        if "چادر" in machine or is_chador:
             if op_key not in chador_counts: chador_counts[op_key] = 0
             chador_counts[op_key] += chador_count
         if machine not in sets_by_machine: sets_by_machine[machine] = {"list": [], "bonus_count": 0}
@@ -1267,9 +1274,7 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         if not is_admin:
             if not show_salary: can_see_this_op = False
             if is_opposite and not show_opposite_salary: can_see_this_op = False
-        
         if not can_see_this_op: continue
-        
         for mach in op_machine_salaries[op_key]:
             if op_key in machine_financials and mach in machine_financials[op_key]:
                 m_fin = machine_financials[op_key][mach]
@@ -1285,7 +1290,6 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         if not is_admin:
             if not show_salary: can_see_this_op = False
             if is_opposite and not show_opposite_salary: can_see_this_op = False
-            
         if can_see_this_op and op_key in shift_financials:
             s_fin = shift_financials[op_key]
             op_salaries[op_key] += s_fin["reward"]
@@ -1300,25 +1304,20 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         rank = await get_set_monthly_rank(machine, end_str)
         sets_summary.append({"machine": machine, "count": data["bonus_count"], "sets_list": unique_sets, "rank": rank})
         
+    # میانگین‌گیری بر مبنای ۲۶ روز (طبق درخواست شما)
     final_machine_totals = {}
     for mach, work in machine_totals.items():
-        d_cnt = len(machine_days.get(mach, []))
-        if d_cnt == 0: d_cnt = 1
-        final_machine_totals[mach] = {"total": work, "avg": work // d_cnt}
+        final_machine_totals[mach] = {"total": work, "avg": work // 26}
         
     operator_averages = {}
     for op_key, total in op_totals.items():
-        d_cnt = len(op_days.get(op_key, []))
-        if d_cnt == 0: d_cnt = 1
-        operator_averages[op_key] = total // d_cnt
+        operator_averages[op_key] = total // 26
         
     op_machine_averages = {}
     for op_key, machines in op_machine_totals.items():
         op_machine_averages[op_key] = {}
         for mach, total in machines.items():
-            d_cnt = len(op_machine_days.get(op_key, {}).get(mach, []))
-            if d_cnt == 0: d_cnt = 1
-            op_machine_averages[op_key][mach] = total // d_cnt
+            op_machine_averages[op_key][mach] = total // 26
         
     return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "chador_counts": chador_counts, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials}
 
@@ -1329,6 +1328,8 @@ async def search_shifts(
     parts: Optional[str] = None,
     machine: Optional[str] = None,
     shift: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     sort_order: str = "desc",
     payload: dict = Depends(verify_admin)
 ):
@@ -1349,21 +1350,25 @@ async def search_shifts(
     if shift and shift != "all":
         query += " AND shift_type = ?"
         params.append(shift)
+    if start_date:
+        query += " AND date >= ?"
+        params.append(clean_date(start_date))
+    if end_date:
+        query += " AND date <= ?"
+        params.append(clean_date(end_date))
 
     order = "DESC" if sort_order == "desc" else "ASC"
     query += f" ORDER BY date {order}, id {order}"
 
-    async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute(query, params) as cursor:
+    async with aiosqlite.connect(DB_NAME) as async_db:
+        async with async_db.execute(query, params) as cursor:
             rows = await cursor.fetchall()
 
     shifts = []
     for r in rows:
         work_val = None
-        if not r[12]:
-            w, _ = await calculate_work_logic(r[5], r[3], r[4], r[6], r[8], r[9],
-                                              r[15] if len(r) > 15 else 0,
-                                              r[16] if len(r) > 16 else 0)
+        if not r[12] and "چادر" not in r[5]:
+            w, _ = await calculate_work_logic(r[5], r[3], r[4], r[6], r[8], r[9], r[15] if len(r) > 15 else 0, r[16] if len(r) > 16 else 0)
             work_val = w
         shifts.append({
             "id": r[0], "op_name": r[2], "date": r[3], "day_name": get_day_name(r[3]),
@@ -1376,8 +1381,6 @@ async def search_shifts(
             "work": work_val
         })
     return {"status": "ok", "shifts": shifts, "total": len(shifts)}
-
-
 
 @app.get("/api/admin/pending_shifts")
 async def get_pending_shifts(payload: dict = Depends(verify_admin)):

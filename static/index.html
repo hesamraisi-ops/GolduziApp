@@ -652,6 +652,14 @@
                         <option value="asc">قدیم به جدید</option>
                     </select>
                 </div>
+                <div>
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">از تاریخ:</label>
+                    <input type="text" id="srchStartDate" placeholder="۱۴۰۵-۰۱-۰۱" style="margin-bottom:0; padding:8px; font-size:14px; direction:ltr; text-align:right;">
+                </div>
+                <div>
+                    <label style="font-weight:bold; font-size:14px; color:#2c3e50; margin-bottom:5px; display:block;">تا تاریخ:</label>
+                    <input type="text" id="srchEndDate" placeholder="۱۴۰۵-۱۲-۲۹" style="margin-bottom:0; padding:8px; font-size:14px; direction:ltr; text-align:right;">
+                </div>
             </div>
             <button style="margin-top:15px; margin-bottom:0; background:#9b59b6;" onclick="loadAdminSearch()">🔍 جستجو</button>
         </div>
@@ -858,6 +866,8 @@
                 $('#opListStartDate, #opListEndDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true });
                 $('#manDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true, onSelect: function() { triggerManFetch(); } });
                 $('#admViewStartDate, #admViewEndDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true });
+                $('#srchStartDate, #srchEndDate').persianDatepicker({ format: 'YYYY-MM-DD', autoClose: true, initialValue: false, persianDigit: true });
+                $('#srchStartDate, #srchEndDate').on('click', function() { $(this).persianDatepicker('show'); });
                 $('#date, #opListStartDate, #opListEndDate, #manDate, #admViewStartDate, #admViewEndDate').on('click', function() { $(this).persianDatepicker('show'); });
             } catch (e) { console.log("Datepicker error", e); }
 
@@ -1572,7 +1582,7 @@
                     }
 
                     if (s.zero_reason) {
-                        content = `<div style="font-size:14px; line-height: 1.6; color:#c0392b;">چرخ: <strong>${toPersianDigits(s.machine)}</strong><br>⚠️ ثبت کارکرد صفر: <strong>${s.zero_reason}</strong><br>توضیحات: ${s.zero_note || 'ندارد'}</div>`;
+                        content = `<div style="font-size:14px; line-height: 1.6; color:#c0392b;">چرخ: <strong style="color:#2980b9; font-size:16px;">${toPersianDigits(s.machine)}</strong><br>⚠️ ثبت کارکرد صفر: <strong>${s.zero_reason}</strong><br>توضیحات: ${s.zero_note || 'ندارد'}</div>`;
                     } else {
                         if (s.potential_bonus > 0) {
                             bonusHtml = `<div style="margin-top:10px; background:#fff3cd; padding:10px; border-radius:5px; border:1px solid #ffeeba;"><label style="display:flex; align-items:center; cursor:pointer; margin:0; color:#856404;"><input type="checkbox" id="bonus_${s.id}" checked style="width:20px; height:20px; margin-left:10px; margin-bottom:0;">اعمال پاداش (تایید ست جدید)</label></div>`;
@@ -1587,7 +1597,7 @@
                             imgHtml = `<img class="card-img" src="${photoSrc}" onclick="showImageZoom('${photoSrc}')" style="cursor:pointer; max-height:200px; object-fit:contain; width:100%; border-radius:8px; margin-bottom:10px; background:#000;">`;
                         }
 
-                        content = `${imgHtml}<div style="font-size:14px; line-height: 1.6;">چرخ: <strong>${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_num)}<br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${prevHtml}${bonusHtml}`;
+                        content = `${imgHtml}<div style="font-size:14px; line-height: 1.6;">چرخ: <strong style="color:#2980b9; font-size:16px;">${toPersianDigits(s.machine)}</strong> | شمارنده: ${formatNum(s.counter)}<br>طرح: ${toPersianDigits(s.design)} | ست: ${toPersianDigits(s.set_num)}<br>تکه‌ها: <strong>${s.parts || 'ثبت نشده'}</strong>${workHtml}</div>${prevHtml}${bonusHtml}`;
                     }
                     
                     div.innerHTML += `<div class="card"><div class="card-header"><strong>${s.op_name}</strong><span>${formatDate(s.date)} | ${s.shift}</span></div>${content}<div class="card-actions"><button style="background:#2ecc71;" onclick="approveShift(${s.id})">✅ تایید</button><button style="background:#e74c3c;" onclick="fetch('/api/admin/reject_shift/${s.id}',{method:'POST',headers:{'Authorization':'Bearer ' + authToken}}).then(()=>loadPendingShifts())">❌ رد</button></div></div>`;
@@ -2912,6 +2922,8 @@
 <!-- Fix Manual Date Logic: 1795202504 -->
 
 <!-- Ultimate Date Fix: 1795203364 -->
+
+<!-- UI Fixes: 1795286121 -->
 </body>
 </html>
 
