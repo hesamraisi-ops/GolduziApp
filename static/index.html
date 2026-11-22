@@ -2095,6 +2095,24 @@
                     if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
                         html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
                     }
+                    // Display Chador Info if exists
+                    if (canSee && data.chador_counts && data.chador_counts[op_key] > 0) {
+                        html += `<div style="background:#f3e5f5; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #ce93d8;">
+                            <div style="color:#8e44ad; font-weight:bold; font-size:14px;">🧵 کارکرد چادر:</div>
+                            <div style="color:#8e44ad; font-size:13px; display:flex; justify-content:space-between; margin-top:5px;">
+                                <span>تعداد: ${toPersianDigits(data.chador_counts[op_key])} عدد</span>
+                                <span>حقوق: ${formatNum(data.chador_salaries[op_key] || 0)} تومان</span>
+                            </div>
+                        </div>`;
+                    }
+                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key] > 0) {
+                        html += `<div style="background:#e8f5e9; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #a5d6a7;">
+                            <div style="color:#27ae60; font-size:13px; display:flex; justify-content:space-between;">
+                                <span>💰 حقوق لباس (سوزن):</span>
+                                <span>${formatNum(data.clothes_salaries[op_key])} تومان</span>
+                            </div>
+                        </div>`;
+                    }
                     if (canSee && data.op_salaries && data.op_salaries[op_key]) {
                         html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
                     }
@@ -2139,14 +2157,7 @@
                     <span>حداقل هفتگی (دو شیفت):</span>
                     <span>${formatNum((data.min_weekly || 1800000) * 2)}</span>
                 </div>`;
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:12px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;">
-                    <span>حداقل روزانه (دو شیفت):</span>
-                    <span>${formatNum((data.min_daily || 300000) * 2)}</span>
-                </div>`;
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:12px; color:#d35400;">
-                    <span>حداقل ماهانه (دو شیفت):</span>
-                    <span>${formatNum((data.min_monthly || 7800000) * 2)}</span>
-                </div>`;
+                
                 if (data.total_salary && data.show_salary) {
                     html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;">
                         <span>💰 مجموع حقوق کل:</span>
@@ -2324,6 +2335,24 @@
                         </div>`;
                     }
 
+                    // Display Chador Info if exists
+                    if (canSee && data.chador_counts && data.chador_counts[op_key] > 0) {
+                        html += `<div style="background:#f3e5f5; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #ce93d8;">
+                            <div style="color:#8e44ad; font-weight:bold; font-size:14px;">🧵 کارکرد چادر:</div>
+                            <div style="color:#8e44ad; font-size:13px; display:flex; justify-content:space-between; margin-top:5px;">
+                                <span>تعداد: ${toPersianDigits(data.chador_counts[op_key])} عدد</span>
+                                <span>حقوق: ${formatNum(data.chador_salaries[op_key] || 0)} تومان</span>
+                            </div>
+                        </div>`;
+                    }
+                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key] > 0) {
+                        html += `<div style="background:#e8f5e9; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #a5d6a7;">
+                            <div style="color:#27ae60; font-size:13px; display:flex; justify-content:space-between;">
+                                <span>💰 حقوق لباس (سوزن):</span>
+                                <span>${formatNum(data.clothes_salaries[op_key])} تومان</span>
+                            </div>
+                        </div>`;
+                    }
                     if (canSee && data.op_salaries && data.op_salaries[op_key]) {
                         let finHtml = "";
                         if (data.shift_financials && data.shift_financials[op_key]) {
@@ -2375,14 +2404,7 @@
                     <span>حداقل هفتگی (دو شیفت):</span>
                     <span>${formatNum((data.min_weekly || 1800000) * 2)}</span>
                 </div>`;
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:12px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;">
-                    <span>حداقل روزانه (دو شیفت):</span>
-                    <span>${formatNum((data.min_daily || 300000) * 2)}</span>
-                </div>`;
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:12px; color:#d35400;">
-                    <span>حداقل ماهانه (دو شیفت):</span>
-                    <span>${formatNum((data.min_monthly || 7800000) * 2)}</span>
-                </div>`;
+                
                 if (data.total_salary && data.show_salary) {
                     html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;">
                         <span>💰 مجموع حقوق کل:</span>
@@ -3112,3 +3134,5 @@
 <!-- Ultimate Fix: 1795375376 -->
 
 <!-- Final Polish: 1795376043 -->
+
+<!-- Ultimate Fix Applied: 1795376887.5564184 -->
