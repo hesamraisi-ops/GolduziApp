@@ -1164,6 +1164,7 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
             work_val = 0
         else:
             try:
+                # calculate_work_logic internally handles the is_chador flag to return 0 for needle work
                 w, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
                 work_val = w if w is not None else 0
             except: work_val = 0
@@ -1175,15 +1176,18 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
             if is_opposite and not show_opposite_salary: can_see_salary = False
             
         op_key = f"{shift} {op_name}"
+        # Check if this specific shift was a chador shift
         is_chador_shift = ("چادر" in machine) or is_chador
         
         sal_val = 0
         if can_see_salary:
             if is_chador_shift:
+                # Chador salary based on count
                 sal_val = int(round(chador_count * (chador_price or 0)))
                 chador_salaries[op_key] = chador_salaries.get(op_key, 0) + sal_val
                 chador_counts[op_key] = chador_counts.get(op_key, 0) + chador_count
             else:
+                # Clothes salary based on needle work
                 sal_val = int(round(work_val * (price or 0)))
                 clothes_salaries[op_key] = clothes_salaries.get(op_key, 0) + sal_val
 

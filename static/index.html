@@ -2034,9 +2034,7 @@
                     
                     for (const [mach, work] of Object.entries(machines)) {
                         let chadorText = "";
-                        if (mach.includes('چادر') && data.chador_counts && data.chador_counts[op_key]) {
-                            chadorText = ` + ${toPersianDigits(data.chador_counts[op_key])} چادر`;
-                        }
+                        // chadorText removed from here, handled separately below
                         
                         let machAvg = 0;
                         if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
@@ -2051,10 +2049,11 @@
                         }
 
                         if (mach.includes('چادر')) continue; // رد کردن چرخ چادری در حلقه اصلی و نمایش جداگانه
+                        if (mach.includes('چادر')) continue; // Skip chador machine here, rendered separately
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
-                                <strong>${mach.includes('چادر') ? `${toPersianDigits(work)} عدد ${chadorText}` : `${formatNum(work)} سوزن`}</strong>
+                                <strong>${formatNum(work)} سوزن</strong>
                                 ${avgText}
                                 ${salaryHtml}
                             </div>
@@ -2239,9 +2238,7 @@
                     
                     for (const [mach, work] of Object.entries(machines)) {
                         let chadorText = "";
-                        if (mach.includes('چادر') && data.chador_counts && data.chador_counts[op_key]) {
-                            chadorText = ` + ${toPersianDigits(data.chador_counts[op_key])} چادر`;
-                        }
+                        // chadorText removed from here, handled separately below
                         
                         let machAvg = 0;
                         if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
@@ -2262,10 +2259,11 @@
                         }
 
                         if (mach.includes('چادر')) continue; // رد کردن چرخ چادری در حلقه اصلی و نمایش جداگانه
+                        if (mach.includes('چادر')) continue; // Skip chador machine here, rendered separately
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
-                                <strong>${mach.includes('چادر') ? `${toPersianDigits(work)} عدد ${chadorText}` : `${formatNum(work)} سوزن`}</strong>
+                                <strong>${formatNum(work)} سوزن</strong>
                                 ${avgText}
                                 ${salaryHtml}
                             </div>
@@ -2307,6 +2305,25 @@
                     if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
                         html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
                     }
+                    // Display Chador Info if exists
+                    if (canSee && data.chador_counts && data.chador_counts[op_key] > 0) {
+                        html += `<div style="background:#f3e5f5; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #ce93d8;">
+                            <div style="color:#8e44ad; font-weight:bold; font-size:14px;">🧵 کارکرد چادر:</div>
+                            <div style="color:#8e44ad; font-size:13px; display:flex; justify-content:space-between; margin-top:5px;">
+                                <span>تعداد: ${toPersianDigits(data.chador_counts[op_key])} عدد</span>
+                                <span>حقوق: ${formatNum(data.chador_salaries[op_key] || 0)} تومان</span>
+                            </div>
+                        </div>`;
+                    }
+                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key] > 0) {
+                        html += `<div style="background:#e8f5e9; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #a5d6a7;">
+                            <div style="color:#27ae60; font-size:13px; display:flex; justify-content:space-between;">
+                                <span>💰 حقوق لباس (سوزن):</span>
+                                <span>${formatNum(data.clothes_salaries[op_key])} تومان</span>
+                            </div>
+                        </div>`;
+                    }
+
                     if (canSee && data.op_salaries && data.op_salaries[op_key]) {
                         let finHtml = "";
                         if (data.shift_financials && data.shift_financials[op_key]) {
@@ -3093,3 +3110,5 @@
 <!-- Fix 500 and Man Chador: 1795290743.1405842 -->
 
 <!-- Ultimate Fix: 1795375376 -->
+
+<!-- Final Polish: 1795376043 -->
