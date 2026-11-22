@@ -1889,6 +1889,10 @@
             fd.append("chador_count", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorCount').value) : 0);
             fd.append("chador_invoice", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorInvoice').value) : "");
             
+            fd.append("is_chador", document.getElementById('manIsChadorWork').checked ? 'true' : 'false');
+            fd.append("chador_count", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorCount').value) : 0);
+            fd.append("chador_invoice", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorInvoice').value) : "");
+            
             
             const photoFile = document.getElementById('manPhoto').files[0];
             if (photoFile) fd.append("photo", photoFile);
@@ -2042,11 +2046,17 @@
                         }
                         let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
 
+                        let salHtml = "";
+                        if (canSee && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
+                            salHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(data.op_machine_salaries[op_key][mach])} تومان</small>`;
+                        }
+
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
                                 <strong>${formatNum(work)} سوزن</strong>
                                 ${avgText}
+                                ${salHtml}
                             </div>
                         </div>`;
                     }
@@ -2072,8 +2082,8 @@
                         </div>`;
                     }
 
-                    // Render Total Salary Box ONCE
-                    if (canSee && data.op_salaries && data.op_salaries[op_key]) {
+                    // Render Total Salary Box ONLY FOR ADMIN
+                    if (userRole === 'admin' && data.op_salaries && data.op_salaries[op_key]) {
                         html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
                     }
                     html += `</div>`;
@@ -2093,7 +2103,7 @@
                     <span>${formatNum((data.min_weekly || 1800000) * 2)}</span>
                 </div>`;
                 
-                if (data.total_salary && data.show_salary) {
+                if (userRole === 'admin' && data.total_salary && data.show_salary) {
                     html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;"><span>💰 مجموع حقوق کل:</span><span>${formatNum(data.total_salary)} تومان</span></div>`;
                 }
                 
@@ -2184,11 +2194,17 @@ function backFromMonthly() {
                         }
                         let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
 
+                        let salHtml = "";
+                        if (canSee && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
+                            salHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(data.op_machine_salaries[op_key][mach])} تومان</small>`;
+                        }
+
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
                                 <strong>${formatNum(work)} سوزن</strong>
                                 ${avgText}
+                                ${salHtml}
                             </div>
                         </div>`;
                     }
@@ -2214,8 +2230,8 @@ function backFromMonthly() {
                         </div>`;
                     }
 
-                    // Render Total Salary Box ONCE
-                    if (canSee && data.op_salaries && data.op_salaries[op_key]) {
+                    // Render Total Salary Box ONLY FOR ADMIN
+                    if (userRole === 'admin' && data.op_salaries && data.op_salaries[op_key]) {
                         html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
                     }
                     html += `</div>`;
@@ -2235,7 +2251,7 @@ function backFromMonthly() {
                     <span>${formatNum((data.min_monthly || 7800000) * 2)}</span>
                 </div>`;
                 
-                if (data.total_salary && data.show_salary) {
+                if (userRole === 'admin' && data.total_salary && data.show_salary) {
                     html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;"><span>💰 مجموع حقوق کل:</span><span>${formatNum(data.total_salary)} تومان</span></div>`;
                 }
                 
@@ -2963,3 +2979,5 @@ function initSalarySettings() {
 <!-- Ultimate Fix Applied: 1795376887.5564184 -->
 
 <!-- Definitive Fix: 1795378420 -->
+
+<!-- Definitive Fix: 1795380775 -->

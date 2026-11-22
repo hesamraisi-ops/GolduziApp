@@ -1163,7 +1163,6 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         if zero_reason:
             work_val = 0
         else:
-            # This function handles the needle calculation (if is_chador=1, it returns 0 for needle work)
             w, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
             work_val = w if w is not None else 0
             
@@ -1177,7 +1176,7 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         
         sal_val = 0
         if can_see_salary:
-            if is_chador: # ONLY if the chador tick is checked
+            if is_chador:
                 sal_val = int(round(chador_count * (chador_price or 0)))
                 chador_salaries[op_key] = chador_salaries.get(op_key, 0) + sal_val
                 chador_counts[op_key] = chador_counts.get(op_key, 0) + chador_count
