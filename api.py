@@ -692,8 +692,8 @@ async def get_immediate_prev_info(date: str, machine: str, shift_type: str, targ
     return {"exists": False, "expected_date": expected_date, "expected_shift": expected_shift}
 
 @app.get("/api/operator/suggest_date")
-async def suggest_date(machine: Optional[str] = None, target_operator_id: Optional[int] = None, target_shift_type: Optional[str] = None, payload: dict = Depends(verify_token)):
-    op_id = target_operator_id if target_operator_id else int(payload["sub"])
+async def suggest_date(machine: Optional[str] = None, target_operator_id: Optional[str] = None, target_shift_type: Optional[str] = None, payload: dict = Depends(verify_token)):
+    op_id = int(target_operator_id) if target_operator_id else int(payload["sub"])
     shift = target_shift_type if target_shift_type else payload.get("shift_type")
     
     async with aiosqlite.connect(DB_NAME) as db:
@@ -715,9 +715,17 @@ async def suggest_date(machine: Optional[str] = None, target_operator_id: Option
     if not valid_dates:
         return {"date": jdatetime.date.today().strftime("%Y-%m-%d")}
         
-    max_date = max(valid_dates)
-    next_date = max_date + jdatetime.timedelta(days=1)
+    valid_dates.sort()
+    today = jdatetime.date.today()
     
+    check_date = valid_dates[0]
+    while check_date <= today:
+        if check_date not in valid_dates:
+            if check_date.weekday() != 6: 
+                return {"date": check_date.strftime("%Y-%m-%d")}
+        check_date += jdatetime.timedelta(days=1)
+        
+    next_date = max(valid_dates) + jdatetime.timedelta(days=1)
     while next_date.weekday() == 6:
         next_date += jdatetime.timedelta(days=1)
         

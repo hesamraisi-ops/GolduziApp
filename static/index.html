@@ -2045,11 +2045,12 @@
                         let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
                         
                         let salaryHtml = "";
-                        if (canSee && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
+                        if (canSee && !mach.includes('چادر') && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
                             let sal = data.op_machine_salaries[op_key][mach];
                             salaryHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(sal)} تومان</small>`;
                         }
 
+                        if (mach.includes('چادر')) continue; // رد کردن چرخ چادری در حلقه اصلی و نمایش جداگانه
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
@@ -2249,7 +2250,7 @@
                         let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
                         
                         let salaryHtml = "";
-                        if (canSee && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
+                        if (canSee && !mach.includes('چادر') && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
                             let sal = data.op_machine_salaries[op_key][mach];
                             salaryHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(sal)} تومان</small>`;
                             
@@ -2260,6 +2261,7 @@
                             }
                         }
 
+                        if (mach.includes('چادر')) continue; // رد کردن چرخ چادری در حلقه اصلی و نمایش جداگانه
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
@@ -3089,3 +3091,5 @@
 <!-- Chador Logic Fix: 1795290230 -->
 
 <!-- Fix 500 and Man Chador: 1795290743.1405842 -->
+
+<!-- Ultimate Fix: 1795375376 -->
