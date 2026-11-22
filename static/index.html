@@ -1885,6 +1885,10 @@
             fd.append("zero_reason", zeroReason || "");
             fd.append("zero_note", zeroNote || "");
             fd.append("request_bonus", document.getElementById('manRequestBonus').checked ? 'true' : 'false');
+            fd.append("is_chador", document.getElementById('manIsChadorWork').checked ? 'true' : 'false');
+            fd.append("chador_count", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorCount').value) : 0);
+            fd.append("chador_invoice", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorInvoice').value) : "");
+            
             
             const photoFile = document.getElementById('manPhoto').files[0];
             if (photoFile) fd.append("photo", photoFile);
@@ -1994,18 +1998,12 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
-                if (!res.ok) {
-                    const errText = await res.text();
-                    throw new Error(errText.substring(0, 200));
-                }
+                const res = await fetch(`/api/reports/weekly?year=${year}&month=${month}&week_num=${week}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
                 
                 if (data.status === 'empty') {
-                    div.innerHTML = `<div style="text-align:center; padding:20px;">
-                        <h3>${data.week_title || ''}</h3>
-                        <p>هیچ کارکردی در این هفته ثبت نشده است.</p>
-                    </div>`;
+                    div.innerHTML = `<div style="text-align:center; padding:20px;"><h3>${data.week_title || ''}</h3><p>هیچ کارکردی در این هفته ثبت نشده است.</p></div>`;
                     return;
                 }
                 
@@ -2024,78 +2022,36 @@
                     const canSee = userRole === 'admin' || (data.show_salary && (!isOpposite || data.show_opposite_salary));
                     
                     html += `<div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">`;
+                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>`;
+                    
+                    // Box for Minimum Limits (Weekly ONLY Daily and Weekly)
                     let minDailyStr = data.min_daily ? formatNum(data.min_daily) : 'نامشخص';
                     let minWeeklyStr = data.min_weekly ? formatNum(data.min_weekly) : 'نامشخص';
-                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>
-                    <div style="font-size:11px; color:#d35400; margin-bottom:8px; background:#fff3cd; padding:8px; border-radius:5px; display:flex; gap:15px; justify-content:center;">
-                        <span>⚠️ روزانه: <strong>${minDailyStr}</strong></span>
-                        <span>⚠️ هفتگی: <strong>${minWeeklyStr}</strong></span>
+                    html += `<div style="font-size:12px; color:#d35400; margin-bottom:10px; background:#fff3cd; padding:8px; border-radius:5px; display:flex; gap:15px; justify-content:center;">
+                        <span>⚠️ حداقل روزانه: <strong>${minDailyStr}</strong></span>
+                        <span>⚠️ حداقل هفتگی: <strong>${minWeeklyStr}</strong></span>
                     </div>`;
-                    
+
+                    // Loop through machines (Excluding Chador from this visual list)
                     for (const [mach, work] of Object.entries(machines)) {
-                        let chadorText = "";
-                        // chadorText removed from here, handled separately below
-                        
+                        if (mach.includes('چادر')) continue; // Skip chador here, render separately
+
                         let machAvg = 0;
                         if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
                             machAvg = data.op_machine_averages[op_key][mach];
                         }
                         let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
-                        
-                        let salaryHtml = "";
-                        if (canSee && !mach.includes('چادر') && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
-                            let sal = data.op_machine_salaries[op_key][mach];
-                            salaryHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(sal)} تومان</small>`;
-                        }
 
-                        if (mach.includes('چادر')) continue; // رد کردن چرخ چادری در حلقه اصلی و نمایش جداگانه
-                        if (mach.includes('چادر')) continue; // Skip chador machine here, rendered separately
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
                                 <strong>${formatNum(work)} سوزن</strong>
                                 ${avgText}
-                                ${salaryHtml}
                             </div>
                         </div>`;
                     }
-                    if (canSee && data.chador_counts && data.chador_counts[op_key]) {
-                        html += `<div style="color:#8e44ad; font-weight:bold; margin-top:10px; font-size:13px;">🧵 تعداد چادر: ${toPersianDigits(data.chador_counts[op_key])} عدد</div>`;
-                    }
-                    if (canSee && data.chador_salaries && data.chador_salaries[op_key]) {
-                        html += `<div style="color:#8e44ad; font-size:13px;">💰 حقوق چادر: ${formatNum(data.chador_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
-                        html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.chador_counts && data.chador_counts[op_key]) {
-                        html += `<div style="color:#8e44ad; font-weight:bold; margin-top:10px; font-size:13px;">🧵 تعداد چادر: ${toPersianDigits(data.chador_counts[op_key])} عدد</div>`;
-                    }
-                    if (canSee && data.chador_salaries && data.chador_salaries[op_key]) {
-                        html += `<div style="color:#8e44ad; font-size:13px;">💰 حقوق چادر: ${formatNum(data.chador_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
-                        html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.chador_counts && data.chador_counts[op_key]) {
-                        html += `<div style="color:#8e44ad; font-weight:bold; margin-top:10px; font-size:13px;">🧵 تعداد چادر: ${toPersianDigits(data.chador_counts[op_key])} عدد</div>`;
-                    }
-                    if (canSee && data.chador_salaries && data.chador_salaries[op_key]) {
-                        html += `<div style="color:#8e44ad; font-size:13px;">💰 حقوق چادر: ${formatNum(data.chador_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
-                        html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.chador_counts && data.chador_counts[op_key]) {
-                        html += `<div style="color:#8e44ad; font-weight:bold; margin-top:10px; font-size:13px;">🧵 تعداد چادر: ${toPersianDigits(data.chador_counts[op_key])} عدد</div>`;
-                    }
-                    if (canSee && data.chador_salaries && data.chador_salaries[op_key]) {
-                        html += `<div style="color:#8e44ad; font-size:13px;">💰 حقوق چادر: ${formatNum(data.chador_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
-                        html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
-                    }
-                    // Display Chador Info if exists
+
+                    // Render Chador Box
                     if (canSee && data.chador_counts && data.chador_counts[op_key] > 0) {
                         html += `<div style="background:#f3e5f5; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #ce93d8;">
                             <div style="color:#8e44ad; font-weight:bold; font-size:14px;">🧵 کارکرد چادر:</div>
@@ -2105,6 +2061,8 @@
                             </div>
                         </div>`;
                     }
+
+                    // Render Clothes Salary Box
                     if (canSee && data.clothes_salaries && data.clothes_salaries[op_key] > 0) {
                         html += `<div style="background:#e8f5e9; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #a5d6a7;">
                             <div style="color:#27ae60; font-size:13px; display:flex; justify-content:space-between;">
@@ -2113,42 +2071,19 @@
                             </div>
                         </div>`;
                     }
+
+                    // Render Total Salary Box ONCE
                     if (canSee && data.op_salaries && data.op_salaries[op_key]) {
                         html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
                     }
                     html += `</div>`;
                 }
                 
-                html += `<div style="background:#e8f8f5; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #1abc9c;">`;
-                html += `<h4 style="margin-top:0; color:#16a085; border-bottom:2px solid #1abc9c; padding-bottom:5px;">🧵 کل ست دوخته شده هفته</h4>`;
-                
-                if (data.sets_summary && data.sets_summary.length > 0) {
-                    data.sets_summary.forEach(info => {
-                        let rankText = "";
-                        if (info.rank === 1) rankText = "اولین ست ماه";
-                        else if (info.rank === 2) rankText = "دومین ست ماه";
-                        else if (info.rank === 3) rankText = "سومین ست ماه";
-                        else rankText = `${toPersianDigits(info.rank)}مین ست ماه`;
-                        
-                        let setsListHtml = "";
-                        if (info.sets_list) {
-                            setsListHtml = info.sets_list.map(s => `${toPersianDigits(s[0])} = ${toPersianDigits(s[1])}`).join('<br>');
-                        }
-                        
-                        html += `<div style="margin-bottom:12px; font-size:14px; text-align:right; border-bottom:1px dashed #ccc; padding-bottom:5px;">
-                            <div><strong>${toPersianDigits(info.count)} ست ${toPersianDigits(info.machine)}</strong> <span style="color:#e74c3c; font-size:12px;">(${rankText})</span></div>
-                            <div style="color:#7f8c8d; font-size:12px; margin-top:3px;">${setsListHtml}</div>
-                        </div>`;
-                    });
-                }
-                html += `</div>`;
-                
-                html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb;">`;
+                // Total Min Limits Box for the week (Both shifts)
+                html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb; margin-top:20px;">`;
                 html += `<h4 style="margin-top:0; color:#c0392b; border-bottom:2px solid #f5c6cb; padding-bottom:5px;">📊 جمع کل سوزن دو شیفت</h4>`;
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;">
-                    <span>جمع کل:</span>
-                    <span>${formatNum(data.total_all)} سوزن</span>
-                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;"><span>جمع کل:</span><span>${formatNum(data.total_all)} سوزن</span></div>`;
+                
                 html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:12px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;">
                     <span>حداقل روزانه (دو شیفت):</span>
                     <span>${formatNum((data.min_daily || 300000) * 2)}</span>
@@ -2159,11 +2094,9 @@
                 </div>`;
                 
                 if (data.total_salary && data.show_salary) {
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;">
-                        <span>💰 مجموع حقوق کل:</span>
-                        <span>${formatNum(data.total_salary)} تومان</span>
-                    </div>`;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;"><span>💰 مجموع حقوق کل:</span><span>${formatNum(data.total_salary)} تومان</span></div>`;
                 }
+                
                 for (const [mach, dataObj] of Object.entries(data.machine_totals)) {
                     html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-top:1px dashed #eee; padding-top:5px;">
                         <span>${toPersianDigits(mach)}</span>
@@ -2174,15 +2107,13 @@
                     </div>`;
                 }
                 html += `</div>`;
-                
                 div.innerHTML = html;
             } catch(e) {
-                console.error(e);
                 div.innerHTML = `<p style="text-align:center; color:red;">خطا در دریافت گزارش: ${e.message || e}</p>`;
             }
         }
 
-        function backFromMonthly() {
+function backFromMonthly() {
             if (userRole === 'admin') showSection('adminScreen');
             else showSection('operatorDashboard');
         }
@@ -2210,18 +2141,12 @@
             div.innerHTML = '<p style="text-align:center;">در حال دریافت اطلاعات...</p>';
             
             try {
-                const res = await fetch(`http://185.222.163.15:8000/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
-                if (!res.ok) {
-                    const errText = await res.text();
-                    throw new Error(errText.substring(0, 200));
-                }
+                const res = await fetch(`/api/reports/monthly?year=${year}&month=${month}&t=${Date.now()}`, { headers: { 'Authorization': `Bearer ${authToken}` } });
+                if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
                 
                 if (data.status === 'empty') {
-                    div.innerHTML = `<div style="text-align:center; padding:20px;">
-                        <h3>${data.month_title}</h3>
-                        <p>هیچ کارکردی در این ماه ثبت نشده است.</p>
-                    </div>`;
+                    div.innerHTML = `<div style="text-align:center; padding:20px;"><h3>${data.month_title}</h3><p>هیچ کارکردی در این ماه ثبت نشده است.</p></div>`;
                     return;
                 }
                 
@@ -2239,84 +2164,36 @@
                     const canSee = userRole === 'admin' || (data.show_salary && (!isOpposite || data.show_opposite_salary));
                     
                     html += `<div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">`;
-                    let minDailyStr = data.min_daily ? formatNum(data.min_daily) : 'نامشخص';
-                    let minWeeklyStr = data.min_weekly ? formatNum(data.min_weekly) : 'نامشخص';
-                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>
-                    <div style="font-size:11px; color:#d35400; margin-bottom:8px; background:#fff3cd; padding:8px; border-radius:5px; display:flex; gap:15px; justify-content:center;">
-                        <span>⚠️ روزانه: <strong>${minDailyStr}</strong></span>
-                        <span>⚠️ هفتگی: <strong>${minWeeklyStr}</strong></span>
-                    </div>`;
+                    html += `<h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #bdc3c7; padding-bottom:5px;">👤 ${op_key} <span style="font-size:12px; color:#7f8c8d; font-weight:normal;">(میانگین روزانه: ${formatNum(opAvg)} سوزن)</span></h4>`;
                     
+                    // Box for Minimum Limits (Monthly ONLY Daily and Monthly)
+                    let minDailyStr = data.min_daily ? formatNum(data.min_daily) : 'نامشخص';
+                    let minMonthlyStr = data.min_monthly ? formatNum(data.min_monthly) : 'نامشخص';
+                    html += `<div style="font-size:12px; color:#d35400; margin-bottom:10px; background:#fff3cd; padding:8px; border-radius:5px; display:flex; gap:15px; justify-content:center;">
+                        <span>⚠️ حداقل روزانه: <strong>${minDailyStr}</strong></span>
+                        <span>⚠️ حداقل ماهانه: <strong>${minMonthlyStr}</strong></span>
+                    </div>`;
+
+                    // Loop through machines
                     for (const [mach, work] of Object.entries(machines)) {
-                        let chadorText = "";
-                        // chadorText removed from here, handled separately below
-                        
+                        if (mach.includes('چادر')) continue;
+
                         let machAvg = 0;
                         if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
                             machAvg = data.op_machine_averages[op_key][mach];
                         }
                         let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
-                        
-                        let salaryHtml = "";
-                        if (canSee && !mach.includes('چادر') && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
-                            let sal = data.op_machine_salaries[op_key][mach];
-                            salaryHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(sal)} تومان</small>`;
-                            
-                            if (data.machine_financials && data.machine_financials[op_key] && data.machine_financials[op_key][mach]) {
-                                let mf = data.machine_financials[op_key][mach];
-                                if (mf.reward > 0) salaryHtml += `<br><small style="color:#27ae60;">🎁 پاداش: ${formatNum(mf.reward)} ${mf.reward_title ? '('+mf.reward_title+')' : ''}</small>`;
-                                if (mf.penalty > 0) salaryHtml += `<br><small style="color:#e74c3c;">⚠️ جریمه: ${formatNum(mf.penalty)} ${mf.penalty_title ? '('+mf.penalty_title+')' : ''}</small>`;
-                            }
-                        }
 
-                        if (mach.includes('چادر')) continue; // رد کردن چرخ چادری در حلقه اصلی و نمایش جداگانه
-                        if (mach.includes('چادر')) continue; // Skip chador machine here, rendered separately
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
                                 <strong>${formatNum(work)} سوزن</strong>
                                 ${avgText}
-                                ${salaryHtml}
                             </div>
                         </div>`;
                     }
-                    if (canSee && data.chador_counts && data.chador_counts[op_key]) {
-                        html += `<div style="color:#8e44ad; font-weight:bold; margin-top:10px; font-size:13px;">🧵 تعداد چادر: ${toPersianDigits(data.chador_counts[op_key])} عدد</div>`;
-                    }
-                    if (canSee && data.chador_salaries && data.chador_salaries[op_key]) {
-                        html += `<div style="color:#8e44ad; font-size:13px;">💰 حقوق چادر: ${formatNum(data.chador_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
-                        html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.chador_counts && data.chador_counts[op_key]) {
-                        html += `<div style="color:#8e44ad; font-weight:bold; margin-top:10px; font-size:13px;">🧵 تعداد چادر: ${toPersianDigits(data.chador_counts[op_key])} عدد</div>`;
-                    }
-                    if (canSee && data.chador_salaries && data.chador_salaries[op_key]) {
-                        html += `<div style="color:#8e44ad; font-size:13px;">💰 حقوق چادر: ${formatNum(data.chador_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
-                        html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.chador_counts && data.chador_counts[op_key]) {
-                        html += `<div style="color:#8e44ad; font-weight:bold; margin-top:10px; font-size:13px;">🧵 تعداد چادر: ${toPersianDigits(data.chador_counts[op_key])} عدد</div>`;
-                    }
-                    if (canSee && data.chador_salaries && data.chador_salaries[op_key]) {
-                        html += `<div style="color:#8e44ad; font-size:13px;">💰 حقوق چادر: ${formatNum(data.chador_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
-                        html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.chador_counts && data.chador_counts[op_key]) {
-                        html += `<div style="color:#8e44ad; font-weight:bold; margin-top:10px; font-size:13px;">🧵 تعداد چادر: ${toPersianDigits(data.chador_counts[op_key])} عدد</div>`;
-                    }
-                    if (canSee && data.chador_salaries && data.chador_salaries[op_key]) {
-                        html += `<div style="color:#8e44ad; font-size:13px;">💰 حقوق چادر: ${formatNum(data.chador_salaries[op_key])} تومان</div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key]) {
-                        html += `<div style="color:#27ae60; font-size:13px;">💰 حقوق لباس (سوزن): ${formatNum(data.clothes_salaries[op_key])} تومان</div>`;
-                    }
-                    // Display Chador Info if exists
+
+                    // Render Chador Box
                     if (canSee && data.chador_counts && data.chador_counts[op_key] > 0) {
                         html += `<div style="background:#f3e5f5; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #ce93d8;">
                             <div style="color:#8e44ad; font-weight:bold; font-size:14px;">🧵 کارکرد چادر:</div>
@@ -2326,6 +2203,8 @@
                             </div>
                         </div>`;
                     }
+
+                    // Render Clothes Salary Box
                     if (canSee && data.clothes_salaries && data.clothes_salaries[op_key] > 0) {
                         html += `<div style="background:#e8f5e9; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #a5d6a7;">
                             <div style="color:#27ae60; font-size:13px; display:flex; justify-content:space-between;">
@@ -2335,102 +2214,48 @@
                         </div>`;
                     }
 
-                    // Display Chador Info if exists
-                    if (canSee && data.chador_counts && data.chador_counts[op_key] > 0) {
-                        html += `<div style="background:#f3e5f5; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #ce93d8;">
-                            <div style="color:#8e44ad; font-weight:bold; font-size:14px;">🧵 کارکرد چادر:</div>
-                            <div style="color:#8e44ad; font-size:13px; display:flex; justify-content:space-between; margin-top:5px;">
-                                <span>تعداد: ${toPersianDigits(data.chador_counts[op_key])} عدد</span>
-                                <span>حقوق: ${formatNum(data.chador_salaries[op_key] || 0)} تومان</span>
-                            </div>
-                        </div>`;
-                    }
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key] > 0) {
-                        html += `<div style="background:#e8f5e9; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #a5d6a7;">
-                            <div style="color:#27ae60; font-size:13px; display:flex; justify-content:space-between;">
-                                <span>💰 حقوق لباس (سوزن):</span>
-                                <span>${formatNum(data.clothes_salaries[op_key])} تومان</span>
-                            </div>
-                        </div>`;
-                    }
+                    // Render Total Salary Box ONCE
                     if (canSee && data.op_salaries && data.op_salaries[op_key]) {
-                        let finHtml = "";
-                        if (data.shift_financials && data.shift_financials[op_key]) {
-                            let sf = data.shift_financials[op_key];
-                            if (sf.reward > 0) finHtml += `<br><small style="color:#27ae60;">+ پاداش شیفت: ${formatNum(sf.reward)} ${sf.reward_title ? '('+sf.reward_title+')' : ''}</small>`;
-                            if (sf.penalty > 0) finHtml += `<br><small style="color:#e74c3c;">- جریمه شیفت: ${formatNum(sf.penalty)} ${sf.penalty_title ? '('+sf.penalty_title+')' : ''}</small>`;
-                        }
-                        
-                        html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان ${finHtml}</div>`;
+                        html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
                     }
                     html += `</div>`;
                 }
                 
-                html += `<div style="background:#e8f8f5; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #1abc9c;">`;
-                html += `<h4 style="margin-top:0; color:#16a085; border-bottom:2px solid #1abc9c; padding-bottom:5px;">🧵 کل ست دوخته شده ماه</h4>`;
-                
-                if (data.sets_summary && data.sets_summary.length > 0) {
-                    data.sets_summary.forEach(info => {
-                        let rankText = "";
-                        if (info.rank === 1) rankText = "اولین ست ماه";
-                        else if (info.rank === 2) rankText = "دومین ست ماه";
-                        else if (info.rank === 3) rankText = "سومین ست ماه";
-                        else rankText = `${toPersianDigits(info.rank)}مین ست ماه`;
-                        
-                        let setsListHtml = "";
-                        if (info.sets_list) {
-                            setsListHtml = info.sets_list.map(s => `${toPersianDigits(s[0])} = ${toPersianDigits(s[1])}`).join('<br>');
-                        }
-                        
-                        html += `<div style="margin-bottom:12px; font-size:14px; text-align:right; border-bottom:1px dashed #ccc; padding-bottom:5px;">
-                            <div><strong>${toPersianDigits(info.count)} ست ${toPersianDigits(info.machine)}</strong> <span style="color:#e74c3c; font-size:12px;">(${rankText})</span></div>
-                            <div style="color:#7f8c8d; font-size:12px; margin-top:3px;">${setsListHtml}</div>
-                        </div>`;
-                    });
-                }
-                html += `</div>`;
-                
-                html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb;">`;
+                // Total Min Limits Box for the month (Both shifts)
+                html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb; margin-top:20px;">`;
                 html += `<h4 style="margin-top:0; color:#c0392b; border-bottom:2px solid #f5c6cb; padding-bottom:5px;">📊 جمع کل سوزن دو شیفت</h4>`;
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;">
-                    <span>جمع کل:</span>
-                    <span>${formatNum(data.total_all)} سوزن</span>
-                </div>`;
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;"><span>جمع کل:</span><span>${formatNum(data.total_all)} سوزن</span></div>`;
+                
                 html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:12px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;">
                     <span>حداقل روزانه (دو شیفت):</span>
                     <span>${formatNum((data.min_daily || 300000) * 2)}</span>
                 </div>`;
                 html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:12px; color:#d35400;">
-                    <span>حداقل هفتگی (دو شیفت):</span>
-                    <span>${formatNum((data.min_weekly || 1800000) * 2)}</span>
+                    <span>حداقل ماهانه (دو شیفت):</span>
+                    <span>${formatNum((data.min_monthly || 7800000) * 2)}</span>
                 </div>`;
                 
                 if (data.total_salary && data.show_salary) {
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;">
-                        <span>💰 مجموع حقوق کل:</span>
-                        <span>${formatNum(data.total_salary)} تومان</span>
-                    </div>`;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;"><span>💰 مجموع حقوق کل:</span><span>${formatNum(data.total_salary)} تومان</span></div>`;
                 }
+                
                 for (const [mach, dataObj] of Object.entries(data.machine_totals)) {
-                    let noChadorText = mach.includes('چادر') ? " (بدون احتساب چادر)" : "";
                     html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-top:1px dashed #eee; padding-top:5px;">
                         <span>${toPersianDigits(mach)}</span>
                         <div style="text-align:left;">
-                            <strong>${formatNum(dataObj.total)} سوزن${noChadorText}</strong><br>
+                            <strong>${formatNum(dataObj.total)} سوزن</strong><br>
                             <small style="color:#7f8c8d;">(میانگین روزانه: ${formatNum(dataObj.avg)})</small>
                         </div>
                     </div>`;
                 }
                 html += `</div>`;
-                
                 div.innerHTML = html;
             } catch(e) {
-                console.error(e);
                 div.innerHTML = `<p style="text-align:center; color:red;">خطا در دریافت گزارش: ${e.message || e}</p>`;
             }
         }
 
-        function initSalarySettings() {
+function initSalarySettings() {
             let today = new persianDate();
             let currentYear = today.year();
             let currentMonth = today.month();
@@ -3136,3 +2961,5 @@
 <!-- Final Polish: 1795376043 -->
 
 <!-- Ultimate Fix Applied: 1795376887.5564184 -->
+
+<!-- Definitive Fix: 1795378420 -->
