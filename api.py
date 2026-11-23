@@ -1222,7 +1222,7 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         for mach, total in machines.items():
             op_machine_averages[op_key][mach] = total // 6
         
-    return {"status": "ok", "week_title": week_title, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "min_daily": min_daily, "min_weekly": min_weekly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries}
+    return {"status": "ok", "week_title": week_title, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "min_daily": min_daily, "min_weekly": min_weekly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "price": price, "chador_price": chador_price}
 
 @app.get("/api/reports/monthly")
 async def get_monthly_report(year: int, month: int, payload: dict = Depends(verify_token)):
@@ -1390,7 +1390,7 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         for mach, total in machines.items():
             op_machine_averages[op_key][mach] = total // 26
         
-    return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials, "min_daily": min_daily, "min_monthly": min_monthly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries}
+    return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials, "min_daily": min_daily, "min_monthly": min_monthly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "price": price, "chador_price": chador_price}
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
