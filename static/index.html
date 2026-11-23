@@ -469,6 +469,17 @@
                 <label style="color: #2980b9; margin-top:10px; display:block;">شماره فاکتورها</label>
                 <input type="text" id="manChadorInvoice" placeholder="فاکتور ۱" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
             </div>
+            
+            <div class="zero-checkbox" id="manChadorCheckboxContainer" style="display:none; background:#e8f4f8; border-color:#3498db; margin-top:10px; margin-bottom:15px;">
+                <input type="checkbox" id="manIsChadorWork" onchange="toggleManChadorMode()">
+                <label for="manIsChadorWork" style="color:#2980b9; cursor:pointer;">دوخت چادر</label>
+            </div>
+            <div id="manChadorFields" style="display: none; background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #3498db;">
+                <label style="color: #2980b9;">تعداد چادر دوخته شده</label>
+                <input type="text" id="manChadorCount" placeholder="۱۲" oninput="formatPersianInput(this)">
+                <label style="color: #2980b9; margin-top:10px; display:block;">شماره فاکتورها</label>
+                <input type="text" id="manChadorInvoice" placeholder="فاکتور ۱" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
+            </div>
             <button type="submit" id="manSubmitBtn" style="background:#8e44ad;">ثبت</button>
         </form>
     </div>
@@ -1912,6 +1923,10 @@
             fd.append("chador_count", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorCount').value) : 0);
             fd.append("chador_invoice", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorInvoice').value) : "");
             
+            fd.append("is_chador", document.getElementById('manIsChadorWork').checked ? 'true' : 'false');
+            fd.append("chador_count", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorCount').value) : 0);
+            fd.append("chador_invoice", document.getElementById('manIsChadorWork').checked ? toEnglishDigits(document.getElementById('manChadorInvoice').value) : "");
+            
             
             const photoFile = document.getElementById('manPhoto').files[0];
             if (photoFile) fd.append("photo", photoFile);
@@ -3007,3 +3022,5 @@ function initSalarySettings() {
 <!-- Absolute Final Fix: 1795381593 -->
 
 <!-- Absolute Final Fix v2: 1795454524 -->
+
+<!-- Absolute Final Fix v3: 1795455109 -->

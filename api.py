@@ -201,60 +201,37 @@ def calculate_work(prev_counter, curr_counter, reset_period, is_first_shift, sta
     return work
 
 async def calculate_work_logic(machine, date_str, shift_type, counter, set_number, parts_str, stored_bonus=0, is_chador=0):
-    if "چادر" in machine:
-        is_chador = 1
-    if "چادر" in machine: is_chador = 1
     if stored_bonus is None: stored_bonus = 0
     if is_chador: return 0, False
     
-    immediate_prev = await get_immediate_previous_shift(machine, date_str, shift_type)
-    last_valid = await get_last_valid_shift_before(machine, date_str, shift_type)
+    target_date = clean_date(date_str)
     reset, start = await get_machine_info(machine)
     
+    # پیدا کردن شیفت بلافاصله قبل
+    immediate_prev = await get_immediate_previous_shift(machine, target_date, shift_type)
+    
+    prev_counter = None
+    is_first = False
+    
     if immediate_prev:
-        if immediate_prev[12]: 
-            if last_valid: work = calculate_work(last_valid[6], counter, reset, False, start)
-            else: work = calculate_work(None, counter, reset, True, start)
+        if immediate_prev[12]: # اگر شیفت قبلی غیبت (صفر) بوده
+            # آخرین شیفت معتبر قبل از این تاریخ را پیدا کن
+            last_valid = await get_last_valid_shift_before(machine, target_date, shift_type)
+            if last_valid: prev_counter = last_valid[6]
+            else: is_first = True # اگر هیچ شیفت معتبری نبود، یعنی اولین شیفت است
         else:
-            work = calculate_work(immediate_prev[6], counter, reset, False, start)
-        if work is not None: work += stored_bonus
-        return work, False
+            prev_counter = immediate_prev[6]
     else:
-        async with aiosqlite.connect(DB_NAME) as db:
-            async with db.execute("SELECT count(*) FROM shifts WHERE machine=?", (machine,)) as cursor:
-                total_machine_shifts = (await cursor.fetchone())[0]
-        
-        if total_machine_shifts == 0:
-            work = calculate_work(None, counter, reset, True, start)
-            if work is not None: work += stored_bonus
-            return work, True
+        # اگر شیفت بلافاصله قبل وجود نداشت (مثل آخر هفته یا تعطیلی)
+        # آخرین شیفت معتبر قبل از این تاریخ را پیدا کن
+        last_valid = await get_last_valid_shift_before(machine, target_date, shift_type)
+        if last_valid: prev_counter = last_valid[6]
+        else: is_first = True # اگر هیچ شیفت معتبری نبود، یعنی اولین شیفت است
             
-        if last_valid:
-            try:
-                y, m, d = map(int, clean_date(date_str).split('-'))
-                curr_d = jdatetime.date(y, m, d)
-                ly, lm, ld = map(int, clean_date(last_valid[3]).split('-'))
-                lv_date = jdatetime.date(ly, lm, ld)
-                
-                if shift_type == 'شب':
-                    if curr_d.weekday() == 6: 
-                        if lv_date == curr_d - jdatetime.timedelta(days=1) and last_valid[4] == 'شب':
-                            work = calculate_work(last_valid[6], counter, reset, False, start)
-                            if work is not None: work += stored_bonus
-                            return work, False
-                    if curr_d.weekday() == 0: 
-                        if lv_date == curr_d - jdatetime.timedelta(days=2) and last_valid[4] == 'شب':
-                            work = calculate_work(last_valid[6], counter, reset, False, start)
-                            if work is not None: work += stored_bonus
-                            return work, False
-                if shift_type == 'صبح':
-                    if curr_d.weekday() == 0: 
-                        if lv_date == curr_d - jdatetime.timedelta(days=2) and last_valid[4] == 'شب':
-                            work = calculate_work(last_valid[6], counter, reset, False, start)
-                            if work is not None: work += stored_bonus
-                            return work, False
-            except: pass
-        return None, False
+    # محاسبه نهایی
+    work = calculate_work(prev_counter, counter, reset, is_first, start)
+    if work is not None: work += stored_bonus
+    return work, is_first
 
 async def get_set_monthly_rank(machine, date_str, design_code=None, set_number=None):
     last_date = clean_date(date_str)
