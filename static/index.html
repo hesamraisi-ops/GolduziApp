@@ -2252,16 +2252,32 @@ function backFromMonthly() {
                         <span>⚠️ حداقل ماهانه: <strong>${minMonthlyStr}</strong></span>
                     </div>`;
 
+                    let shiftTotalSalary = 0; // برای محاسبه مجموع کل این شیفت
+
                     // Render Normal Machines as Boxes
                     for (const [mach, work] of Object.entries(machines)) {
                         if (mach.includes('چادر')) continue;
                         let machAvg = (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) ? data.op_machine_averages[op_key][mach] : 0;
                         let machSal = canSee ? Math.round(work * price) : 0;
+                        
+                        // اضافه کردن پاداش/جریمه به حقوق چرخ
+                        let machReward = 0, machPenalty = 0;
+                        if (canSee && data.machine_financials && data.machine_financials[op_key] && data.machine_financials[op_key][mach]) {
+                            machReward = data.machine_financials[op_key][mach].reward || 0;
+                            machPenalty = data.machine_financials[op_key][mach].penalty || 0;
+                        }
+                        let finalMachSal = machSal + machReward - machPenalty;
+                        shiftTotalSalary += finalMachSal;
 
                         html += `<div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-top:15px; border:1px solid #90caf9;">
                             <h5 style="margin:0 0 10px 0; color:#1565c0; font-size:15px; text-align:center; border-bottom:1px solid #bbdefb; padding-bottom:5px;">⚙️ ${toPersianDigits(mach)}</h5>
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#0d47a1;"><span>کارکرد</span><span>${formatNum(work)} سوزن</span></div>
-                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق</span><span>${formatNum(machSal)} تومان</span></div>` : ''}
+                            ${canSee ? `
+                                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق پایه</span><span>${formatNum(machSal)} تومان</span></div>
+                                ${machReward > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:#2ecc71;"><span>🎁 پاداش</span><span>${formatNum(machReward)} تومان</span></div>` : ''}
+                                ${machPenalty > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:#e74c3c;"><span>⚠️ جریمه</span><span>${formatNum(machPenalty)} تومان</span></div>` : ''}
+                                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:14px; font-weight:bold; color:#27ae60; border-top:1px dashed #90caf9; padding-top:5px;"><span>حقوق نهایی</span><span>${formatNum(finalMachSal)} تومان</span></div>
+                            ` : ''}
                             <div style="display:flex; justify-content:space-between; margin-bottom:0; font-size:12px; color:#7f8c8d;"><span>میانگین روزانه</span><span>${formatNum(machAvg)}</span></div>
                         </div>`;
                     }
@@ -2276,7 +2292,17 @@ function backFromMonthly() {
 
                         let clothesSal = Math.round(clothesWork * price);
                         let chadorSal = data.chador_salaries[op_key] || 0;
-                        let totalChadorSal = clothesSal + chadorSal;
+                        
+                        // پاداش و جریمه چرخ چادری
+                        let machReward = 0, machPenalty = 0;
+                        if (canSee && data.machine_financials && data.machine_financials[op_key] && data.machine_financials[op_key][chadorMach]) {
+                            machReward = data.machine_financials[op_key][chadorMach].reward || 0;
+                            machPenalty = data.machine_financials[op_key][chadorMach].penalty || 0;
+                        }
+
+                        let totalChadorSal = clothesSal + chadorSal + machReward - machPenalty;
+                        shiftTotalSalary += totalChadorSal;
+                        
                         let clothesAvg = Math.round(clothesWork / days);
                         let chadorAvg = Math.round(chadorCount / days);
 
@@ -2290,13 +2316,32 @@ function backFromMonthly() {
                             ${canSee ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#8e44ad;"><span>حقوق چادر</span><span>${formatNum(chadorSal)} تومان</span></div>` : ''}
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین دوخت چادر روزانه</span><span>${toPersianDigits(chadorAvg)} عدد</span></div>
                             
+                            ${canSee && machReward > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:#2ecc71;"><span>🎁 پاداش چرخ</span><span>${formatNum(machReward)} تومان</span></div>` : ''}
+                            ${canSee && machPenalty > 0 ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; color:#e74c3c;"><span>⚠️ جریمه چرخ</span><span>${formatNum(machPenalty)} تومان</span></div>` : ''}
+                            
                             ${canSee ? `<div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed #ce93d8; font-weight:bold; font-size:13px; color:#e67e22;"><span>مجموع حقوق چادری</span><span>${formatNum(totalChadorSal)} تومان</span></div>` : ''}
                         </div>`;
                     }
 
-                    // Total Salary of Shift (Includes Chador)
-                    if (canSee && data.op_salaries && data.op_salaries[op_key]) {
-                        html += `<div style="background:#e8f8f5; padding:10px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:15px; border:1px solid #a3e4d7;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
+                    // Total Salary of Shift (Includes all machines + bonuses/penalties)
+                    if (canSee) {
+                        // اضافه کردن پاداش/جریمه کل شیفت (نه چرخ)
+                        let shiftReward = 0, shiftPenalty = 0;
+                        if (data.shift_financials && data.shift_financials[op_key]) {
+                            shiftReward = data.shift_financials[op_key].reward || 0;
+                            shiftPenalty = data.shift_financials[op_key].penalty || 0;
+                        }
+                        shiftTotalSalary += shiftReward - shiftPenalty;
+
+                        html += `<div style="background:#e8f8f5; padding:10px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:15px; border:1px solid #a3e4d7;">💰 مجموع حقوق این شیفت: ${formatNum(shiftTotalSalary)} تومان</div>`;
+                        
+                        // نمایش پاداش و جریمه کل شیفت
+                        if (shiftReward > 0 || shiftPenalty > 0) {
+                            html += `<div style="font-size:11px; text-align:center; margin-top:5px; color:#555;">`;
+                            if (shiftReward > 0) html += `🎁 پاداش کل شیفت: ${formatNum(shiftReward)} تومان | `;
+                            if (shiftPenalty > 0) html += `⚠️ جریمه کل شیفت: ${formatNum(shiftPenalty)} تومان`;
+                            html += `</div>`;
+                        }
                     }
                     html += `</div>`;
                 }
@@ -2319,16 +2364,29 @@ function backFromMonthly() {
                         </div>`;
                     }
 
-                    // Render Grand Total Box for Chador
-                    if (totalChadorCount > 0 || data.machine_totals['چادری'] || Object.keys(data.machine_totals).some(m=>m.includes('چادر'))) {
+                    // Render Grand Total Box for Chador (Includes ALL Chador salaries)
+                    if (totalChadorCount > 0 || Object.keys(data.machine_totals).some(m=>m.includes('چادر'))) {
                         let chadorMachName = Object.keys(data.machine_totals).find(m=>m.includes('چادر')) || 'چادری';
                         let grandClothesWork = totalClothesWork;
                         let grandChadorCount = totalChadorCount;
                         let grandClothesSal = Math.round(grandClothesWork * price);
+                        
+                        // محاسبه مجموع تمام حقوق چادر و لباس‌های چادری در کل ماه
                         let grandChadorSal = Object.values(data.chador_salaries).reduce((a, b) => a + b, 0);
-                        let grandTotalSal = grandClothesSal + grandChadorSal;
+                        // برای لباس‌های چادری، پاداش و جریمه‌ها هم باید در total_salary لحاظ شده باشند، اما اینجا فقط پایه را می‌زنیم
+                        
                         let grandClothesAvg = Math.round(grandClothesWork / days);
                         let grandChadorAvg = Math.round(grandChadorCount / days);
+
+                        // محاسبه مجموع حقوق نهایی چادری (شامل پاداش/جریمه‌های چرخ چادری)
+                        let grandFinalChadorSal = grandClothesSal + grandChadorSal;
+                        for (const op_key in data.machine_financials) {
+                            for (const m in data.machine_financials[op_key]) {
+                                if (m.includes('چادر')) {
+                                    grandFinalChadorSal += (data.machine_financials[op_key][m].reward || 0) - (data.machine_financials[op_key][m].penalty || 0);
+                                }
+                            }
+                        }
 
                         html += `<div style="background:#f3e5f5; padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid #ce93d8;">
                             <h5 style="margin:0 0 10px 0; color:#8e44ad; font-size:15px; text-align:center; border-bottom:1px solid #e1bee7; padding-bottom:5px;">🧵 ${toPersianDigits(chadorMachName)} (کل دو شیفت)</h5>
@@ -2341,7 +2399,7 @@ function backFromMonthly() {
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین دوخت چادر روزانه</span><span>${toPersianDigits(grandChadorAvg)} عدد</span></div>
                             
                             <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed #ce93d8; font-weight:bold; font-size:13px; color:#e67e22;">
-                                <span>مجموع حقوق چادری</span><span>${formatNum(grandTotalSal)} تومان</span>
+                                <span>مجموع حقوق چادری</span><span>${formatNum(grandFinalChadorSal)} تومان</span>
                             </div>
                         </div>`;
                     }
@@ -3085,3 +3143,5 @@ function initSalarySettings() {
 <!-- Custom Chador UI: 1795458274 -->
 
 <!-- Custom Machine Boxes UI: 1795459076 -->
+
+<!-- Final Financial Fix: 1795460007 -->

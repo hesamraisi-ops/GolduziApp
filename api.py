@@ -1277,10 +1277,8 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         if zero_reason:
             work_val = 0
         else:
-            try:
-                w, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
-                work_val = w if w is not None else 0
-            except: work_val = 0
+            w, _ = await calculate_work_logic(machine, date, shift, counter, set_num, parts, bonus, is_chador)
+            work_val = w if w is not None else 0
             
         is_opposite = (shift != user_shift)
         can_see_salary = True
@@ -1289,11 +1287,10 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
             if is_opposite and not show_opposite_salary: can_see_salary = False
             
         op_key = f"{shift} {op_name}"
-        is_chador_shift = ("چادر" in machine) or is_chador
         
         sal_val = 0
         if can_see_salary:
-            if is_chador_shift:
+            if is_chador:
                 sal_val = int(round(chador_count * (chador_price or 0)))
                 chador_salaries[op_key] = chador_salaries.get(op_key, 0) + sal_val
                 chador_counts[op_key] = chador_counts.get(op_key, 0) + chador_count
