@@ -2071,7 +2071,7 @@
 
                     // Loop through normal machines
                     for (const [mach, work] of Object.entries(machines)) {
-                        if (mach.includes('چادر')) continue; // Skip chador here
+                        
 
                         let machAvg = 0;
                         if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
@@ -2087,7 +2087,7 @@
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
-                                <strong>${formatNum(work)} سوزن</strong>
+                                <strong>${mach.includes('چادر') ? `${toPersianDigits(data.chador_counts[op_key] || 0)} عدد` : `${formatNum(work)} سوزن`}</strong>
                                 ${avgText}
                                 ${salHtml}
                             </div>
@@ -2220,7 +2220,7 @@ function backFromMonthly() {
                     </div>`;
 
                     for (const [mach, work] of Object.entries(machines)) {
-                        if (mach.includes('چادر')) continue;
+                        
 
                         let machAvg = 0;
                         if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
@@ -2236,7 +2236,7 @@ function backFromMonthly() {
                         html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
                             <span>${toPersianDigits(mach)}</span>
                             <div style="text-align:left;">
-                                <strong>${formatNum(work)} سوزن</strong>
+                                <strong>${mach.includes('چادر') ? `${toPersianDigits(data.chador_counts[op_key] || 0)} عدد` : `${formatNum(work)} سوزن`}</strong>
                                 ${avgText}
                                 ${salHtml}
                             </div>
@@ -3024,3 +3024,5 @@ function initSalarySettings() {
 <!-- Absolute Final Fix v2: 1795454524 -->
 
 <!-- Absolute Final Fix v3: 1795455109 -->
+
+<!-- Chador Report Fix: 1795457633 -->
