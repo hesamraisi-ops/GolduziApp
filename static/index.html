@@ -2048,7 +2048,7 @@
                 let html = `<h3 style="text-align:center; color:#2980b9; margin-bottom:20px;">${data.week_title}</h3>`;
                 html += `<p style="text-align:center; font-size:13px; color:#7f8c8d; margin-bottom:20px;">(${formatDate(data.start_date)} تا ${formatDate(data.end_date)})</p>`;
                 
-                const days = 6; // برای هفتگی همیشه ۶ روز
+                const days = 6;
                 const price = data.price || 0;
                 const chadorPrice = data.chador_price || 0;
                 
@@ -2075,126 +2075,108 @@
                         <span>⚠️ حداقل هفتگی: <strong>${minWeeklyStr}</strong></span>
                     </div>`;
 
-                    // Loop through normal machines (excluding chador)
+                    // Render Normal Machines as Boxes
                     for (const [mach, work] of Object.entries(machines)) {
                         if (mach.includes('چادر')) continue; 
+                        let machAvg = (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) ? data.op_machine_averages[op_key][mach] : 0;
+                        let machSal = canSee ? Math.round(work * price) : 0;
 
-                        let machAvg = 0;
-                        if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
-                            machAvg = data.op_machine_averages[op_key][mach];
-                        }
-                        let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
-
-                        let salHtml = "";
-                        if (canSee && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
-                            salHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(data.op_machine_salaries[op_key][mach])} تومان</small>`;
-                        }
-
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
-                            <span>${toPersianDigits(mach)}</span>
-                            <div style="text-align:left;">
-                                <strong>${formatNum(work)} سوزن</strong>
-                                ${avgText}
-                                ${salHtml}
-                            </div>
+                        html += `<div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-top:15px; border:1px solid #90caf9;">
+                            <h5 style="margin:0 0 10px 0; color:#1565c0; font-size:15px; text-align:center; border-bottom:1px solid #bbdefb; padding-bottom:5px;">⚙️ ${toPersianDigits(mach)}</h5>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#0d47a1;"><span>کارکرد</span><span>${formatNum(work)} سوزن</span></div>
+                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق</span><span>${formatNum(machSal)} تومان</span></div>` : ''}
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0; font-size:12px; color:#7f8c8d;"><span>میانگین روزانه</span><span>${formatNum(machAvg)}</span></div>
                         </div>`;
                     }
 
-                    // Custom Render for Chador Machine
+                    // Render Chador Box
                     const chadorMach = Object.keys(machines).find(m => m.includes('چادر'));
                     if (chadorMach) {
                         let clothesWork = machines[chadorMach] || 0;
                         let chadorCount = data.chador_counts[op_key] || 0;
-                        
                         totalClothesWork += clothesWork;
                         totalChadorCount += chadorCount;
 
                         let clothesSal = Math.round(clothesWork * price);
                         let chadorSal = data.chador_salaries[op_key] || 0;
                         let totalChadorSal = clothesSal + chadorSal;
-                        
                         let clothesAvg = Math.round(clothesWork / days);
                         let chadorAvg = Math.round(chadorCount / days);
 
                         html += `<div style="background:#f3e5f5; padding:12px; border-radius:8px; margin-top:15px; border:1px solid #ce93d8;">
                             <h5 style="margin:0 0 10px 0; color:#8e44ad; font-size:15px; text-align:center; border-bottom:1px solid #e1bee7; padding-bottom:5px;">🧵 ${toPersianDigits(chadorMach)}</h5>
-                            
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>لباس</span><span>${formatNum(clothesWork)} سوزن</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق لباس</span><span>${formatNum(clothesSal)} تومان</span></div>
+                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق لباس</span><span>${formatNum(clothesSal)} تومان</span></div>` : ''}
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین کارکرد روزانه</span><span>${formatNum(clothesAvg)}</span></div>
                             
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>چادر</span><span>${toPersianDigits(chadorCount)} عدد</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#8e44ad;"><span>حقوق چادر</span><span>${formatNum(chadorSal)} تومان</span></div>
+                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#8e44ad;"><span>حقوق چادر</span><span>${formatNum(chadorSal)} تومان</span></div>` : ''}
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین دوخت چادر روزانه</span><span>${toPersianDigits(chadorAvg)} عدد</span></div>
                             
-                            <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed #ce93d8; font-weight:bold; font-size:13px; color:#e67e22;">
-                                <span>مجموع حقوق چادری</span><span>${formatNum(totalChadorSal)} تومان</span>
-                            </div>
+                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed #ce93d8; font-weight:bold; font-size:13px; color:#e67e22;"><span>مجموع حقوق چادری</span><span>${formatNum(totalChadorSal)} تومان</span></div>` : ''}
                         </div>`;
                     }
 
-                    // Render Clothes Salary for other machines (if any)
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key] > 0 && !chadorMach) {
-                         html += `<div style="background:#e8f5e9; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #a5d6a7;">
-                            <div style="color:#27ae60; font-size:13px; display:flex; justify-content:space-between;">
-                                <span>💰 حقوق لباس (سوزن):</span>
-                                <span>${formatNum(data.clothes_salaries[op_key])} تومان</span>
-                            </div>
-                        </div>`;
-                    }
-
-                    // Render Total Salary of Shift
+                    // Total Salary of Shift (Includes Chador)
                     if (canSee && data.op_salaries && data.op_salaries[op_key]) {
-                        html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
+                        html += `<div style="background:#e8f8f5; padding:10px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:15px; border:1px solid #a3e4d7;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
                     }
                     html += `</div>`;
                 }
                 
                 // Total Section (Admin Only)
                 if (userRole === 'admin') {
-                    html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb; margin-top:20px;">`;
+                    html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb; margin-top:25px;">`;
                     html += `<h4 style="margin-top:0; color:#c0392b; border-bottom:2px solid #f5c6cb; padding-bottom:5px;">📊 جمع کل سوزن دو شیفت</h4>`;
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;"><span>جمع کل:</span><span>${formatNum(data.total_all)} سوزن</span></div>`;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold; font-size:16px;"><span>جمع کل کارکرد:</span><span>${formatNum(data.total_all)} سوزن</span></div>`;
                     
-                    // Grand Total Chador breakdown
-                    if (totalChadorCount > 0) {
-                        let grandClothesSal = Math.round(totalClothesWork * price);
-                        let grandChadorSal = Object.values(data.chador_salaries).reduce((a, b) => a + b, 0);
-                        let grandTotalChadorSal = grandClothesSal + grandChadorSal;
-                        let grandClothesAvg = Math.round(totalClothesWork / days);
-                        let grandChadorAvg = Math.round(totalChadorCount / days);
+                    // Render Grand Total Boxes for Normal Machines
+                    for (const [mach, dataObj] of Object.entries(data.machine_totals)) {
+                        if (mach.includes('چادر')) continue;
+                        let machSal = Math.round(dataObj.total * price);
+                        html += `<div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid #90caf9;">
+                            <h5 style="margin:0 0 10px 0; color:#1565c0; font-size:15px; text-align:center; border-bottom:1px solid #bbdefb; padding-bottom:5px;">⚙️ ${toPersianDigits(mach)}</h5>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#0d47a1;"><span>کارکرد کل</span><span>${formatNum(dataObj.total)} سوزن</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>مجموع حقوق</span><span>${formatNum(machSal)} تومان</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0; font-size:12px; color:#7f8c8d;"><span>میانگین روزانه</span><span>${formatNum(dataObj.avg)}</span></div>
+                        </div>`;
+                    }
 
-                        html += `<div style="background:#f3e5f5; padding:12px; border-radius:8px; margin:15px 0; border:1px solid #ce93d8;">
-                            <h5 style="margin:0 0 10px 0; color:#8e44ad; font-size:15px; text-align:center; border-bottom:1px solid #e1bee7; padding-bottom:5px;">🧵 چادری (کل دو شیفت)</h5>
-                            
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>لباس</span><span>${formatNum(totalClothesWork)} سوزن</span></div>
+                    // Render Grand Total Box for Chador
+                    if (totalChadorCount > 0 || data.machine_totals['چادری'] || Object.keys(data.machine_totals).some(m=>m.includes('چادر'))) {
+                        let chadorMachName = Object.keys(data.machine_totals).find(m=>m.includes('چادر')) || 'چادری';
+                        let grandClothesWork = totalClothesWork;
+                        let grandChadorCount = totalChadorCount;
+                        let grandClothesSal = Math.round(grandClothesWork * price);
+                        let grandChadorSal = Object.values(data.chador_salaries).reduce((a, b) => a + b, 0);
+                        let grandTotalSal = grandClothesSal + grandChadorSal;
+                        let grandClothesAvg = Math.round(grandClothesWork / days);
+                        let grandChadorAvg = Math.round(grandChadorCount / days);
+
+                        html += `<div style="background:#f3e5f5; padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid #ce93d8;">
+                            <h5 style="margin:0 0 10px 0; color:#8e44ad; font-size:15px; text-align:center; border-bottom:1px solid #e1bee7; padding-bottom:5px;">🧵 ${toPersianDigits(chadorMachName)} (کل دو شیفت)</h5>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>لباس کل</span><span>${formatNum(grandClothesWork)} سوزن</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق لباس</span><span>${formatNum(grandClothesSal)} تومان</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین کارکرد روزانه</span><span>${formatNum(grandClothesAvg)}</span></div>
                             
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>چادر</span><span>${toPersianDigits(totalChadorCount)} عدد</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>چادر کل</span><span>${toPersianDigits(grandChadorCount)} عدد</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#8e44ad;"><span>حقوق چادر</span><span>${formatNum(grandChadorSal)} تومان</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین دوخت چادر روزانه</span><span>${toPersianDigits(grandChadorAvg)} عدد</span></div>
                             
                             <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed #ce93d8; font-weight:bold; font-size:13px; color:#e67e22;">
-                                <span>مجموع حقوق چادری</span><span>${formatNum(grandTotalChadorSal)} تومان</span>
+                                <span>مجموع حقوق چادری</span><span>${formatNum(grandTotalSal)} تومان</span>
                             </div>
                         </div>`;
                     }
                     
                     if (data.total_salary && data.show_salary) {
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;"><span>💰 مجموع حقوق کل:</span><span>${formatNum(data.total_salary)} تومان</span></div>`;
+                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60; border-top:2px solid #f5c6cb; padding-top:10px;"><span>💰 مجموع حقوق کل:</span><span>${formatNum(data.total_salary)} تومان</span></div>`;
                     }
                     
-                    for (const [mach, dataObj] of Object.entries(data.machine_totals)) {
-                        if (mach.includes('چادر')) continue;
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-top:1px dashed #eee; padding-top:5px;">
-                            <span>${toPersianDigits(mach)}</span>
-                            <div style="text-align:left;">
-                                <strong>${formatNum(dataObj.total)} سوزن</strong><br>
-                                <small style="color:#7f8c8d;">(میانگین روزانه: ${formatNum(dataObj.avg)})</small>
-                            </div>
-                        </div>`;
-                    }
+                    // Weekly Min Limits
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:12px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;"><span>حداقل روزانه (دو شیفت):</span><span>${formatNum((data.min_daily || 300000) * 2)}</span></div>`;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:12px; color:#d35400;"><span>حداقل هفتگی (دو شیفت):</span><span>${formatNum((data.min_weekly || 1800000) * 2)}</span></div>`;
+                    
                     html += `</div>`;
                 }
                 
@@ -2243,7 +2225,7 @@ function backFromMonthly() {
                 
                 let html = `<h3 style="text-align:center; color:#2980b9; margin-bottom:20px;">${data.month_title}</h3>`;
                 
-                const days = 26; // برای ماهانه همیشه ۲۶ روز
+                const days = 26;
                 const price = data.price || 0;
                 const chadorPrice = data.chador_price || 0;
                 
@@ -2270,123 +2252,108 @@ function backFromMonthly() {
                         <span>⚠️ حداقل ماهانه: <strong>${minMonthlyStr}</strong></span>
                     </div>`;
 
+                    // Render Normal Machines as Boxes
                     for (const [mach, work] of Object.entries(machines)) {
                         if (mach.includes('چادر')) continue;
+                        let machAvg = (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) ? data.op_machine_averages[op_key][mach] : 0;
+                        let machSal = canSee ? Math.round(work * price) : 0;
 
-                        let machAvg = 0;
-                        if (data.op_machine_averages && data.op_machine_averages[op_key] && data.op_machine_averages[op_key][mach]) {
-                            machAvg = data.op_machine_averages[op_key][mach];
-                        }
-                        let avgText = machAvg > 0 ? `<br><small style="color:#7f8c8d; font-size:11px;">(میانگین روزانه: ${formatNum(machAvg)})</small>` : '';
-
-                        let salHtml = "";
-                        if (canSee && data.op_machine_salaries && data.op_machine_salaries[op_key] && data.op_machine_salaries[op_key][mach]) {
-                            salHtml = `<br><small style="color:#27ae60; font-weight:bold;">💰 حقوق: ${formatNum(data.op_machine_salaries[op_key][mach])} تومان</small>`;
-                        }
-
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
-                            <span>${toPersianDigits(mach)}</span>
-                            <div style="text-align:left;">
-                                <strong>${formatNum(work)} سوزن</strong>
-                                ${avgText}
-                                ${salHtml}
-                            </div>
+                        html += `<div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-top:15px; border:1px solid #90caf9;">
+                            <h5 style="margin:0 0 10px 0; color:#1565c0; font-size:15px; text-align:center; border-bottom:1px solid #bbdefb; padding-bottom:5px;">⚙️ ${toPersianDigits(mach)}</h5>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#0d47a1;"><span>کارکرد</span><span>${formatNum(work)} سوزن</span></div>
+                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق</span><span>${formatNum(machSal)} تومان</span></div>` : ''}
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0; font-size:12px; color:#7f8c8d;"><span>میانگین روزانه</span><span>${formatNum(machAvg)}</span></div>
                         </div>`;
                     }
 
-                    // Custom Render for Chador Machine
+                    // Render Chador Box
                     const chadorMach = Object.keys(machines).find(m => m.includes('چادر'));
                     if (chadorMach) {
                         let clothesWork = machines[chadorMach] || 0;
                         let chadorCount = data.chador_counts[op_key] || 0;
-                        
                         totalClothesWork += clothesWork;
                         totalChadorCount += chadorCount;
 
                         let clothesSal = Math.round(clothesWork * price);
                         let chadorSal = data.chador_salaries[op_key] || 0;
                         let totalChadorSal = clothesSal + chadorSal;
-                        
                         let clothesAvg = Math.round(clothesWork / days);
                         let chadorAvg = Math.round(chadorCount / days);
 
                         html += `<div style="background:#f3e5f5; padding:12px; border-radius:8px; margin-top:15px; border:1px solid #ce93d8;">
                             <h5 style="margin:0 0 10px 0; color:#8e44ad; font-size:15px; text-align:center; border-bottom:1px solid #e1bee7; padding-bottom:5px;">🧵 ${toPersianDigits(chadorMach)}</h5>
-                            
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>لباس</span><span>${formatNum(clothesWork)} سوزن</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق لباس</span><span>${formatNum(clothesSal)} تومان</span></div>
+                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق لباس</span><span>${formatNum(clothesSal)} تومان</span></div>` : ''}
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین کارکرد روزانه</span><span>${formatNum(clothesAvg)}</span></div>
                             
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>چادر</span><span>${toPersianDigits(chadorCount)} عدد</span></div>
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#8e44ad;"><span>حقوق چادر</span><span>${formatNum(chadorSal)} تومان</span></div>
+                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#8e44ad;"><span>حقوق چادر</span><span>${formatNum(chadorSal)} تومان</span></div>` : ''}
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین دوخت چادر روزانه</span><span>${toPersianDigits(chadorAvg)} عدد</span></div>
                             
-                            <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed #ce93d8; font-weight:bold; font-size:13px; color:#e67e22;">
-                                <span>مجموع حقوق چادری</span><span>${formatNum(totalChadorSal)} تومان</span>
-                            </div>
+                            ${canSee ? `<div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed #ce93d8; font-weight:bold; font-size:13px; color:#e67e22;"><span>مجموع حقوق چادری</span><span>${formatNum(totalChadorSal)} تومان</span></div>` : ''}
                         </div>`;
                     }
 
-                    if (canSee && data.clothes_salaries && data.clothes_salaries[op_key] > 0 && !chadorMach) {
-                         html += `<div style="background:#e8f5e9; padding:10px; border-radius:5px; margin-top:10px; border:1px solid #a5d6a7;">
-                            <div style="color:#27ae60; font-size:13px; display:flex; justify-content:space-between;">
-                                <span>💰 حقوق لباس (سوزن):</span>
-                                <span>${formatNum(data.clothes_salaries[op_key])} تومان</span>
-                            </div>
-                        </div>`;
-                    }
-
+                    // Total Salary of Shift (Includes Chador)
                     if (canSee && data.op_salaries && data.op_salaries[op_key]) {
-                        html += `<div style="background:#e8f8f5; padding:8px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:10px;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
+                        html += `<div style="background:#e8f8f5; padding:10px; border-radius:5px; text-align:center; font-weight:bold; color:#16a085; margin-top:15px; border:1px solid #a3e4d7;">💰 مجموع حقوق این شیفت: ${formatNum(data.op_salaries[op_key])} تومان</div>`;
                     }
                     html += `</div>`;
                 }
                 
                 // Total Section (Admin Only)
                 if (userRole === 'admin') {
-                    html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb; margin-top:20px;">`;
+                    html += `<div style="background:#fdf2f2; padding:15px; border-radius:8px; border:1px solid #f5c6cb; margin-top:25px;">`;
                     html += `<h4 style="margin-top:0; color:#c0392b; border-bottom:2px solid #f5c6cb; padding-bottom:5px;">📊 جمع کل سوزن دو شیفت</h4>`;
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px;"><span>جمع کل:</span><span>${formatNum(data.total_all)} سوزن</span></div>`;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold; font-size:16px;"><span>جمع کل کارکرد:</span><span>${formatNum(data.total_all)} سوزن</span></div>`;
                     
-                    // Grand Total Chador breakdown
-                    if (totalChadorCount > 0) {
-                        let grandClothesSal = Math.round(totalClothesWork * price);
-                        let grandChadorSal = Object.values(data.chador_salaries).reduce((a, b) => a + b, 0);
-                        let grandTotalChadorSal = grandClothesSal + grandChadorSal;
-                        let grandClothesAvg = Math.round(totalClothesWork / days);
-                        let grandChadorAvg = Math.round(totalChadorCount / days);
+                    // Render Grand Total Boxes for Normal Machines
+                    for (const [mach, dataObj] of Object.entries(data.machine_totals)) {
+                        if (mach.includes('چادر')) continue;
+                        let machSal = Math.round(dataObj.total * price);
+                        html += `<div style="background:#e3f2fd; padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid #90caf9;">
+                            <h5 style="margin:0 0 10px 0; color:#1565c0; font-size:15px; text-align:center; border-bottom:1px solid #bbdefb; padding-bottom:5px;">⚙️ ${toPersianDigits(mach)}</h5>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#0d47a1;"><span>کارکرد کل</span><span>${formatNum(dataObj.total)} سوزن</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>مجموع حقوق</span><span>${formatNum(machSal)} تومان</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0; font-size:12px; color:#7f8c8d;"><span>میانگین روزانه</span><span>${formatNum(dataObj.avg)}</span></div>
+                        </div>`;
+                    }
 
-                        html += `<div style="background:#f3e5f5; padding:12px; border-radius:8px; margin:15px 0; border:1px solid #ce93d8;">
-                            <h5 style="margin:0 0 10px 0; color:#8e44ad; font-size:15px; text-align:center; border-bottom:1px solid #e1bee7; padding-bottom:5px;">🧵 چادری (کل دو شیفت)</h5>
-                            
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>لباس</span><span>${formatNum(totalClothesWork)} سوزن</span></div>
+                    // Render Grand Total Box for Chador
+                    if (totalChadorCount > 0 || data.machine_totals['چادری'] || Object.keys(data.machine_totals).some(m=>m.includes('چادر'))) {
+                        let chadorMachName = Object.keys(data.machine_totals).find(m=>m.includes('چادر')) || 'چادری';
+                        let grandClothesWork = totalClothesWork;
+                        let grandChadorCount = totalChadorCount;
+                        let grandClothesSal = Math.round(grandClothesWork * price);
+                        let grandChadorSal = Object.values(data.chador_salaries).reduce((a, b) => a + b, 0);
+                        let grandTotalSal = grandClothesSal + grandChadorSal;
+                        let grandClothesAvg = Math.round(grandClothesWork / days);
+                        let grandChadorAvg = Math.round(grandChadorCount / days);
+
+                        html += `<div style="background:#f3e5f5; padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid #ce93d8;">
+                            <h5 style="margin:0 0 10px 0; color:#8e44ad; font-size:15px; text-align:center; border-bottom:1px solid #e1bee7; padding-bottom:5px;">🧵 ${toPersianDigits(chadorMachName)} (کل دو شیفت)</h5>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>لباس کل</span><span>${formatNum(grandClothesWork)} سوزن</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#27ae60;"><span>حقوق لباس</span><span>${formatNum(grandClothesSal)} تومان</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین کارکرد روزانه</span><span>${formatNum(grandClothesAvg)}</span></div>
                             
-                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>چادر</span><span>${toPersianDigits(totalChadorCount)} عدد</span></div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px;"><span>چادر کل</span><span>${toPersianDigits(grandChadorCount)} عدد</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:13px; color:#8e44ad;"><span>حقوق چادر</span><span>${formatNum(grandChadorSal)} تومان</span></div>
                             <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:12px; color:#7f8c8d;"><span>میانگین دوخت چادر روزانه</span><span>${toPersianDigits(grandChadorAvg)} عدد</span></div>
                             
                             <div style="display:flex; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px dashed #ce93d8; font-weight:bold; font-size:13px; color:#e67e22;">
-                                <span>مجموع حقوق چادری</span><span>${formatNum(grandTotalChadorSal)} تومان</span>
+                                <span>مجموع حقوق چادری</span><span>${formatNum(grandTotalSal)} تومان</span>
                             </div>
                         </div>`;
                     }
                     
                     if (data.total_salary && data.show_salary) {
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60;"><span>💰 مجموع حقوق کل:</span><span>${formatNum(data.total_salary)} تومان</span></div>`;
+                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:16px; color:#27ae60; border-top:2px solid #f5c6cb; padding-top:10px;"><span>💰 مجموع حقوق کل:</span><span>${formatNum(data.total_salary)} تومان</span></div>`;
                     }
                     
-                    for (const [mach, dataObj] of Object.entries(data.machine_totals)) {
-                        if (mach.includes('چادر')) continue;
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-top:1px dashed #eee; padding-top:5px;">
-                            <span>${toPersianDigits(mach)}</span>
-                            <div style="text-align:left;">
-                                <strong>${formatNum(dataObj.total)} سوزن</strong><br>
-                                <small style="color:#7f8c8d;">(میانگین روزانه: ${formatNum(dataObj.avg)})</small>
-                            </div>
-                        </div>`;
-                    }
+                    // Monthly Min Limits
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; font-weight:bold; font-size:12px; color:#d35400; border-top:1px dashed #ccc; padding-top:10px;"><span>حداقل روزانه (دو شیفت):</span><span>${formatNum((data.min_daily || 300000) * 2)}</span></div>`;
+                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:12px; color:#d35400;"><span>حداقل ماهانه (دو شیفت):</span><span>${formatNum((data.min_monthly || 7800000) * 2)}</span></div>`;
+                    
                     html += `</div>`;
                 }
                 
@@ -3116,3 +3083,5 @@ function initSalarySettings() {
 <!-- Chador Report Fix: 1795457633 -->
 
 <!-- Custom Chador UI: 1795458274 -->
+
+<!-- Custom Machine Boxes UI: 1795459076 -->
