@@ -196,7 +196,8 @@ def calculate_work(prev_counter, curr_counter, reset_period, is_first_shift, sta
         else: return None 
     if curr_counter >= prev_counter: work = curr_counter - prev_counter
     else: work = (reset_period - prev_counter) + curr_counter
-    if work > 600000: return None
+    # محدودیت ۶۰۰ هزار فقط برای شیفت‌های عادی، نه اولین شیفت
+    if not is_first_shift and work > 600000: return None
     return work
 
 async def calculate_work_logic(machine, date_str, shift_type, counter, set_number, parts_str, stored_bonus=0, is_chador=0):
