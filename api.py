@@ -1413,6 +1413,30 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         
     return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials, "min_daily": min_daily, "min_monthly": min_monthly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "price": price, "chador_price": chador_price}
 
+@app.post("/api/change_password")
+async def change_password(data: dict, payload: dict = Depends(verify_token)):
+    user_id = int(payload["sub"])
+    old_pass = data.get("old_password")
+    new_pass = data.get("new_password")
+    
+    if not old_pass or not new_pass:
+        raise HTTPException(400, "رمز قبلی و جدید الزامی است.")
+    if len(new_pass) < 4:
+        raise HTTPException(400, "رمز جدید باید حداقل ۴ کاراکتر باشد.")
+        
+    old_hash = hash_password(old_pass)
+    new_hash = hash_password(new_pass)
+    
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT id FROM users WHERE id=? AND password_hash=?", (user_id, old_hash)) as cursor:
+            if not await cursor.fetchone():
+                raise HTTPException(400, "رمز عبور فعلی اشتباه است.")
+                
+        await db.execute("UPDATE users SET password_hash=? WHERE id=?", (new_hash, user_id))
+        await db.commit()
+        
+    return {"status": "ok", "message": "رمز عبور با موفقیت تغییر یافت."}
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     response = FileResponse("static/index.html")
