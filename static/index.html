@@ -372,12 +372,9 @@
     <div class="container" id="adminManualSection" style="max-width: 500px;">
         <div class="section-header"><h3 id="manFormTitle">📝 ثبت دستی / ویرایش</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
         
-        <div id="manEditingInfo" style="display: none; background: #e8f8f5; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; color: #16a085; font-weight: bold; border: 1px solid #1abc9c;"></div>
         <div id="manLastShiftDisplay" style="margin-bottom: 15px;"></div>
         <div id="manImmediatePrevDisplay" style="margin-bottom: 15px;"></div>
-        <div id="manCheckShiftAlert" style="display: none; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-            ⚠️ برای این اپراتور، چرخ و تاریخ قبلا ثبت شده!
-        </div>
+        <div id="manCheckShiftAlert" style="display: none; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;"></div>
 
         <form id="manualForm">
             <label>شیفت</label>
@@ -387,7 +384,7 @@
             </select>
 
             <label>چرخ</label>
-            <select id="manMachine" required onchange="triggerManFetch(true)"></select>
+            <select id="manMachine" required onchange="handleManMachineChange(true)"></select>
 
             <label>تاریخ (برای تقویم کلیک کنید)</label>
             <input type="text" id="manDate" required placeholder="۱۴۰۵-۰۷-۰۱" style="direction: ltr; text-align: right;" onchange="triggerManFetch(false)">
@@ -458,33 +455,11 @@
                 <input type="text" id="manZeroNote" placeholder="توضیح دهید...">
             </div>
 
-            
-            <div class="zero-checkbox" id="manChadorCheckboxContainer" style="display:none; background:#e8f4f8; border-color:#3498db; margin-top:10px; margin-bottom:15px;">
-                <input type="checkbox" id="manIsChadorWork" onchange="toggleManChadorMode()">
-                <label for="manIsChadorWork" style="color:#2980b9; cursor:pointer;">دوخت چادر</label>
-            </div>
-            <div id="manChadorFields" style="display: none; background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #3498db;">
-                <label style="color: #2980b9;">تعداد چادر دوخته شده</label>
-                <input type="text" id="manChadorCount" placeholder="۱۲" oninput="formatPersianInput(this)">
-                <label style="color: #2980b9; margin-top:10px; display:block;">شماره فاکتورها</label>
-                <input type="text" id="manChadorInvoice" placeholder="فاکتور ۱" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-            </div>
-            
-            <div class="zero-checkbox" id="manChadorCheckboxContainer" style="display:none; background:#e8f4f8; border-color:#3498db; margin-top:10px; margin-bottom:15px;">
-                <input type="checkbox" id="manIsChadorWork" onchange="toggleManChadorMode()">
-                <label for="manIsChadorWork" style="color:#2980b9; cursor:pointer;">دوخت چادر</label>
-            </div>
-            <div id="manChadorFields" style="display: none; background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #3498db;">
-                <label style="color: #2980b9;">تعداد چادر دوخته شده</label>
-                <input type="text" id="manChadorCount" placeholder="۱۲" oninput="formatPersianInput(this)">
-                <label style="color: #2980b9; margin-top:10px; display:block;">شماره فاکتورها</label>
-                <input type="text" id="manChadorInvoice" placeholder="فاکتور ۱" oninput="formatPersianInput(this)" style="margin-bottom:5px;">
-            </div>
             <button type="submit" id="manSubmitBtn" style="background:#8e44ad;">ثبت</button>
         </form>
     </div>
 
-    <div class="container" id="adminSalarySection">
+<div class="container" id="adminSalarySection">
         <div class="section-header"><h3>💰 تنظیمات حقوق</h3><button class="back-btn" onclick="showSection('adminScreen')">بازگشت</button></div>
         
         <div style="display:flex; gap:10px; margin-bottom:20px; background:#ecf0f1; padding:15px; border-radius:8px; border:1px solid #bdc3c7;">
@@ -3145,3 +3120,5 @@ function initSalarySettings() {
 <!-- Custom Machine Boxes UI: 1795459076 -->
 
 <!-- Final Financial Fix: 1795460007 -->
+
+<!-- Rebuilt Manual Form: 1795542052 -->
