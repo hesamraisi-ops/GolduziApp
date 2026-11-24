@@ -133,6 +133,7 @@
             <button class="btn-report" style="background: #27ae60; grid-column: span 1;" onclick="showSection('weeklyReportSection'); initWeeklyReport()">📅<br>گزارش هفتگی</button>
             <button class="btn-report" style="background: #2980b9; grid-column: span 1;" onclick="showSection('monthlyReportSection'); initMonthlyReport()">📅<br>گزارش ماهانه</button>
             <button class="btn-manual" style="background: #e74c3c; grid-column: span 2;" onclick="showSection('changePasswordSection')">🔐<br>تغییر رمز عبور</button>
+            
         </div>
     </div>
 
@@ -335,6 +336,7 @@
             <button class="btn-machine" onclick="showSection('adminMachineSection'); loadAdminMachines()"><span>⚙️</span> تنظیمات چرخ</button>
             <button class="btn-users" onclick="showSection('adminUserSection'); loadUsers()"><span>👥</span> تنظیمات کاربران</button>
             <button class="btn-analysis" style="background: #e74c3c;" onclick="showSection('changePasswordSection')"><span>🔐</span> تغییر رمز عبور</button>
+            
             <button class="btn-delete" onclick="showSection('adminDeleteSection'); initAdminDelete()"><span>🗑</span> حذف کارکرد</button>
         </div>
     </div>
@@ -728,7 +730,27 @@
         <div id="deleteList"></div>
     </div>
 
-    <div class="modal" id="imageZoomModal" style="background: rgba(0,0,0,0.95); z-index: 9999; position: fixed; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center;" onclick="this.style.display='none'">
+    
+    <div class="container" id="changePasswordSection" style="max-width: 400px;">
+        <div class="section-header"><h3>🔐 تغییر رمز عبور</h3><button class="back-btn" onclick="backFromChangePass()">بازگشت</button></div>
+        
+        <div class="card" style="background:#f9f9f9;">
+            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">رمز عبور فعلی:</label>
+            <input type="password" id="oldPassword" placeholder="****" style="margin-bottom:15px;">
+            
+            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">رمز عبور جدید:</label>
+            <input type="password" id="newPassword" placeholder="****" style="margin-bottom:15px;">
+            
+            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">تکرار رمز عبور جدید:</label>
+            <input type="password" id="confirmPassword" placeholder="****" style="margin-bottom:20px;">
+            
+            <div id="changePassStatus" style="text-align:center; font-weight:bold; margin-bottom:15px;"></div>
+            
+            <button style="background:#2980b9;" onclick="submitChangePassword()">💾 ذخیره رمز جدید</button>
+        </div>
+    </div>
+
+<div class="modal" id="imageZoomModal" style="background: rgba(0,0,0,0.95); z-index: 9999; position: fixed; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center;" onclick="this.style.display='none'">
         <span style="position:absolute; top:15px; right:20px; color:white; font-size:45px; font-weight:bold; cursor:pointer; z-index:10000;">&times;</span>
         <img id="zoomedImage" src="" style="width: 100%; max-height: 95vh; object-fit: contain; pointer-events: none;">
     </div>
@@ -3065,47 +3087,7 @@ function initSalarySettings() {
                 banner.style.top = '-100px';
             }, 4000);
         }
-    </script>
-
-
     
-
-
-<!-- Toast Notifications & Auto Date: 1795200714 -->
-
-<!-- Prev Shift Display: 1795201320 -->
-
-<!-- Fix Admin Date: 1795201853 -->
-
-<!-- Fix Manual Date Logic: 1795202504 -->
-
-<!-- Ultimate Date Fix: 1795203364 -->
-
-<!-- UI Fixes: 1795286121 -->
-
-<!-- Limits and Filters Fix: 1795287839 -->
-
-    <div class="container" id="changePasswordSection" style="max-width: 400px;">
-        <div class="section-header"><h3>🔐 تغییر رمز عبور</h3><button class="back-btn" onclick="backFromChangePass()">بازگشت</button></div>
-        
-        <div class="card" style="background:#f9f9f9;">
-            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">رمز عبور فعلی:</label>
-            <input type="password" id="oldPassword" placeholder="****" style="margin-bottom:15px;">
-            
-            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">رمز عبور جدید:</label>
-            <input type="password" id="newPassword" placeholder="****" style="margin-bottom:15px;">
-            
-            <label style="font-weight:bold; font-size:14px; margin-bottom:5px; display:block;">تکرار رمز عبور جدید:</label>
-            <input type="password" id="confirmPassword" placeholder="****" style="margin-bottom:20px;">
-            
-            <div id="changePassStatus" style="text-align:center; font-weight:bold; margin-bottom:15px;"></div>
-            
-            <button style="background:#2980b9;" onclick="submitChangePassword()">💾 ذخیره رمز جدید</button>
-        </div>
-    </div>
-
-
-    <script>
         function backFromChangePass() {
             if (userRole === 'admin') showSection('adminScreen');
             else showSection('operatorDashboard');
@@ -3156,7 +3138,31 @@ function initSalarySettings() {
                 statusEl.innerText = "خطای شبکه.";
             }
         }
+
     </script>
+
+
+    
+
+
+<!-- Toast Notifications & Auto Date: 1795200714 -->
+
+<!-- Prev Shift Display: 1795201320 -->
+
+<!-- Fix Admin Date: 1795201853 -->
+
+<!-- Fix Manual Date Logic: 1795202504 -->
+
+<!-- Ultimate Date Fix: 1795203364 -->
+
+<!-- UI Fixes: 1795286121 -->
+
+<!-- Limits and Filters Fix: 1795287839 -->
+
+    
+
+
+    
 
 </body>
 </html>
@@ -3200,3 +3206,5 @@ function initSalarySettings() {
 <!-- Rebuilt Manual Form: 1795542052 -->
 
 <!-- Change Password Feature: 1795543744 -->
+
+<!-- Fixed Change Pass: 1795544047 -->
