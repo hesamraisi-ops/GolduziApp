@@ -1210,17 +1210,29 @@ async def get_weekly_report(year: int, month: int, week_num: int, payload: dict 
         rank = await get_set_monthly_rank(machine, end_str)
         sets_summary.append({"machine": machine, "count": data["bonus_count"], "sets_list": unique_sets, "rank": rank})
         
+    # محاسبه تعداد روزهای کاری سپری شده از هفته تا امروز
+    today = jdatetime.date.today()
+    days_passed = 0
+    if target_start <= today:
+        end_check = min(today, target_end)
+        check_date = target_start
+        while check_date <= end_check:
+            if check_date.weekday() != 6: # اگر جمعه نبود
+                days_passed += 1
+            check_date += jdatetime.timedelta(days=1)
+    if days_passed == 0: days_passed = 1 # جلوگیری از تقسیم بر صفر
+
     final_machine_totals = {}
     for mach, work in machine_totals.items():
-        final_machine_totals[mach] = {"total": work, "avg": work // 6}
+        final_machine_totals[mach] = {"total": work, "avg": work // days_passed}
     operator_averages = {}
     for op_key, total in op_totals.items():
-        operator_averages[op_key] = total // 6
+        operator_averages[op_key] = total // days_passed
     op_machine_averages = {}
     for op_key, machines in op_machine_totals.items():
         op_machine_averages[op_key] = {}
         for mach, total in machines.items():
-            op_machine_averages[op_key][mach] = total // 6
+            op_machine_averages[op_key][mach] = total // days_passed
         
     return {"status": "ok", "week_title": week_title, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "min_daily": min_daily, "min_weekly": min_weekly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "price": price, "chador_price": chador_price}
 
@@ -1375,17 +1387,29 @@ async def get_monthly_report(year: int, month: int, payload: dict = Depends(veri
         rank = await get_set_monthly_rank(machine, end_str)
         sets_summary.append({"machine": machine, "count": data["bonus_count"], "sets_list": unique_sets, "rank": rank})
         
+    # محاسبه تعداد روزهای کاری سپری شده از ماه تا امروز
+    today = jdatetime.date.today()
+    days_passed = 0
+    if first_day <= today:
+        end_check = min(today, jdatetime.date(year, month, days_in_month))
+        check_date = first_day
+        while check_date <= end_check:
+            if check_date.weekday() != 6: # اگر جمعه نبود
+                days_passed += 1
+            check_date += jdatetime.timedelta(days=1)
+    if days_passed == 0: days_passed = 1 # جلوگیری از تقسیم بر صفر
+
     final_machine_totals = {}
     for mach, work in machine_totals.items():
-        final_machine_totals[mach] = {"total": work, "avg": work // 26}
+        final_machine_totals[mach] = {"total": work, "avg": work // days_passed}
     operator_averages = {}
     for op_key, total in op_totals.items():
-        operator_averages[op_key] = total // 26
+        operator_averages[op_key] = total // days_passed
     op_machine_averages = {}
     for op_key, machines in op_machine_totals.items():
         op_machine_averages[op_key] = {}
         for mach, total in machines.items():
-            op_machine_averages[op_key][mach] = total // 26
+            op_machine_averages[op_key][mach] = total // days_passed
         
     return {"status": "ok", "month_title": m_name, "start_date": start_str, "end_date": end_str, "total_all": total_all, "total_salary": total_salary, "show_salary": show_salary, "show_opposite_salary": show_opposite_salary, "machine_totals": final_machine_totals, "operator_shifts": operator_shifts, "sets_summary": sets_summary, "operator_averages": operator_averages, "op_machine_averages": op_machine_averages, "op_salaries": op_salaries, "op_machine_salaries": op_machine_salaries, "shift_financials": shift_financials, "machine_financials": machine_financials, "min_daily": min_daily, "min_monthly": min_monthly, "chador_counts": chador_counts, "chador_salaries": chador_salaries, "clothes_salaries": clothes_salaries, "price": price, "chador_price": chador_price}
 
