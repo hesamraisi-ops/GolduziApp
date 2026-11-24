@@ -1474,7 +1474,9 @@
                     let work = pvData.work;
                     let workHtml = "";
                     if (work === null) {
-                        if (pvData.pending_warning) {
+                        if (pvData.missing_prev_error) {
+                            workHtml = `<span style="color:#e74c3c; font-weight:bold;">نامشخص (شیفت قبلی ثبت نشده است)</span>`;
+                        } else if (pvData.pending_warning) {
                             workHtml = `<span style="color:#e74c3c; font-weight:bold;">نامشخص (در انتظار تایید شیفت قبلی)</span>`;
                         } else {
                             workHtml = `<span style="color:#e74c3c; font-weight:bold;">نامشخص (شیفت مخالف ثبت نشده)</span>`;
@@ -1487,7 +1489,12 @@
                     }
 
                     let bonusHtml = document.getElementById('requestBonus').checked ? `<br><span style="color:#856404; background:#fff3cd; padding:5px; border-radius:5px; display:inline-block; margin-top:10px;">🎁 شما درخواست <strong>ست جدید</strong> را ثبت کرده‌اید. (${formatNum(60000)} سوزن پس از تایید مدیر اضافه می‌شود)</span>` : "";
-                    let pendingHtml = pvData.pending_warning ? `<br><span style="color:#e74c3c; background:#f8d7da; padding:5px; border-radius:5px; display:inline-block; margin-top:10px;">⚠️ اخطار: شیفت قبلی شما در انتظار تایید مدیر است. کارکرد شما نامشخص خواهد بود تا زمانی که تایید شود.</span>` : "";
+                    let pendingHtml = "";
+                    if (pvData.missing_prev_error) {
+                        pendingHtml = `<br><span style="color:#e74c3c; background:#f8d7da; padding:5px; border-radius:5px; display:inline-block; margin-top:10px;">⚠️ اخطار: شیفت قبلی شما ثبت نشده است. کارکرد شما نامشخص خواهد بود اما رکورد ثبت می‌شود.</span>`;
+                    } else if (pvData.pending_warning) {
+                        pendingHtml = `<br><span style="color:#e74c3c; background:#f8d7da; padding:5px; border-radius:5px; display:inline-block; margin-top:10px;">⚠️ اخطار: شیفت قبلی شما در انتظار تایید مدیر است. کارکرد شما نامشخص خواهد بود تا زمانی که تایید شود.</span>`;
+                    }
                     let warningHtml = "";
                     if (work !== null && work > 400000) {
                         warningHtml = `<br><div style="color:#e74c3c; background:#f8d7da; padding:10px; border-radius:5px; margin-top:15px; font-weight:bold; border: 1px solid #f5c6cb;">⚠️ هشدار: کارکرد محاسبه شده بسیار غیرعادی است! آیا مطمئن هستید تاریخ انتخاب شده (${formatDate(dateVal)}) و شمارنده درست است؟</div>`;
@@ -3210,3 +3217,5 @@ function initSalarySettings() {
 <!-- Fixed Change Pass: 1795544047 -->
 
 <!-- Shift Validation & Sorting Fix: 1795547487 -->
+
+<!-- Allow Submit with None Work: 1795549040 -->

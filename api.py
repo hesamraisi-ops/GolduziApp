@@ -726,44 +726,39 @@ async def preview_work(machine: str = Form(...), date: str = Form(...), counter:
         await check_missing_shifts(op_id, date, machine)
         is_chador_val = 1 if is_chador == "true" else 0
         
-        # بررسی وجود شیفت قبلی
         immediate_prev = await get_immediate_previous_shift(machine, date, shift)
         pending_warning = False
+        missing_prev_error = False
         
+        # اگر شیفت قبلی وجود ندارد (نه غیبت، بلکه کاملا ثبت نشده)
         if not immediate_prev:
-            # اگر شیفت قبلی وجود نداشت، چک کنیم چرا
-            if shift == 'شب': q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='صبح' AND status IN ('pending', 'approved', 'rejected')", (machine, date)
+            if shift == 'شب': q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='صبح'", (machine, date)
             else:
                 try:
                     y, m, d = map(int, date.split('-'))
                     prev_d = (jdatetime.date(y, m, d) - jdatetime.timedelta(days=1)).strftime("%Y-%m-%d")
-                    q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='شب' AND status IN ('pending', 'approved', 'rejected')", (machine, prev_d)
+                    q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='شب'", (machine, prev_d)
                 except: q, p = "", ()
             
-            # اگر رکوردی در دیتابیس نبود، باید جلوی ثبت گرفته شود
             has_prev_record = False
             if q:
                 async with aiosqlite.connect(DB_NAME) as db:
                     async with db.execute(q, p) as cursor:
-                        if await cursor.fetchone(): 
-                            has_prev_record = True
-                            pending_warning = True # یعنی رکورد هست ولی تایید نشده
-                            
+                        if await cursor.fetchone(): has_prev_record = True
+            
             if not has_prev_record:
-                # آیا امروز جمعه است؟ (اگر بعد از تعطیلی جمعه باشد اجازه داریم)
-                y, m, d = map(int, date.split('-'))
-                is_after_weekend = jdatetime.date(y, m, d).weekday() == 0 # دوشنبه (بعد از جمعه)
-                if shift == 'شب':
-                    is_after_weekend = jdatetime.date(y, m, d).weekday() == 6 # شنبه شب (بعد از جمعه)
-                    
-                if not is_after_weekend:
-                    raise HTTPException(400, "کارکرد شیفت قبلی ثبت نشده است. لطفا ابتدا آن را ثبت کنید.")
+                # چک نکنیم آیا جمعه است یا نه، فقط بگوییم شیفت قبلی نیست
+                missing_prev_error = True
 
         work, is_first = await calculate_work_logic(machine, date, shift, counter, set_number, parts, is_chador=is_chador_val)
+        
+        if missing_prev_error:
+            work = None # نامشخص بودن کارکرد به خاطر نبود شیفت قبلی
+        
         if work is not None and work < 0: raise HTTPException(400, "کارکرد منفی است!")
         if work is not None and work > 600000: raise HTTPException(400, "کارکرد محاسبه شده غیرعادی است (بیشتر از ۶۰۰,۰۰۰). لطفا شمارنده را بررسی کنید.")
         
-        return {"work": work, "pending_warning": pending_warning}
+        return {"work": work, "pending_warning": pending_warning, "missing_prev_error": missing_prev_error}
     except Exception as e:
         if isinstance(e, HTTPException): raise e
         raise HTTPException(500, f"خطای داخلی سرور: {str(e)}")
