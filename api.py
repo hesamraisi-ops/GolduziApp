@@ -725,24 +725,44 @@ async def preview_work(machine: str = Form(...), date: str = Form(...), counter:
         
         await check_missing_shifts(op_id, date, machine)
         is_chador_val = 1 if is_chador == "true" else 0
+        
+        # بررسی وجود شیفت قبلی
+        immediate_prev = await get_immediate_previous_shift(machine, date, shift)
+        pending_warning = False
+        
+        if not immediate_prev:
+            # اگر شیفت قبلی وجود نداشت، چک کنیم چرا
+            if shift == 'شب': q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='صبح' AND status IN ('pending', 'approved', 'rejected')", (machine, date)
+            else:
+                try:
+                    y, m, d = map(int, date.split('-'))
+                    prev_d = (jdatetime.date(y, m, d) - jdatetime.timedelta(days=1)).strftime("%Y-%m-%d")
+                    q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='شب' AND status IN ('pending', 'approved', 'rejected')", (machine, prev_d)
+                except: q, p = "", ()
+            
+            # اگر رکوردی در دیتابیس نبود، باید جلوی ثبت گرفته شود
+            has_prev_record = False
+            if q:
+                async with aiosqlite.connect(DB_NAME) as db:
+                    async with db.execute(q, p) as cursor:
+                        if await cursor.fetchone(): 
+                            has_prev_record = True
+                            pending_warning = True # یعنی رکورد هست ولی تایید نشده
+                            
+            if not has_prev_record:
+                # آیا امروز جمعه است؟ (اگر بعد از تعطیلی جمعه باشد اجازه داریم)
+                y, m, d = map(int, date.split('-'))
+                is_after_weekend = jdatetime.date(y, m, d).weekday() == 0 # دوشنبه (بعد از جمعه)
+                if shift == 'شب':
+                    is_after_weekend = jdatetime.date(y, m, d).weekday() == 6 # شنبه شب (بعد از جمعه)
+                    
+                if not is_after_weekend:
+                    raise HTTPException(400, "کارکرد شیفت قبلی ثبت نشده است. لطفا ابتدا آن را ثبت کنید.")
+
         work, is_first = await calculate_work_logic(machine, date, shift, counter, set_number, parts, is_chador=is_chador_val)
         if work is not None and work < 0: raise HTTPException(400, "کارکرد منفی است!")
         if work is not None and work > 600000: raise HTTPException(400, "کارکرد محاسبه شده غیرعادی است (بیشتر از ۶۰۰,۰۰۰). لطفا شمارنده را بررسی کنید.")
-        immediate_prev = await get_immediate_previous_shift(machine, date, shift)
         
-        pending_warning = False
-        if not immediate_prev:
-            async with aiosqlite.connect(DB_NAME) as db:
-                if shift == 'شب': q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='صبح' AND status='pending'", (machine, date)
-                else:
-                    try:
-                        y, m, d = map(int, date.split('-'))
-                        prev_d = (jdatetime.date(y, m, d) - jdatetime.timedelta(days=1)).strftime("%Y-%m-%d")
-                        q, p = "SELECT id FROM shifts WHERE machine=? AND date=? AND shift_type='شب' AND status='pending'", (machine, prev_d)
-                    except: q, p = "", ()
-                if q:
-                    async with db.execute(q, p) as cursor:
-                        if await cursor.fetchone(): pending_warning = True
         return {"work": work, "pending_warning": pending_warning}
     except Exception as e:
         if isinstance(e, HTTPException): raise e
@@ -961,7 +981,7 @@ async def save_monthly_financials(data: dict, year: int, month: int, payload: di
 @app.get("/api/admin/pending_shifts")
 async def get_pending_shifts(payload: dict = Depends(verify_admin)):
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute("SELECT * FROM shifts WHERE status='pending' ORDER BY date DESC") as cursor:
+        async with db.execute("SELECT * FROM shifts WHERE status='pending' ORDER BY date DESC, CASE shift_type WHEN 'صبح' THEN 1 ELSE 2 END ASC") as cursor:
             rows = await cursor.fetchall()
     result = []
     for r in rows:
@@ -1020,7 +1040,7 @@ async def search_shifts(
     if start_date: query += " AND date >= ?"; params.append(clean_date(start_date))
     if end_date: query += " AND date <= ?"; params.append(clean_date(end_date))
     order = "DESC" if sort_order == "desc" else "ASC"
-    query += f" ORDER BY date {order}, id {order}"
+    query += f" ORDER BY date {order}, CASE shift_type WHEN 'صبح' THEN 1 ELSE 2 END ASC, id {order}"
     async with aiosqlite.connect(DB_NAME) as async_db:
         async with async_db.execute(query, params) as cursor:
             rows = await cursor.fetchall()

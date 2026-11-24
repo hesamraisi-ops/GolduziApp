@@ -1616,7 +1616,7 @@
                     let dateA = cleanD(a.date); let dateB = cleanD(b.date);
                     if (dateA !== dateB) return sortOrder === 'desc' ? dateB.localeCompare(dateA) : dateA.localeCompare(dateB);
                     let shiftA = a.shift === 'شب' ? 2 : 1; let shiftB = b.shift === 'شب' ? 2 : 1;
-                    return sortOrder === 'desc' ? shiftB - shiftA : shiftA - shiftB;
+                    return shiftA - shiftB; // همیشه صبح بالا باشه
                 });
 
                 if (filteredShifts.length === 0) {
@@ -3208,3 +3208,5 @@ function initSalarySettings() {
 <!-- Change Password Feature: 1795543744 -->
 
 <!-- Fixed Change Pass: 1795544047 -->
+
+<!-- Shift Validation & Sorting Fix: 1795547487 -->
