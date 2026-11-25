@@ -1416,12 +1416,12 @@
                         fd.append("zero_reason", document.getElementById('zeroReason').value);
                         fd.append("zero_note", document.getElementById('zeroNote').value);
                         const res = await fetch(`http://185.222.163.15:8000/api/operator/edit_shift/${editingShiftId}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
-                        if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
+                        if (!res.ok) { const d = await res.json().catch(()=>({})); showToast("❌ خطا: " + parseError(d.detail), "error"); }
                         else { showToast("✅ کارکرد صفر ویرایش شد!", 'success'); showSection('operatorDashboard'); }
                     } else {
                         const zeroPayload = { date: dateVal, machine: machineVal, zero_reason: document.getElementById('zeroReason').value, zero_note: document.getElementById('zeroNote').value };
                         const res = await fetch('http://185.222.163.15:8000/api/operator/submit_zero', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` }, body: JSON.stringify(zeroPayload) });
-                        if (!res.ok) { const d = await res.json().catch(()=>({})); alert("❌ خطا: " + parseError(d.detail)); }
+                        if (!res.ok) { const d = await res.json().catch(()=>({})); showToast("❌ خطا: " + parseError(d.detail), "error"); }
                         else { showToast("✅ کارکرد صفر ثبت شد!", 'success'); showSection('operatorDashboard'); }
                     }
                 } else {
@@ -1557,8 +1557,8 @@
                 }
                 let errorDetail = "خطا در ثبت";
                 try { const d = await res.json(); errorDetail = d.detail; } catch (jsonErr) { errorDetail = "خطای سرور " + res.status; }
-                alert("❌ خطا از سمت سرور: " + parseError(errorDetail)); 
-            } catch(e) { alert("❌ خطای شبکه: " + e.message); } finally {
+                showToast("❌ خطا از سمت سرور: " + parseError(errorDetail), "error"); 
+            } catch(e) { showToast("❌ خطای شبکه: " + e.message, "error"); } finally {
                 btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
             }
         }
@@ -1943,7 +1943,7 @@
             try {
                 const res = await fetch(url, { method, headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
                 if(res.ok) { showToast("✅ ثبت شد", 'success'); editingAdminShiftId = null; window.currentEditingOpId = null; window.currentEditingOpName = null; showSection('adminScreen'); }
-                else { const d = await res.json(); alert("❌ خطا: " + parseError(d.detail)); }
+                else { const d = await res.json(); showToast("❌ خطا: " + parseError(d.detail), "error"); }
             } catch(e) { showToast("❌ خطای شبکه.", 'error'); }
         });
 
@@ -3219,3 +3219,5 @@ function initSalarySettings() {
 <!-- Shift Validation & Sorting Fix: 1795547487 -->
 
 <!-- Allow Submit with None Work: 1795549040 -->
+
+<!-- Toast & Logic Fix: 1795628640 -->
