@@ -270,6 +270,136 @@ async def check_missing_shifts(operator_id: int, new_date_str: str, machine: str
     new_date_clean = clean_date(new_date_str)
     
     async with aiosqlite.connect(DB_NAME) as db:
+        # فقط و فقط شیفت‌های هم‌نوع (صبح با صبح / شب با شب) را چک می‌کند
+        async with db.execute("SELECT date FROM shifts WHERE operator_id=? AND machine=? AND shift_type=? AND status IN ('approved', 'pending', 'rejected')", (operator_id, machine, new_shift)) as cursor:
+            rows = await cursor.fetchall()
+    
+    recorded_dates = set()
+    for r in rows:
+        if r[0]: recorded_dates.add(clean_date(r[0]))
+    
+    if not recorded_dates:
+        return 
+        
+    min_date_str = min(recorded_dates)
+    try:
+        y, m, d = map(int, min_date_str.split('-'))
+        curr = jdatetime.date(y, m, d)
+        y2, m2, d2 = map(int, new_date_clean.split('-'))
+        target_date = jdatetime.date(y2, m2, d2)
+    except: return
+
+    while curr < target_date:
+        curr_str = curr.strftime("%Y-%m-%d")
+        
+        if curr_str not in recorded_dates:
+            if curr.weekday() != 6: 
+                raise HTTPException(400, f"شما شیفت {new_shift} تاریخ {curr_str} را ثبت نکرده‌اید. لطفا ابتدا آن را تعیین تکلیف کنید.")
+        
+        curr += jdatetime.timedelta(days=1)
+
+async def get_immediate_previous_shift(machine, date_str, shift_type):
+    target_date = clean_date(date_str)
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT * FROM shifts WHERE machine=? AND status='approved' ORDER BY id DESC", (machine,)) as cursor:
+            rows = await cursor.fetchall()
+    if shift_type == 'شب':
+        for r in rows:
+            if clean_date(r[3]) == target_date and r[4] == 'صبح':
+                return r
+    else:
+        try:
+            y, m, d = map(int, target_date.split('-'))
+            prev_date_str = (jdatetime.date(y, m, d) - jdatetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        except: return None
+        for r in rows:
+            if clean_date(r[3]) == prev_date_str and r[4] == 'شب':
+                return r
+    return None
+
+async def get_last_valid_shift_before(machine, date_str, shift_type):
+    target_date = clean_date(date_str)
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT * FROM shifts WHERE machine=? AND status='approved' AND zero_reason IS NULL", (machine,)) as cursor:
+            rows = await cursor.fetchall()
+    valid_rows = []
+    for r in rows:
+        valid_rows.append((clean_date(r[3]), r[4], r))
+    valid_rows.sort(key=lambda x: (x[0], '2' if x[1]=='شب' else '1'), reverse=True)
+    for r_date, r_shift, r in valid_rows:
+        if r_date < target_date:
+            return r
+        elif r_date == target_date:
+            if shift_type == 'شب' and r_shift == 'صبح':
+                return r
+    return None
+
+def calculate_work(prev_counter, curr_counter, reset_period, is_first_shift, start_counter):
+    if prev_counter is None:
+        if is_first_shift: prev_counter = start_counter
+        else: return None 
+    if curr_counter >= prev_counter: work = curr_counter - prev_counter
+    else: work = (reset_period - prev_counter) + curr_counter
+    if not is_first_shift and work > 600000: return None
+    return work
+
+async def calculate_work_logic(machine, date_str, shift_type, counter, set_number, parts_str, stored_bonus=0, is_chador=0):
+    if stored_bonus is None: stored_bonus = 0
+    if is_chador: return 0, False
+    
+    target_date = clean_date(date_str)
+    reset, start = await get_machine_info(machine)
+    
+    immediate_prev = await get_immediate_previous_shift(machine, target_date, shift_type)
+    
+    prev_counter = None
+    is_first = False
+    
+    if immediate_prev:
+        if immediate_prev[12]: 
+            last_valid = await get_last_valid_shift_before(machine, target_date, shift_type)
+            if last_valid: prev_counter = last_valid[6]
+            else: is_first = True 
+        else:
+            prev_counter = immediate_prev[6]
+    else:
+        last_valid = await get_last_valid_shift_before(machine, target_date, shift_type)
+        if last_valid: prev_counter = last_valid[6]
+        else: is_first = True 
+            
+    work = calculate_work(prev_counter, counter, reset, is_first, start)
+    if work is not None: work += stored_bonus
+    return work, is_first
+
+async def get_set_monthly_rank(machine, date_str, design_code=None, set_number=None):
+    last_date = clean_date(date_str)
+    if not last_date: return 1
+    try:
+        y, m, d = map(int, last_date.split('-'))
+        first_day_str = f"{y}-{m:02d}-01"
+    except: return 1
+        
+    async with aiosqlite.connect(DB_NAME) as db:
+        async with db.execute("SELECT date, jig_bonus FROM shifts WHERE machine=? AND status='approved'", (machine,)) as cursor:
+            rows = await cursor.fetchall()
+            
+    count = 0
+    for r in rows:
+        c_date = clean_date(r[0])
+        if not c_date: continue
+        if first_day_str <= c_date <= last_date:
+            bonus_val = 0
+            if r[1] is not None:
+                try: bonus_val = int(r[1])
+                except: bonus_val = 0
+            if bonus_val > 0: count += 1
+                
+    return count if count > 0 else 1
+
+async def check_missing_shifts(operator_id: int, new_date_str: str, machine: str, new_shift: str):
+    new_date_clean = clean_date(new_date_str)
+    
+    async with aiosqlite.connect(DB_NAME) as db:
         # فقط تاریخ‌هایی که مربوط به همان شیفت (صبح یا شب) هستند را می‌گیریم
         async with db.execute("SELECT date FROM shifts WHERE operator_id=? AND machine=? AND shift_type=? AND status IN ('approved', 'pending', 'rejected')", (operator_id, machine, new_shift)) as cursor:
             rows = await cursor.fetchall()
