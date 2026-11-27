@@ -446,7 +446,7 @@ async def manual_shift(operator_id: int = Form(...), date: str = Form(...), shif
             if photo:
                 safe_name = machine.replace(" ", "-"); photo_path = f"{PHOTO_DIR}/{date}_{shift_type}_{operator_id}_{safe_name}.jpg"
                 contents = await photo.read()
-                if len(contents) > 5 * 1024 * 1024: raise HTTPException(400, "حجم عکس زیاد است")
+                if len(contents) > 10 * 1024 * 1024: raise HTTPException(400, "حجم عکس بیشتر از ۱۰ مگابایت است.")
                 with open(photo_path, "wb") as buffer: buffer.write(contents)
                 final_photo = photo_path
             await db.execute("INSERT INTO shifts (operator_id, operator_name, date, shift_type, machine, counter, design_code, set_number, parts, photo_path, status, admin_note, zero_reason, zero_note, jig_bonus, is_chador, chador_count, chador_invoice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (operator_id, op_name, date, shift_type, machine, counter, design_code, set_number, parts, final_photo, "approved", "ثبت دستی", zero_reason, zero_note, 60000 if request_bonus == "true" else 0, 1 if is_chador == "true" else 0, chador_count, chador_invoice))
@@ -465,7 +465,7 @@ async def admin_edit_shift(shift_id: int, operator_id: int = Form(...), date: st
             if photo:
                 safe_name = machine.replace(" ", "-"); photo_path = f"{PHOTO_DIR}/{date}_{shift_type}_{operator_id}_{safe_name}.jpg"
                 contents = await photo.read()
-                if len(contents) > 5 * 1024 * 1024: raise HTTPException(400, "حجم عکس زیاد است")
+                if len(contents) > 10 * 1024 * 1024: raise HTTPException(400, "حجم عکس بیشتر از ۱۰ مگابایت است.")
                 with open(photo_path, "wb") as buffer: buffer.write(contents)
                 final_photo = photo_path
             await db.execute("UPDATE shifts SET operator_id=?, operator_name=?, machine=?, date=?, shift_type=?, counter=?, design_code=?, set_number=?, parts=?, photo_path=?, is_chador=?, chador_count=?, chador_invoice=?, zero_reason=?, zero_note=?, jig_bonus=?, status='approved' WHERE id=?", (operator_id, op_name, machine, date, shift_type, counter, design_code, set_number, parts, final_photo, 1 if is_chador == "true" else 0, chador_count, chador_invoice, zero_reason, zero_note, 60000 if request_bonus == "true" else 0, shift_id))
