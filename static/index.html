@@ -1558,7 +1558,11 @@
                 let errorDetail = "خطا در ثبت";
                 try { const d = await res.json(); errorDetail = d.detail; } catch (jsonErr) { errorDetail = "خطای سرور " + res.status; }
                 showToast("❌ خطا از سمت سرور: " + parseError(errorDetail), "error"); 
-            } catch(e) { showToast("❌ خطای شبکه: " + e.message, "error"); } finally {
+            } catch(e) { 
+                let errMsg = e.message;
+                if (!errMsg) errMsg = "ارتباط با سرور قطع شد. لطفا اینترنت گوشی را بررسی کنید.";
+                showToast("❌ خطای شبکه: " + errMsg, "error"); 
+            } finally {
                 btn.disabled = false; btn.innerText = editingShiftId ? "ذخیره تغییرات" : "ارسال به مدیر";
             }
         }
@@ -3238,3 +3242,5 @@ function initSalarySettings() {
 <!-- Toast & Logic Fix: 1795628640 -->
 
 <!-- Final Logic & Toast: 1795629084 -->
+
+<!-- Fix Undefined Error: 1795768848 -->

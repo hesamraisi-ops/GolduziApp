@@ -346,15 +346,23 @@ async def submit_shift(machine: str = Form(...), date: str = Form(...), design_c
     try:
         date = clean_date(date)
         await check_missing_shifts(int(payload["sub"]), date, machine, payload["shift_type"])
+        
+        if not photo:
+            raise HTTPException(400, "عکس دستگاه الزامی است.")
+            
         contents = await photo.read()
-        if len(contents) > 5 * 1024 * 1024: raise HTTPException(400, "حجم عکس زیاد است")
+        if len(contents) > 5 * 1024 * 1024: 
+            raise HTTPException(400, "حجم عکس بیشتر از ۵ مگابایت است. لطفا عکس کم‌حجم‌تری انتخاب کنید.")
+            
         safe_name = machine.replace(" ", "-")
         photo_path = f"{PHOTO_DIR}/{date}_{payload['shift_type']}_{payload['sub']}_{safe_name}.jpg"
         with open(photo_path, "wb") as buffer: buffer.write(contents)
+        
         is_chador_val = 1 if is_chador == "true" else 0
         work, _ = await calculate_work_logic(machine, date, payload["shift_type"], counter, set_number, parts, is_chador=is_chador_val)
         if work is not None and work < 0: raise HTTPException(400, "کارکرد منفی است!")
         if work is not None and work > 600000: raise HTTPException(400, "کارکرد غیرعادی است.")
+        
         bonus_val = 60000 if request_bonus == "true" else 0
         async with aiosqlite.connect(DB_NAME) as db:
             async with db.execute("SELECT id, date FROM shifts WHERE machine=? AND shift_type=? AND status IN ('approved', 'pending', 'rejected')", (machine, payload["shift_type"])) as cursor:
@@ -365,7 +373,7 @@ async def submit_shift(machine: str = Form(...), date: str = Form(...), design_c
         return {"status": "ok"}
     except Exception as e:
         if isinstance(e, HTTPException): raise e
-        raise HTTPException(500, str(e))
+        raise HTTPException(500, f"خطای سرور: {str(e)}")
 
 @app.post("/api/operator/submit_zero")
 async def submit_zero(data: dict, payload: dict = Depends(verify_token)):
